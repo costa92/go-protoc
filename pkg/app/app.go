@@ -1,38 +1,39 @@
 package app
 
 import (
-	"net/http"
+	"log"
 
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
 
 type App struct {
-	grpcServer *grpc.Server
-	httpServer *http.Server
 }
 
-func NewApp(grpcServer *grpc.Server, httpServer *http.Server) *App {
-	return &App{
-		grpcServer: grpcServer,
-		httpServer: httpServer,
-	}
+func NewApp(options ...func(*App)) *App {
+	return &App{}
 }
 
 func (a *App) Run() {
-
+	eg := errgroup.Group{}
 	// 启动 gRPC 服务器
-
-	go func() {
-		// 调用 RunGRPCServer 函数
-		grpc := NewGRPCServer(WithGRPCServer(a.grpcServer))
+	eg.Go(func() error {
+		grpc := NewGRPCServer(WithGRPCServer(grpc.NewServer()))
 		if _, err := grpc.RunGRPCServer(":8100"); err != nil {
-			panic(err)
+			return err
 		}
-	}()
+		return nil
+	})
 
-	// 调用 RunHTTPServer 函数
-	httpServer := RunHTTPServer(":8080", nil, nil)
-	if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		panic(err)
+	eg.Go(func() error {
+		httpServer := NewHTTPServer(WithAddr(":8080"))
+		if _, err := httpServer.RunHTTPServer(nil, nil); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err := eg.Wait(); err != nil {
+		log.Fatal(err)
 	}
 }

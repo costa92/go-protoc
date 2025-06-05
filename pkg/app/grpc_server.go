@@ -1,7 +1,6 @@
 package app
 
 import (
-	"log"
 	"net"
 
 	"google.golang.org/grpc"
@@ -41,12 +40,9 @@ func (s *GRPCServer) RunGRPCServer(grpcAddr string) (*grpc.Server, error) {
 		apply(grpcServer)
 	}
 
-	go func() {
-		log.Printf("gRPC server listening at %s", grpcAddr)
-		if err := grpcServer.Serve(lis); err != nil {
-			log.Printf("failed to serve: %v", err)
-		}
-	}()
+	if err := grpcServer.Serve(lis); err != nil {
+		return nil, err
+	}
 
 	return grpcServer, nil
 }

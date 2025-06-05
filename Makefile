@@ -19,4 +19,4 @@ proto:
 		$(PROTO_FILES)
 
 clean:
-	for dir in $(PROTO_DIRS); do rm -f $$dir/*.pb.go $$dir/*_grpc.pb.go $$dir/*_gw.go; done 
+	for dir in $(PROTO_DIRS); do rm -f $$dir/*.pb.go $$dir/*_grpc.pb.go $$dir/*_gw.go; done
