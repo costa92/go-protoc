@@ -48,7 +48,7 @@ func main() {
 	apiServer := server.NewGenericAPIServer(config)
 
 	// 创建并安装 helloworld API 组
-	helloworldInstaller := helloworld.NewInstaller(logger, config.GRPCAddr)
+	helloworldInstaller := helloworld.NewInstaller(logger)
 	if err := apiServer.InstallAPIGroup(helloworldInstaller); err != nil {
 		logger.Fatal("failed to install helloworld API group", zap.Error(err))
 	}
