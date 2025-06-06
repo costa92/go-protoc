@@ -64,5 +64,4 @@ func main() {
 	if err := apiServer.Start(ctx); err != nil {
 		log.Fatal(err)
 	}
-
 }
