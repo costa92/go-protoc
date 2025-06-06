@@ -9,12 +9,10 @@ import (
 	"time"
 
 	"github.com/costa92/go-protoc/internal/helloworld"
+	"github.com/costa92/go-protoc/pkg/app"
 	grpcmiddleware "github.com/costa92/go-protoc/pkg/middleware/grpc"
 	httpmiddleware "github.com/costa92/go-protoc/pkg/middleware/http"
-	"github.com/costa92/go-protoc/pkg/server"
-	"github.com/gorilla/mux"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
 )
 
 func main() {
@@ -22,30 +20,26 @@ func main() {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 
-	// 创建服务器配置
-	config := &server.Config{
-		HTTPAddr: ":8090",
-		GRPCAddr: ":8091",
-		Logger:   logger,
+	// 创建应用实例
+	apiServer := app.NewApp(":8090", ":8091", logger,
 		// 添加 HTTP 中间件
-		HTTPMiddlewares: []mux.MiddlewareFunc{
+		app.WithHTTPMiddlewares(
 			httpmiddleware.LoggingMiddleware(logger),
 			httpmiddleware.RecoveryMiddleware(logger),
-			httpmiddleware.TimeoutMiddleware(5 * time.Second),
-		},
+			httpmiddleware.TimeoutMiddleware(5*time.Second),
+		),
 		// 添加 gRPC 拦截器
-		GRPCUnaryInterceptors: []grpc.UnaryServerInterceptor{
+		app.WithGRPCUnaryInterceptors(
 			grpcmiddleware.UnaryLoggingInterceptor(logger),
 			grpcmiddleware.UnaryRecoveryInterceptor(logger),
-		},
-		GRPCStreamInterceptors: []grpc.StreamServerInterceptor{
+		),
+		app.WithGRPCStreamInterceptors(
 			grpcmiddleware.StreamLoggingInterceptor(logger),
 			grpcmiddleware.StreamRecoveryInterceptor(logger),
-		},
-	}
+		),
+	)
 
-	// 创建 API 服务器
-	apiServer := server.NewGenericAPIServer(config)
+	defer apiServer.Stop()
 
 	// 创建并安装 helloworld API 组
 	helloworldInstaller := helloworld.NewInstaller(logger)
@@ -67,7 +61,8 @@ func main() {
 	}()
 
 	// 启动服务器
-	if err := apiServer.Run(ctx); err != nil {
+	if err := apiServer.Start(ctx); err != nil {
 		log.Fatal(err)
 	}
+
 }
