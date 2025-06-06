@@ -19,6 +19,7 @@ type HTTPServer struct {
 	mainHandler http.Handler
 	logger      *zap.Logger
 	middlewares []mux.MiddlewareFunc
+	server      *http.Server
 }
 
 // NewHTTPServer 创建一个新的 HTTP 服务器
@@ -33,11 +34,6 @@ func NewHTTPServer(addr string, logger *zap.Logger, opts ...ServerOption) *HTTPS
 	// 应用选项
 	for _, opt := range opts {
 		opt(s)
-	}
-
-	// 应用中间件
-	for _, middleware := range s.middlewares {
-		s.router.Use(middleware)
 	}
 
 	return s
@@ -79,7 +75,7 @@ func (s *HTTPServer) Start(ctx context.Context) error {
 	s.registerDebugHandlers()
 
 	// 创建 HTTP 服务器
-	srv := &http.Server{
+	s.server = &http.Server{
 		Addr:    s.addr,
 		Handler: s.mainHandler,
 	}
@@ -90,7 +86,7 @@ func (s *HTTPServer) Start(ctx context.Context) error {
 	// 在一个新的 goroutine 中启动服务器
 	go func() {
 		s.logger.Info("starting HTTP server", zap.String("addr", s.addr))
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errChan <- fmt.Errorf("HTTP server error: %w", err)
 		}
 	}()
@@ -100,14 +96,21 @@ func (s *HTTPServer) Start(ctx context.Context) error {
 	case err := <-errChan:
 		return err
 	case <-ctx.Done():
+		return s.Stop()
+	}
+}
+
+// Stop 停止 HTTP 服务器
+func (s *HTTPServer) Stop() error {
+	if s.server != nil {
 		// 创建一个关闭超时上下文
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
 		// 优雅关闭 HTTP 服务器
-		if err := srv.Shutdown(shutdownCtx); err != nil {
+		if err := s.server.Shutdown(shutdownCtx); err != nil {
 			return fmt.Errorf("HTTP server shutdown error: %w", err)
 		}
-		return nil
 	}
+	return nil
 }

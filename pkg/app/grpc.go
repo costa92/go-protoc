@@ -81,8 +81,15 @@ func (s *GRPCServer) Start(ctx context.Context) error {
 	case err := <-errChan:
 		return err
 	case <-ctx.Done():
-		s.logger.Info("shutting down gRPC server")
-		s.server.GracefulStop()
-		return nil
+		return s.Stop()
 	}
+}
+
+// Stop 停止 gRPC 服务器
+func (s *GRPCServer) Stop() error {
+	if s.server != nil {
+		s.logger.Info("gracefully stopping gRPC server")
+		s.server.GracefulStop()
+	}
+	return nil
 }
