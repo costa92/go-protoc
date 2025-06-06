@@ -3,7 +3,6 @@ package helloworld
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/costa92/go-protoc/internal/helloworld/service"
 	v1 "github.com/costa92/go-protoc/pkg/api/helloworld/v1"
@@ -37,7 +36,6 @@ func NewInstaller(logger *zap.Logger) *APIGroupInstaller {
 func (i *APIGroupInstaller) Install(router *mux.Router) error {
 	// 创建 grpc-gateway 的 ServeMux
 	gwmux := runtime.NewServeMux()
-
 	// 注册 v1 的 HTTP 路由
 	err := v1.RegisterGreeterHandlerServer(context.Background(), gwmux, i.v1Service)
 	if err != nil {
@@ -51,13 +49,7 @@ func (i *APIGroupInstaller) Install(router *mux.Router) error {
 	}
 
 	// 将 grpc-gateway 的处理器注册到主路由器
-	router.PathPrefix("/").Handler(gwmux)
-
-	// 添加健康检查路由
-	router.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
-	})
+	router.PathPrefix("/api").Handler(gwmux)
 
 	return nil
 }

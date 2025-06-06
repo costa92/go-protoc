@@ -57,8 +57,11 @@ func (s *HTTPServer) registerDebugHandlers() {
 	// 创建一个新的 ServeMux 作为主处理器
 	mainHandler := http.NewServeMux()
 
-	// 将 API 路由器挂载到 /api 路径下
-	mainHandler.Handle("/api/", http.StripPrefix("/api", s.router))
+	// 注册健康检查路由
+	mainHandler.HandleFunc("/healthz", s.handleHealthCheck)
+
+	// 将 API 路由器挂载到主处理器
+	mainHandler.Handle("/", s.router)
 
 	// 将 pprof 处理器直接挂载到主处理器
 	mainHandler.Handle("/debug/pprof/", pprofMux)
@@ -67,6 +70,14 @@ func (s *HTTPServer) registerDebugHandlers() {
 	s.mainHandler = mainHandler
 
 	s.logger.Info("registered debug handlers", zap.String("path", "/debug/pprof/*"))
+	s.logger.Info("registered health check handler", zap.String("path", "/healthz"))
+}
+
+// handleHealthCheck 处理健康检查请求
+func (s *HTTPServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
+	s.logger.Info("health check")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("ok"))
 }
 
 // Start 启动 HTTP 服务器
