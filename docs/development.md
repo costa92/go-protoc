@@ -3,12 +3,14 @@
 ## 环境要求
 
 ### 基础环境
+
 - Go 1.20+
 - Protocol Buffers 编译器 (protoc)
 - Make
 - Git
 
 ### 开发工具
+
 - 推荐使用 VS Code 或 GoLand
 - Go 语言插件
 - Protocol Buffers 插件
@@ -17,6 +19,7 @@
 ## 开发环境设置
 
 1. 安装 Go
+
 ```bash
 # macOS
 brew install go
@@ -27,6 +30,7 @@ sudo tar -C /usr/local -xzf go1.20.linux-amd64.tar.gz
 ```
 
 2. 安装 Protocol Buffers
+
 ```bash
 # macOS
 brew install protobuf
@@ -36,12 +40,14 @@ sudo apt-get install protobuf-compiler
 ```
 
 3. 克隆项目
+
 ```bash
 git clone https://github.com/costa92/go-protoc.git
 cd go-protoc
 ```
 
 4. 安装依赖
+
 ```bash
 go mod download
 ```
@@ -59,6 +65,7 @@ go mod download
 ### 2. 开发步骤
 
 1. 从 develop 分支创建功能分支
+
 ```bash
 git checkout develop
 git checkout -b feature/your-feature
@@ -124,6 +131,7 @@ git checkout -b feature/your-feature
 ### 1. 提交信息规范
 
 格式：
+
 ```
 <type>(<scope>): <subject>
 
@@ -133,6 +141,7 @@ git checkout -b feature/your-feature
 ```
 
 类型（type）：
+
 - feat: 新功能
 - fix: 修复
 - docs: 文档
