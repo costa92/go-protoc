@@ -21,7 +21,7 @@ all: proto
 
 proto:
 	$(PROTOC) -I. \
-		-Ithird_party/googleapis/ \
+		-Ithird_party/ \
 		--go_out . --go_opt paths=source_relative \
 		--go-grpc_out . --go-grpc_opt paths=source_relative \
 		--grpc-gateway_out . --grpc-gateway_opt paths=source_relative \
@@ -34,7 +34,7 @@ swagger:
 		(echo "   'protoc-gen-openapiv2' não encontrado, instalando..."; \
 		go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest)
 	$(PROTOC) -I . \
-		-Ithird_party/googleapis/ \
+		-Ithird_party/ \
 		--openapiv2_out=. \
 		--openapiv2_opt=logtostderr=true \
 		$(PROTO_FILES)
