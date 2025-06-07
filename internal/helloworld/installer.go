@@ -8,6 +8,7 @@ import (
 	"github.com/costa92/go-protoc/internal/helloworld/service"
 	v1 "github.com/costa92/go-protoc/pkg/api/helloworld/v1"
 	v2 "github.com/costa92/go-protoc/pkg/api/helloworld/v2"
+	"github.com/costa92/go-protoc/pkg/response" // Import the response package
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"go.uber.org/zap"
@@ -36,7 +37,12 @@ func NewInstaller(logger *zap.Logger) *APIGroupInstaller {
 // Install 实现 server.Installer 接口
 func (i *APIGroupInstaller) Install(router *mux.Router) error {
 	// 创建 grpc-gateway 的 ServeMux
-	gwmux := runtime.NewServeMux()
+	gwmux := runtime.NewServeMux(
+		runtime.WithErrorHandler(response.CustomHTTPErrorHandler),
+		runtime.WithMarshalerOption(runtime.MIMEWildcard, &response.CustomMarshaler{
+			Marshaler: &runtime.JSONPb{},
+		}),
+	)
 
 	// 注册 v1 的 HTTP 路由
 	err := v1.RegisterGreeterHandlerServer(context.Background(), gwmux, i.v1Service)
