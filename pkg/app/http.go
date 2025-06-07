@@ -53,19 +53,14 @@ func (s *HTTPServer) registerDebugHandlers() {
 	pprofMux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 	pprofMux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	pprofMux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-
 	// 创建一个新的 ServeMux 作为主处理器
 	mainHandler := http.NewServeMux()
-
 	// 注册健康检查路由
 	mainHandler.HandleFunc("/healthz", s.handleHealthCheck)
-
-	// 将 API 路由器挂载到主处理器
-	mainHandler.Handle("/", s.router)
-
 	// 将 pprof 处理器直接挂载到主处理器
 	mainHandler.Handle("/debug/pprof/", pprofMux)
-
+	// 将 API 路由器挂载到主处理器
+	mainHandler.Handle("/api/", http.StripPrefix("/api", s.router))
 	// 设置主处理器
 	s.mainHandler = mainHandler
 

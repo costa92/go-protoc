@@ -47,10 +47,8 @@ func (i *APIGroupInstaller) Install(router *mux.Router) error {
 	if err != nil {
 		return fmt.Errorf("failed to register v2 handler: %w", err)
 	}
-
-	// 将 grpc-gateway 的处理器注册到主路由器
-	router.PathPrefix("/api").Handler(gwmux)
-
+	// 将 gateway mux 挂载到主路由器
+	router.PathPrefix("/").Handler(gwmux)
 	return nil
 }
 
