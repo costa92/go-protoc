@@ -17,7 +17,7 @@ type Wrapper struct {
 	Status  string      `json:"status"`            // "success" or "error"
 	Data    interface{} `json:"data,omitempty"`    // Business data
 	Message string      `json:"message,omitempty"` // Message
-	Code    int         `json:"code,omitempty"`    // Code
+	Code    int         `json:"code"`              // Code
 }
 
 // CustomMarshaler implements the runtime.Marshaler interface
@@ -37,6 +37,7 @@ func (c *CustomMarshaler) Marshal(v interface{}) ([]byte, error) {
 		Status:  "success",
 		Data:    v, // v is the original gRPC response message
 		Message: "Request completed successfully",
+		Code:    http.StatusOK,
 	}
 
 	return json.Marshal(wrappedSuccess)
