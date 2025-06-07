@@ -1,3 +1,11 @@
+# Build all by default, even if it's not first
+.DEFAULT_GOAL := help
+
+# ==============================================================================
+# Includes
+
+include scripts/make-rules/common.mk # make sure include common.mk at the first include line
+include scripts/make-rules/all.mk
 
 # --- Variáveis ---
 # Ferramentas
@@ -25,20 +33,20 @@ proto:
 		--go_out . --go_opt paths=source_relative \
 		--go-grpc_out . --go-grpc_opt paths=source_relative \
 		--grpc-gateway_out . --grpc-gateway_opt paths=source_relative \
+		--openapi_out=fq_schema_naming=true,default_response=false:$(PROJECT_ROOT)/api/openapi \
+		--openapiv2_out=$(PROJECT_ROOT)/api/openapi \
+		--openapiv2_opt=logtostderr=true \
+		--openapiv2_opt=json_names_for_fields=false \
 		$(PROTO_FILES)
 
-swagger:
-	@echo ">> Gerando arquivos JSON do OpenAPIv2 (Swagger)..."
-	@# Verifica se 'protoc-gen-openapiv2' está instalado, instala se não estiver.
-	@command -v protoc-gen-openapiv2 >/dev/null 2>&1 || \
-		(echo "   'protoc-gen-openapiv2' não encontrado, instalando..."; \
-		go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest)
-	$(PROTOC) -I . \
-		-Ithird_party/ \
-		--openapiv2_out=. \
-		--openapiv2_opt=logtostderr=true \
-		$(PROTO_FILES)
-	@echo "Arquivos Swagger gerados com sucesso."
+.PHONY: swagger
+#swagger: gen.protoc
+swagger: ## Generate and aggregate swagger document.
+	@$(MAKE) swagger.run
+
+.PHONY: swagger.serve
+serve-swagger: ## Serve swagger spec and docs at 65534.
+	@$(MAKE) swagger.serve
 
 clean:
 	@echo ">> Limpando arquivos gerados e binários..."
@@ -46,3 +54,10 @@ clean:
 	find $(API_DIR) -name "*.pb.go" -exec rm -f {} +
 	find $(API_DIR) -name "*.pb.gw.go" -exec rm -f {} +
 	find $(API_DIR) -name "*.swagger.json" -exec rm -f {} +
+
+.PHONY: install-tools
+install-tools: ## Install CI-related tools. Install all tools by specifying `A=1`.
+	$(MAKE) install.ci
+	if [[ "$(A)" == 1 ]]; then                                             \
+		$(MAKE) _install.other ;                                            \
+	fi

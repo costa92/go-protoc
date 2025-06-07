@@ -1,0 +1,135 @@
+consumes:
+    - application/json
+produces:
+    - application/json
+swagger: "2.0"
+info:
+    title: pkg/api/helloworld/v1/helloworld.proto
+    version: version not set
+paths:
+    /v1/hello:
+        post:
+            operationId: Greeter_SayHello
+            parameters:
+                - in: body
+                  name: body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/helloworldv1HelloRequest'
+            responses:
+                "200":
+                    description: A successful response.
+                    schema:
+                        $ref: '#/definitions/helloworldv1HelloReply'
+                default:
+                    description: An unexpected error response.
+                    schema:
+                        $ref: '#/definitions/rpcStatus'
+            summary: post /v1/hello
+            tags:
+                - Greeter
+    /v1/hello/{name}:
+        get:
+            operationId: Greeter_SayHelloAgain
+            parameters:
+                - in: path
+                  name: name
+                  required: true
+                  type: string
+            responses:
+                "200":
+                    description: A successful response.
+                    schema:
+                        $ref: '#/definitions/helloworldv1HelloReply'
+                default:
+                    description: An unexpected error response.
+                    schema:
+                        $ref: '#/definitions/rpcStatus'
+            summary: get /v1/hello/{name}
+            tags:
+                - Greeter
+    /v2/hello:
+        post:
+            operationId: Greeter_SayHelloMixin0
+            parameters:
+                - in: body
+                  name: body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/helloworldv2HelloRequest'
+            responses:
+                "200":
+                    description: A successful response.
+                    schema:
+                        $ref: '#/definitions/helloworldv2HelloReply'
+                default:
+                    description: An unexpected error response.
+                    schema:
+                        $ref: '#/definitions/rpcStatus'
+            summary: post /v2/hello
+            tags:
+                - Greeter
+    /v2/hello/{name}:
+        get:
+            operationId: Greeter_SayHelloAgainMixin0
+            parameters:
+                - in: path
+                  name: name
+                  required: true
+                  type: string
+            responses:
+                "200":
+                    description: A successful response.
+                    schema:
+                        $ref: '#/definitions/helloworldv2HelloReply'
+                default:
+                    description: An unexpected error response.
+                    schema:
+                        $ref: '#/definitions/rpcStatus'
+            summary: get /v2/hello/{name}
+            tags:
+                - Greeter
+definitions:
+    helloworldv1HelloReply:
+        properties:
+            message:
+                type: string
+        type: object
+    helloworldv1HelloRequest:
+        properties:
+            name:
+                type: string
+        type: object
+    helloworldv2HelloReply:
+        properties:
+            message:
+                type: string
+                x-order: !!float 0
+        type: object
+    helloworldv2HelloRequest:
+        properties:
+            name:
+                type: string
+                x-order: !!float 0
+        type: object
+    protobufAny:
+        additionalProperties: {}
+        properties:
+            '@type':
+                type: string
+        type: object
+    rpcStatus:
+        properties:
+            code:
+                format: int32
+                type: integer
+            details:
+                items:
+                    $ref: '#/definitions/protobufAny'
+                    type: object
+                type: array
+            message:
+                type: string
+        type: object
+tags:
+    - name: Greeter
