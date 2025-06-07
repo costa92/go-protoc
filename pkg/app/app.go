@@ -132,13 +132,15 @@ func (a *App) Start(ctx context.Context) error {
 
 // Stop 停止应用服务器
 func (a *App) Stop() error {
-	// 创建一个带超时的上下文
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	// 为每个服务器设置独立的超时时间
+	shutdownTimeout := 10 * time.Second
 
 	// 先停止 gRPC 服务器
 	if a.grpcServer != nil && a.grpcServer.server != nil {
 		a.logger.Info("stopping gRPC server")
+		grpcCtx, grpcCancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer grpcCancel()
+
 		done := make(chan struct{})
 		go func() {
 			a.grpcServer.server.GracefulStop()
@@ -147,8 +149,8 @@ func (a *App) Stop() error {
 
 		select {
 		case <-done:
-			a.logger.Info("gRPC server stopped")
-		case <-ctx.Done():
+			a.logger.Info("gRPC server stopped gracefully")
+		case <-grpcCtx.Done():
 			a.logger.Warn("gRPC server shutdown timeout, forcing stop")
 			a.grpcServer.server.Stop()
 		}
@@ -157,11 +159,19 @@ func (a *App) Stop() error {
 	// 再停止 HTTP 服务器
 	if a.httpServer != nil && a.httpServer.server != nil {
 		a.logger.Info("stopping HTTP server")
-		if err := a.httpServer.server.Shutdown(ctx); err != nil {
-			a.logger.Error("HTTP server shutdown error", zap.Error(err))
-			return fmt.Errorf("HTTP server shutdown error: %w", err)
+		httpCtx, httpCancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer httpCancel()
+
+		if err := a.httpServer.server.Shutdown(httpCtx); err != nil {
+			if err == context.DeadlineExceeded {
+				a.logger.Warn("HTTP server shutdown timeout, some connections may be forcefully closed")
+			} else {
+				a.logger.Error("HTTP server shutdown error", zap.Error(err))
+				return fmt.Errorf("HTTP server shutdown error: %w", err)
+			}
+		} else {
+			a.logger.Info("HTTP server stopped gracefully")
 		}
-		a.logger.Info("HTTP server stopped")
 	}
 
 	return nil
