@@ -3,6 +3,7 @@ package helloworld
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/costa92/go-protoc/internal/helloworld/service"
 	v1 "github.com/costa92/go-protoc/pkg/api/helloworld/v1"
@@ -36,6 +37,7 @@ func NewInstaller(logger *zap.Logger) *APIGroupInstaller {
 func (i *APIGroupInstaller) Install(router *mux.Router) error {
 	// 创建 grpc-gateway 的 ServeMux
 	gwmux := runtime.NewServeMux()
+
 	// 注册 v1 的 HTTP 路由
 	err := v1.RegisterGreeterHandlerServer(context.Background(), gwmux, i.v1Service)
 	if err != nil {
@@ -47,8 +49,9 @@ func (i *APIGroupInstaller) Install(router *mux.Router) error {
 	if err != nil {
 		return fmt.Errorf("failed to register v2 handler: %w", err)
 	}
-	// 将 gateway mux 挂载到主路由器
-	router.PathPrefix("/").Handler(gwmux)
+
+	// 将 gateway mux 挂载到路由器，使用 PathPrefix 确保所有请求都带有 /api 前缀
+	router.PathPrefix("/api/").Handler(http.StripPrefix("/api", gwmux))
 	return nil
 }
 
