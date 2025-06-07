@@ -81,7 +81,7 @@ Go-Protoc 是一个基于 Go 语言的 Protocol Buffers 工具链项目，旨在
 
 ## 目录结构
 
-```
+```bash
 .
 ├── cmd/                    # 命令行工具
 ├── pkg/                    # 核心功能包
