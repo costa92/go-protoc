@@ -50,6 +50,8 @@ type App struct {
 	grpcUnaryInterceptors []grpc.UnaryServerInterceptor
 	// gRPC 流式拦截器列表
 	grpcStreamInterceptors []grpc.StreamServerInterceptor
+	// gRPC 服务器选项
+	grpcOptions []grpc.ServerOption
 }
 
 // NewApp 创建一个新的 App 实例
@@ -65,6 +67,7 @@ func NewApp(httpAddr, grpcAddr string, logger *zap.Logger, opts ...ServerOption)
 		httpMiddlewares:        make([]mux.MiddlewareFunc, 0),
 		grpcUnaryInterceptors:  make([]grpc.UnaryServerInterceptor, 0),
 		grpcStreamInterceptors: make([]grpc.StreamServerInterceptor, 0),
+		grpcOptions:            make([]grpc.ServerOption, 0),
 	}
 
 	// 应用所有选项
@@ -80,6 +83,7 @@ func NewApp(httpAddr, grpcAddr string, logger *zap.Logger, opts ...ServerOption)
 	grpcOpts := []ServerOption{
 		WithGRPCUnaryInterceptors(app.grpcUnaryInterceptors...),
 		WithGRPCStreamInterceptors(app.grpcStreamInterceptors...),
+		WithGRPCOptions(app.grpcOptions...),
 	}
 	app.grpcServer = NewGRPCServer(app.grpcAddr, app.logger, grpcOpts...)
 

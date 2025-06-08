@@ -51,8 +51,11 @@ func WithHTTPMiddlewares(middlewares ...mux.MiddlewareFunc) ServerOption {
 // WithGRPCOptions 添加 gRPC 服务器选项
 func WithGRPCOptions(opts ...grpc.ServerOption) ServerOption {
 	return func(srv interface{}) {
-		if s, ok := srv.(*GRPCServer); ok {
+		switch s := srv.(type) {
+		case *GRPCServer:
 			s.options = append(s.options, opts...)
+		case *App:
+			s.grpcOptions = append(s.grpcOptions, opts...)
 		}
 	}
 }

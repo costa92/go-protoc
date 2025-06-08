@@ -16,6 +16,7 @@ import (
 	"github.com/costa92/go-protoc/pkg/tracing"
 
 	// ↓↓↓ 确保以下两个包已导入 ↓↓↓
+
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
@@ -28,12 +29,12 @@ func main() {
 	defer logger.Sync()
 
 	// 初始化 OpenTelemetry Tracer
-	shutdown, err := tracing.InitTracer("go-protoc-service") //
+	tp, err := tracing.InitTracer("go-protoc-service") //
 	if err != nil {
 		logger.Fatal("failed to initialize OpenTelemetry Tracer", zap.Error(err))
 	}
 	defer func() {
-		if err := shutdown(context.Background()); err != nil {
+		if err := tp.Shutdown(context.Background()); err != nil {
 			logger.Error("failed to shutdown tracer", zap.Error(err))
 		}
 	}()
@@ -44,7 +45,7 @@ func main() {
 	}
 
 	// 创建 gRPC 统计处理器
-	otelGrpcHandler := otelgrpc.NewServerHandler()
+	otelGrpcHandler := otelgrpc.NewServerHandler(otelgrpc.WithTracerProvider(tp))
 
 	// 创建应用实例
 	apiServer := app.NewApp(":8090", ":8091", logger,

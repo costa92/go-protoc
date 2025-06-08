@@ -14,7 +14,7 @@ import (
 )
 
 // InitTracer 初始化 OpenTelemetry 追踪器并返回一个关闭函数。
-func InitTracer(serviceName string) (func(context.Context) error, error) {
+func InitTracer(serviceName string) (*trace.TracerProvider, error) {
 	// 为了演示，我们将使用一个标准的 stdout 导出器。
 	// 在生产环境中，您应该使用 OTLP 导出器将数据发送到如 Jaeger, Zipkin 或 OpenTelemetry Collector。
 	exporter, err := stdouttrace.New(
@@ -48,5 +48,5 @@ func InitTracer(serviceName string) (func(context.Context) error, error) {
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 
 	// 返回关闭函数，以便在程序退出时调用。
-	return tp.Shutdown, nil
+	return tp, nil
 }
