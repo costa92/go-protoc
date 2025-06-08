@@ -1,0 +1,39 @@
+# Git 相关文件
+.git
+.gitignore
+
+# 编译生成的文件
+bin/
+_output/
+*.o
+*.a
+*.so
+*.exe
+*.dll
+*.dylib
+
+# 测试文件
+*_test.go
+test/
+coverage.*
+
+# IDE 配置
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# 临时文件和日志
+*.log
+*.tmp
+tmp/
+temp/
+
+# 其他
+README.md
+LICENSE
+.dockerignore
+Dockerfile
+deployments/
+build/
+docs/

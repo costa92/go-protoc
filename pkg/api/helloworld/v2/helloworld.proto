@@ -5,6 +5,7 @@ package helloworld.v2;
 option go_package = "github.com/costa92/go-protoc/pkg/api/helloworld/v2;helloworldv2";
 
 import "google/api/annotations.proto";
+import "validate/validate.proto";
 
 service Greeter {
   // post /v2/hello
@@ -24,7 +25,7 @@ service Greeter {
 }
 
 message HelloRequest {
-  string name = 1;
+  string name = 1 [(validate.rules).string = {min_len: 1, max_len: 100}];
 }
 
 message HelloReply {

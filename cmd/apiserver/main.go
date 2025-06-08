@@ -69,15 +69,18 @@ func main() {
 			httpmiddleware.LoggingMiddleware(logger),
 			httpmiddleware.RecoveryMiddleware(logger),
 			httpmiddleware.TimeoutMiddleware(httpTimeout),
+			httpmiddleware.ValidationMiddleware(logger),
 		),
 		// 添加 gRPC 拦截器
 		app.WithGRPCUnaryInterceptors(
 			grpcmiddleware.UnaryLoggingInterceptor(logger),
 			grpcmiddleware.UnaryRecoveryInterceptor(logger),
+			grpcmiddleware.ValidationUnaryServerInterceptor(),
 		),
 		app.WithGRPCStreamInterceptors(
 			grpcmiddleware.StreamLoggingInterceptor(logger),
 			grpcmiddleware.StreamRecoveryInterceptor(logger),
+			grpcmiddleware.ValidationStreamServerInterceptor(),
 		),
 		// 添加 gRPC 服务器选项 - 使用 StatsHandler 替代拦截器
 		app.WithGRPCOptions(

@@ -18,6 +18,7 @@ BINARY_PATH = ./bin/$(BINARY_NAME)
 PROTOC_GEN_GO := $(shell go env GOPATH)/bin/protoc-gen-go
 PROTOC_GEN_GO_GRPC := $(shell go env GOPATH)/bin/protoc-gen-go-grpc
 PROTOC_GEN_GRPC_GATEWAY := $(shell go env GOPATH)/bin/protoc-gen-grpc-gateway
+PROTOC_GEN_VALIDATE := $(shell go env GOPATH)/bin/protoc-gen-validate-go
 GOOGLEAPIS := $(shell go env GOPATH)/pkg/mod/github.com/googleapis/googleapis@*/
 
 PROTO_DIRS := pkg/api/helloworld/v1 pkg/api/helloworld/v2
@@ -30,9 +31,11 @@ all: proto
 proto:
 	$(PROTOC) -I. \
 		-Ithird_party/ \
+		-I$(shell go env GOPATH)/pkg/mod/github.com/envoyproxy/protoc-gen-validate@*/ \
 		--go_out . --go_opt paths=source_relative \
 		--go-grpc_out . --go-grpc_opt paths=source_relative \
 		--grpc-gateway_out . --grpc-gateway_opt paths=source_relative \
+		--validate-go_out . --validate-go_opt paths=source_relative \
 		--openapi_out=fq_schema_naming=true,default_response=false:$(PROJECT_ROOT)/api/openapi \
 		--openapiv2_out=$(PROJECT_ROOT)/api/openapi \
 		--openapiv2_opt=logtostderr=true \
@@ -54,6 +57,7 @@ clean:
 	find $(API_DIR) -name "*.pb.go" -exec rm -f {} +
 	find $(API_DIR) -name "*.pb.gw.go" -exec rm -f {} +
 	find $(API_DIR) -name "*.swagger.json" -exec rm -f {} +
+	find $(API_DIR) -name "*.validate.pb.go" -exec rm -f {} +
 
 .PHONY: install-tools
 install-tools: ## Install CI-related tools. Install all tools by specifying `A=1`.
