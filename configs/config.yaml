@@ -1,0 +1,35 @@
+# 服务配置
+server:
+  # HTTP服务相关配置
+  http:
+    # HTTP服务地址
+    addr: ":8090"
+    # 请求超时时间(秒)
+    timeout: 5
+
+  # gRPC服务相关配置
+  grpc:
+    # gRPC服务地址
+    addr: ":8091"
+    # 服务关闭超时时间(秒)
+    shutdown_timeout: 10
+
+# 可观测性相关配置
+observability:
+  # 链路追踪配置
+  tracing:
+    # 服务名称
+    service_name: "go-protoc-service"
+    # 是否启用
+    enabled: true
+    # 导出器类型: stdout, jaeger, otlp
+    exporter: "stdout"
+    # 如果使用otlp导出器，指定其端点
+    otlp_endpoint: "localhost:4317"
+
+  # 指标监控配置
+  metrics:
+    # 是否启用
+    enabled: true
+    # 指标路径
+    path: "/metrics"

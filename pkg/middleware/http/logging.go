@@ -3,9 +3,12 @@ package http
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/costa92/go-protoc/pkg/metrics"
 	"github.com/gorilla/mux"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -18,8 +21,29 @@ func LoggingMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 			// 创建一个自定义的 ResponseWriter 来捕获状态码
 			rw := &responseWriter{w, http.StatusOK}
 
+			// 从context中提取TraceID
+			spanCtx := trace.SpanContextFromContext(r.Context())
+			traceID := "unknown"
+			if spanCtx.IsValid() {
+				traceID = spanCtx.TraceID().String()
+			}
+
 			// 处理请求
 			next.ServeHTTP(rw, r)
+
+			// 计算请求耗时
+			duration := time.Since(start)
+
+			// 记录Prometheus指标
+			metrics.HTTPRequestsTotal.WithLabelValues(
+				r.Method,
+				r.URL.Path,
+				strconv.Itoa(rw.status),
+			).Inc()
+			metrics.HTTPRequestDuration.WithLabelValues(
+				r.Method,
+				r.URL.Path,
+			).Observe(duration.Seconds())
 
 			// 记录请求信息
 			logger.Info("http request",
@@ -28,7 +52,8 @@ func LoggingMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 				zap.Int("status", rw.status),
 				zap.String("remote_addr", r.RemoteAddr),
 				zap.String("user_agent", r.UserAgent()),
-				zap.Duration("duration", time.Since(start)),
+				zap.Duration("duration", duration),
+				zap.String("trace_id", traceID),
 			)
 		})
 	}
@@ -52,9 +77,17 @@ func RecoveryMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
+					// 从context中提取TraceID
+					spanCtx := trace.SpanContextFromContext(r.Context())
+					traceID := "unknown"
+					if spanCtx.IsValid() {
+						traceID = spanCtx.TraceID().String()
+					}
+
 					logger.Error("http panic recovered",
 						zap.Any("error", err),
 						zap.String("path", r.URL.Path),
+						zap.String("trace_id", traceID),
 					)
 					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				}

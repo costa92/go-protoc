@@ -61,3 +61,34 @@ install-tools: ## Install CI-related tools. Install all tools by specifying `A=1
 	if [[ "$(A)" == 1 ]]; then                                             \
 		$(MAKE) _install.other ;                                            \
 	fi
+
+.PHONY: test
+test: ## 运行单元测试
+	@echo ">> 运行单元测试"
+	@go test -v -race -coverprofile=coverage.out ./...
+
+.PHONY: test-coverage
+test-coverage: test ## 生成测试覆盖率报告
+	@echo ">> 生成测试覆盖率报告"
+	@go tool cover -html=coverage.out
+
+.PHONY: lint
+lint: ## 运行代码质量检查
+	@echo ">> 运行代码质量检查"
+	@golangci-lint run ./...
+
+.PHONY: fmt
+fmt: ## 格式化代码
+	@echo ">> 格式化代码"
+	@gofmt -s -w .
+	@goimports -w .
+
+.PHONY: vet
+vet: ## 代码静态检查
+	@echo ">> 代码静态检查"
+	@go vet ./...
+
+.PHONY: mod-tidy
+mod-tidy: ## 整理依赖
+	@echo ">> 整理Go模块依赖"
+	@go mod tidy

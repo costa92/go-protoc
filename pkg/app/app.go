@@ -90,6 +90,16 @@ func NewApp(httpAddr, grpcAddr string, logger *zap.Logger, opts ...ServerOption)
 	return app
 }
 
+// GetHTTPServer 返回HTTP服务器实例
+func (a *App) GetHTTPServer() *HTTPServer {
+	return a.httpServer
+}
+
+// GetGRPCServer 返回gRPC服务器实例
+func (a *App) GetGRPCServer() *GRPCServer {
+	return a.grpcServer
+}
+
 // InstallAPIGroup 安装一个 API 组
 func (a *App) InstallAPIGroup(installer Installer) error {
 	// 先注册 gRPC 服务
