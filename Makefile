@@ -31,7 +31,7 @@ all: proto
 proto:
 	$(PROTOC) -I. \
 		-Ithird_party/ \
-		-I$(shell go env GOPATH)/pkg/mod/github.com/envoyproxy/protoc-gen-validate@*/ \
+		-I$(shell go env GOPATH)/pkg/mod/github.com/envoyproxy/protoc-gen-validate@v1.2.1/ \
 		--go_out . --go_opt paths=source_relative \
 		--go-grpc_out . --go-grpc_opt paths=source_relative \
 		--grpc-gateway_out . --grpc-gateway_opt paths=source_relative \

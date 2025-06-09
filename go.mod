@@ -3,6 +3,7 @@ module github.com/costa92/go-protoc
 go 1.24.1
 
 require (
+	github.com/envoyproxy/protoc-gen-validate v1.2.1
 	github.com/gorilla/mux v1.8.1
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3
 	github.com/prometheus/client_golang v1.22.0
