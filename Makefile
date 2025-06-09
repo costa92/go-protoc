@@ -107,3 +107,4 @@ run-api: ## 运行 API 服务器
 gen-swagger-docs: ## 生成 Swagger 文档
 	@echo ">> 生成 Swagger 文档"
 	@go run cmd/gen-swaggertype-docs/swagger_type_docs.go -s $(TYPE_SRC) -f $(FUNC_DEST)
+

@@ -35,6 +35,12 @@ func main() {
 
 	// 启动服务器
 	if err := server.Start(ctx); err != nil {
-		log.Fatalf("启动服务器失败: %v", err)
+		log.Infof("启动服务器失败: %v", err)
 	}
+
+	// 在服务器停止后，调用 Stop 方法进行完整的清理
+	log.Infof("服务器正在关闭，执行清理操作...")
+	server.Stop()
+	log.Infof("清理完成，程序退出。")
+
 }

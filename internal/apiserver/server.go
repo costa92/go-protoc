@@ -110,13 +110,11 @@ func (s *Server) Start(ctx context.Context) error {
 
 // Stop stops the server
 func (s *Server) Stop() {
+	log.Infow("开始关闭服务器...")
 	if s.tp != nil {
 		if err := s.tp.Shutdown(context.Background()); err != nil {
 			log.Errorf("关闭追踪器失败: %v", err)
 		}
-	}
-	if err := s.app.Stop(); err != nil {
-		log.Errorf("关闭应用失败: %v", err)
 	}
 	log.Sync() // 忽略错误，因为这是在关闭时的清理操作
 }
