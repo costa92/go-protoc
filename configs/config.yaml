@@ -33,3 +33,43 @@ observability:
     enabled: true
     # 指标路径
     path: "/metrics"
+
+  # 跳过路径配置
+  skip_paths:
+    - /metrics
+    - /debug/
+    - /swagger/
+    - /healthz
+    - /favicon.ico
+
+# 中间件配置
+middleware:
+  # 请求超时时间
+  timeout: 30s
+
+  # CORS跨域配置
+  cors:
+    allow_origins:
+      - "*"
+    allow_methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+      - HEAD
+    allow_headers:
+      - Authorization
+      - Content-Type
+      - X-Request-ID
+      - X-Real-IP
+    expose_headers: []
+    allow_credentials: true
+    max_age: 12h
+
+  # 限流配置
+  rate_limit:
+    enable: true
+    limit: 100
+    burst: 200
+    window: 1m

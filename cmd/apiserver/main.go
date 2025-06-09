@@ -8,14 +8,13 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
-	"time"
 
 	"github.com/costa92/go-protoc/internal/helloworld"
 	"github.com/costa92/go-protoc/pkg/app"
 	"github.com/costa92/go-protoc/pkg/config"
+	"github.com/costa92/go-protoc/pkg/metrics"
 	grpcmiddleware "github.com/costa92/go-protoc/pkg/middleware/grpc"
 	httpmiddleware "github.com/costa92/go-protoc/pkg/middleware/http"
-	"github.com/costa92/go-protoc/pkg/metrics"
 	"github.com/costa92/go-protoc/pkg/tracing"
 
 	// ↓↓↓ 确保以下两个包已导入 ↓↓↓
@@ -58,9 +57,6 @@ func main() {
 	// 创建 gRPC 统计处理器
 	otelGrpcHandler := otelgrpc.NewServerHandler(otelgrpc.WithTracerProvider(tp))
 
-	// HTTP超时配置
-	httpTimeout := time.Duration(cfg.Server.HTTP.Timeout) * time.Second
-
 	// 创建应用实例
 	apiServer := app.NewApp(cfg.Server.HTTP.Addr, cfg.Server.GRPC.Addr, logger,
 		// 添加 HTTP 中间件
@@ -68,7 +64,9 @@ func main() {
 			otelHTTPMiddleware,
 			httpmiddleware.LoggingMiddleware(logger),
 			httpmiddleware.RecoveryMiddleware(logger),
-			httpmiddleware.TimeoutMiddleware(httpTimeout),
+			httpmiddleware.TimeoutMiddleware(cfg),
+			httpmiddleware.CORSMiddleware(cfg),
+			httpmiddleware.RateLimitMiddleware(cfg),
 			httpmiddleware.ValidationMiddleware(logger),
 		),
 		// 添加 gRPC 拦截器

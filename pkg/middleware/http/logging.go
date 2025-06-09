@@ -4,10 +4,11 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/costa92/go-protoc/pkg/config"
 	"github.com/costa92/go-protoc/pkg/metrics"
-	"github.com/costa92/go-protoc/pkg/middleware/config"
 	"github.com/gorilla/mux"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -16,8 +17,8 @@ import (
 // LoggingMiddleware 创建一个 HTTP 日志中间件
 func LoggingMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 	// 使用默认配置
-	cfg := config.DefaultObservabilityConfig()
-	return LoggingMiddlewareWithConfig(logger, cfg)
+	cfg := config.DefaultConfig()
+	return LoggingMiddlewareWithConfig(logger, &cfg.Observability)
 }
 
 // LoggingMiddlewareWithConfig 创建一个带自定义配置的 HTTP 日志中间件
@@ -25,7 +26,7 @@ func LoggingMiddlewareWithConfig(logger *zap.Logger, cfg *config.ObservabilityCo
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// 检查是否在白名单中
-			if cfg.ShouldSkip(r.URL.Path) {
+			if shouldSkip(cfg.SkipPaths, r.URL.Path) {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -49,15 +50,17 @@ func LoggingMiddlewareWithConfig(logger *zap.Logger, cfg *config.ObservabilityCo
 			duration := time.Since(start)
 
 			// 记录Prometheus指标
-			metrics.HTTPRequestsTotal.WithLabelValues(
-				r.Method,
-				r.URL.Path,
-				strconv.Itoa(rw.status),
-			).Inc()
-			metrics.HTTPRequestDuration.WithLabelValues(
-				r.Method,
-				r.URL.Path,
-			).Observe(duration.Seconds())
+			if cfg.Metrics.Enabled {
+				metrics.HTTPRequestsTotal.WithLabelValues(
+					r.Method,
+					r.URL.Path,
+					strconv.Itoa(rw.status),
+				).Inc()
+				metrics.HTTPRequestDuration.WithLabelValues(
+					r.Method,
+					r.URL.Path,
+				).Observe(duration.Seconds())
+			}
 
 			// 记录请求信息
 			logger.Info("http request",
@@ -88,8 +91,8 @@ func (rw *responseWriter) WriteHeader(status int) {
 // RecoveryMiddleware 创建一个 HTTP 恢复中间件
 func RecoveryMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 	// 使用默认配置
-	cfg := config.DefaultObservabilityConfig()
-	return RecoveryMiddlewareWithConfig(logger, cfg)
+	cfg := config.DefaultConfig()
+	return RecoveryMiddlewareWithConfig(logger, &cfg.Observability)
 }
 
 // RecoveryMiddlewareWithConfig 创建一个带自定义配置的 HTTP 恢复中间件
@@ -97,7 +100,7 @@ func RecoveryMiddlewareWithConfig(logger *zap.Logger, cfg *config.ObservabilityC
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// 检查是否在白名单中
-			if cfg.ShouldSkip(r.URL.Path) {
+			if shouldSkip(cfg.SkipPaths, r.URL.Path) {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -125,10 +128,8 @@ func RecoveryMiddlewareWithConfig(logger *zap.Logger, cfg *config.ObservabilityC
 }
 
 // TimeoutMiddleware 创建一个超时中间件
-func TimeoutMiddleware(timeout time.Duration) mux.MiddlewareFunc {
-	// 使用默认配置
-	cfg := config.DefaultObservabilityConfig()
-	return TimeoutMiddlewareWithConfig(timeout, cfg)
+func TimeoutMiddleware(cfg *config.Config) mux.MiddlewareFunc {
+	return TimeoutMiddlewareWithConfig(cfg.Middleware.Timeout, &cfg.Observability)
 }
 
 // TimeoutMiddlewareWithConfig 创建一个带自定义配置的超时中间件
@@ -136,7 +137,7 @@ func TimeoutMiddlewareWithConfig(timeout time.Duration, cfg *config.Observabilit
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// 检查是否在白名单中
-			if cfg.ShouldSkip(r.URL.Path) {
+			if shouldSkip(cfg.SkipPaths, r.URL.Path) {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -162,4 +163,14 @@ func TimeoutMiddlewareWithConfig(timeout time.Duration, cfg *config.Observabilit
 			}
 		})
 	}
+}
+
+// shouldSkip 检查是否应该跳过该路径
+func shouldSkip(skipPaths []string, path string) bool {
+	for _, skipPath := range skipPaths {
+		if strings.HasPrefix(path, skipPath) {
+			return true
+		}
+	}
+	return false
 }
