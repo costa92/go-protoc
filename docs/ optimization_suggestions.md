@@ -9,7 +9,8 @@
 
 ## 1. 应用核心层优化：模块化 Server 接口
 
-问题分析
+### 问题分析
+
 当前应用核心层直接管理 HTTP 和 gRPC 服务实例，导致：
 
 - 新增服务类型需修改核心代码
@@ -240,7 +241,7 @@ sequenceDiagram
     C->>C: 遍历安装所有服务
 ```
 
-###优势
+### 优势
 
 - 零修改核心：新增服务无需改动 server.go
 - 自动发现：服务在初始化时自动注册
@@ -256,7 +257,9 @@ sequenceDiagram
 - 单元测试需构造完整配置结构
 
 ### 解决方案
+
 1. 重构中间件参数
+
 ```go
 // pkg/middleware/http/rate_limit.go
 package httpmiddleware
@@ -269,8 +272,8 @@ import (
 
 // 参数从全局配置改为具体值
 func RateLimitMiddleware(
-    enabled bool, 
-    rps rate.Limit, 
+    enabled bool,
+    rps rate.Limit,
     burst int,
 ) mux.MiddlewareFunc {
     if !enabled {
@@ -279,9 +282,9 @@ func RateLimitMiddleware(
             return next
         }
     }
-    
+
     limiter := rate.NewLimiter(rps, burst)
-    
+
     return func(next http.Handler) http.Handler {
         return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
             if !limiter.Allow() {
@@ -293,6 +296,7 @@ func RateLimitMiddleware(
     }
 }
 ```
+
 2. 配置注入示例
 
 ```go
@@ -300,7 +304,7 @@ func RateLimitMiddleware(
 func applyMiddlewares(router *mux.Router, cfg *config.Config) {
     // 从配置解析具体参数
     rateLimitCfg := cfg.Middleware.RateLimit
-    
+
     router.Use(
         httpmiddleware.RateLimitMiddleware(
             rateLimitCfg.Enabled,
@@ -315,27 +319,28 @@ func applyMiddlewares(router *mux.Router, cfg *config.Config) {
     )
 }
 ```
+
 3. 中间件测试示例
 
 ```go
 func TestRateLimitMiddleware(t *testing.T) {
     // 不需要完整配置对象
     middleware := httpmiddleware.RateLimitMiddleware(true, 1, 1)
-    
+
     req := httptest.NewRequest("GET", "/", nil)
     rr := httptest.NewRecorder()
-    
+
     // 模拟处理函数
     handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         w.WriteHeader(http.StatusOK)
     }))
-    
+
     // 第一次请求应成功
     handler.ServeHTTP(rr, req)
     if rr.Code != http.StatusOK {
         t.Errorf("expected status 200, got %d", rr.Code)
     }
-    
+
     // 第二次请求应被限流
     rr = httptest.NewRecorder()
     handler.ServeHTTP(rr, req)
@@ -357,9 +362,9 @@ func TestRateLimitMiddleware(t *testing.T) {
 
 ### 问题分析
 
-- 所有响应强制包装为固定JSON结构
+- 所有响应强制包装为固定 JSON 结构
 - 无法支持文件下载、流式响应等场景
-- 特殊API需求难以实现
+- 特殊 API 需求难以实现
 
 ### 解决方案
 
@@ -410,11 +415,11 @@ func setupGRPCGateway(ctx context.Context) (http.Handler, error) {
     // 创建基础Mux
     gwmux := runtime.NewServeMux(
         runtime.WithMarshalerOption(
-            "application/json", 
+            "application/json",
             &response.JSONMarshaler{},
         ),
         runtime.WithMarshalerOption(
-            "application/octet-stream", 
+            "application/octet-stream",
             &response.RawDataMarshaler{},
         ),
         runtime.WithMarshalerOption(
@@ -423,7 +428,7 @@ func setupGRPCGateway(ctx context.Context) (http.Handler, error) {
         ),
         runtime.WithErrorHandler(response.CustomHTTPErrorHandler),
     )
-    
+
     // 注册gRPC端点...
     return gwmux, nil
 }
@@ -440,11 +445,11 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
     defer file.Close()
-    
+
     // 设置Content-Type触发FileMarshaler
     w.Header().Set("Content-Type", "application/pdf")
     w.Header().Set("Content-Disposition", "attachment; filename=report.pdf")
-    
+
     // 直接返回文件对象
     response.Success(w, file)
 }
@@ -453,7 +458,7 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 func rawDataHandler(w http.ResponseWriter, r *http.Request) {
     // 设置Content-Type触发RawDataMarshaler
     w.Header().Set("Content-Type", "application/octet-stream")
-    
+
     // 返回原始字节数据（无包装）
     data := []byte{0x48, 0x65, 0x6C, 0x6C, 0x6F} // "Hello"的二进制
     response.Success(w, data)
@@ -461,7 +466,6 @@ func rawDataHandler(w http.ResponseWriter, r *http.Request) {
 ```
 
 4. 响应处理流程
-
 
 ```mermaid
 graph LR
@@ -479,5 +483,5 @@ graph LR
 
 - 格式自由：支持 JSON/二进制/文件等多样响应
 - 按需定制：不同端点可使用不同响应格式
-- 平滑迁移：默认保持现有JSON格式，特殊API按需覆盖
+- 平滑迁移：默认保持现有 JSON 格式，特殊 API 按需覆盖
 - 内容协商：基于标准 Content-Type 分发处理器
