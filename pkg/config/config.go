@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/costa92/go-protoc/pkg/log"
 	"github.com/spf13/viper"
 )
 
@@ -13,6 +14,7 @@ type Config struct {
 	Server        ServerConfig        `mapstructure:"server"`
 	Observability ObservabilityConfig `mapstructure:"observability"`
 	Middleware    MiddlewareConfig    `mapstructure:"middleware"`
+	Log           *log.Options        `mapstructure:"log"`
 }
 
 // ServerConfig 包含服务器相关配置
@@ -104,6 +106,16 @@ func LoadConfig(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("解析配置文件失败: %w", err)
 	}
 
+	// 如果配置文件中没有日志配置，则使用默认值
+	if config.Log == nil {
+		config.Log = log.NewOptions()
+	}
+
+	// 如果日志名称为空，则设置默认名称
+	if config.Log.Name == "" {
+		config.Log.Name = "go-protoc"
+	}
+
 	return &config, nil
 }
 
@@ -168,5 +180,6 @@ func DefaultConfig() *Config {
 				Window: time.Minute,
 			},
 		},
+		Log: log.NewOptions(),
 	}
 }

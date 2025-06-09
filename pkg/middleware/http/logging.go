@@ -8,70 +8,50 @@ import (
 	"time"
 
 	"github.com/costa92/go-protoc/pkg/config"
+	"github.com/costa92/go-protoc/pkg/log"
 	"github.com/costa92/go-protoc/pkg/metrics"
 	"github.com/gorilla/mux"
 	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap"
 )
 
 // LoggingMiddleware 创建一个 HTTP 日志中间件
-func LoggingMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
-	// 使用默认配置
-	cfg := config.DefaultConfig()
-	return LoggingMiddlewareWithConfig(logger, &cfg.Observability)
-}
-
-// LoggingMiddlewareWithConfig 创建一个带自定义配置的 HTTP 日志中间件
-func LoggingMiddlewareWithConfig(logger *zap.Logger, cfg *config.ObservabilityConfig) mux.MiddlewareFunc {
+func LoggingMiddleware() mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// 检查是否在白名单中
-			if shouldSkip(cfg.SkipPaths, r.URL.Path) {
-				next.ServeHTTP(w, r)
-				return
-			}
-
 			start := time.Now()
-
-			// 创建一个自定义的 ResponseWriter 来捕获状态码
 			rw := &responseWriter{w, http.StatusOK}
 
-			// 从context中提取TraceID
 			spanCtx := trace.SpanContextFromContext(r.Context())
 			traceID := "unknown"
 			if spanCtx.IsValid() {
 				traceID = spanCtx.TraceID().String()
 			}
 
-			// 处理请求
 			next.ServeHTTP(rw, r)
 
-			// 计算请求耗时
 			duration := time.Since(start)
 
 			// 记录Prometheus指标
-			if cfg.Metrics.Enabled {
-				metrics.HTTPRequestsTotal.WithLabelValues(
-					r.Method,
-					r.URL.Path,
-					strconv.Itoa(rw.status),
-				).Inc()
-				metrics.HTTPRequestDuration.WithLabelValues(
-					r.Method,
-					r.URL.Path,
-				).Observe(duration.Seconds())
-			}
+			metrics.HTTPRequestsTotal.WithLabelValues(
+				r.Method,
+				r.URL.Path,
+				strconv.Itoa(rw.status),
+			).Inc()
+			metrics.HTTPRequestDuration.WithLabelValues(
+				r.Method,
+				r.URL.Path,
+			).Observe(duration.Seconds())
 
 			// 记录请求信息
-			logger.Info("http request",
-				zap.String("method", r.Method),
-				zap.String("path", r.URL.Path),
-				zap.Int("status", rw.status),
-				zap.String("remote_addr", r.RemoteAddr),
-				zap.String("user_agent", r.UserAgent()),
-				zap.Duration("duration", duration),
-				zap.String("trace_id", traceID),
-			)
+			log.L().WithValues(
+				"method", r.Method,
+				"path", r.URL.Path,
+				"status", rw.status,
+				"remote_addr", r.RemoteAddr,
+				"user_agent", r.UserAgent(),
+				"duration", duration,
+				"trace_id", traceID,
+			).Infof("http request")
 		})
 	}
 }
@@ -89,36 +69,23 @@ func (rw *responseWriter) WriteHeader(status int) {
 }
 
 // RecoveryMiddleware 创建一个 HTTP 恢复中间件
-func RecoveryMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
-	// 使用默认配置
-	cfg := config.DefaultConfig()
-	return RecoveryMiddlewareWithConfig(logger, &cfg.Observability)
-}
-
-// RecoveryMiddlewareWithConfig 创建一个带自定义配置的 HTTP 恢复中间件
-func RecoveryMiddlewareWithConfig(logger *zap.Logger, cfg *config.ObservabilityConfig) mux.MiddlewareFunc {
+func RecoveryMiddleware() mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// 检查是否在白名单中
-			if shouldSkip(cfg.SkipPaths, r.URL.Path) {
-				next.ServeHTTP(w, r)
-				return
-			}
-
 			defer func() {
 				if err := recover(); err != nil {
-					// 从context中提取TraceID
 					spanCtx := trace.SpanContextFromContext(r.Context())
 					traceID := "unknown"
 					if spanCtx.IsValid() {
 						traceID = spanCtx.TraceID().String()
 					}
 
-					logger.Error("http panic recovered",
-						zap.Any("error", err),
-						zap.String("path", r.URL.Path),
-						zap.String("trace_id", traceID),
-					)
+					log.L().WithValues(
+						"error", err,
+						"path", r.URL.Path,
+						"trace_id", traceID,
+					).Errorf("http panic recovered")
+
 					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				}
 			}()

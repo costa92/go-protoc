@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,40 +11,41 @@ import (
 	"github.com/costa92/go-protoc/internal/helloworld"
 	"github.com/costa92/go-protoc/pkg/app"
 	"github.com/costa92/go-protoc/pkg/config"
+	"github.com/costa92/go-protoc/pkg/log"
 	"github.com/costa92/go-protoc/pkg/metrics"
 	grpcmiddleware "github.com/costa92/go-protoc/pkg/middleware/grpc"
 	httpmiddleware "github.com/costa92/go-protoc/pkg/middleware/http"
 	"github.com/costa92/go-protoc/pkg/tracing"
 
-	// ↓↓↓ 确保以下两个包已导入 ↓↓↓
-
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
 func main() {
-	// 创建日志器
-	logger, _ := zap.NewProduction()
-	defer logger.Sync()
-
 	// 加载配置
 	configPath := getConfigPath()
-	logger.Info("加载配置文件", zap.String("path", configPath))
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
-		logger.Fatal("加载配置失败", zap.Error(err))
+		log.Fatalf("加载配置失败: %v", err)
 	}
+
+	// 初始化日志记录器
+	if err := log.Init(cfg.Log); err != nil {
+		log.Fatalf("初始化日志记录器失败: %v", err)
+	}
+	defer log.Sync()
+
+	log.Infof("成功加载配置文件来自: %s", configPath)
 
 	// 初始化 OpenTelemetry Tracer
 	tp, err := tracing.InitTracer(&cfg.Observability.Tracing)
 	if err != nil {
-		logger.Fatal("初始化OpenTelemetry Tracer失败", zap.Error(err))
+		log.Fatalf("初始化OpenTelemetry Tracer失败: %v", err)
 	}
 	defer func() {
 		if err := tp.Shutdown(context.Background()); err != nil {
-			logger.Error("关闭追踪器失败", zap.Error(err))
+			log.Errorf("关闭追踪器失败: %v", err)
 		}
 	}()
 
@@ -58,26 +58,28 @@ func main() {
 	otelGrpcHandler := otelgrpc.NewServerHandler(otelgrpc.WithTracerProvider(tp))
 
 	// 创建应用实例
-	apiServer := app.NewApp(cfg.Server.HTTP.Addr, cfg.Server.GRPC.Addr, logger,
+	apiServer := app.NewApp(
+		cfg.Server.HTTP.Addr,
+		cfg.Server.GRPC.Addr,
 		// 添加 HTTP 中间件
 		app.WithHTTPMiddlewares(
 			otelHTTPMiddleware,
-			httpmiddleware.LoggingMiddleware(logger),
-			httpmiddleware.RecoveryMiddleware(logger),
+			httpmiddleware.LoggingMiddleware(),
+			httpmiddleware.RecoveryMiddleware(),
 			httpmiddleware.TimeoutMiddleware(cfg),
 			httpmiddleware.CORSMiddleware(cfg),
 			httpmiddleware.RateLimitMiddleware(cfg),
-			httpmiddleware.ValidationMiddleware(logger),
+			httpmiddleware.ValidationMiddleware(),
 		),
 		// 添加 gRPC 拦截器
 		app.WithGRPCUnaryInterceptors(
-			grpcmiddleware.UnaryLoggingInterceptor(logger),
-			grpcmiddleware.UnaryRecoveryInterceptor(logger),
+			grpcmiddleware.UnaryLoggingInterceptor(),
+			grpcmiddleware.UnaryRecoveryInterceptor(),
 			grpcmiddleware.ValidationUnaryServerInterceptor(),
 		),
 		app.WithGRPCStreamInterceptors(
-			grpcmiddleware.StreamLoggingInterceptor(logger),
-			grpcmiddleware.StreamRecoveryInterceptor(logger),
+			grpcmiddleware.StreamLoggingInterceptor(),
+			grpcmiddleware.StreamRecoveryInterceptor(),
 			grpcmiddleware.ValidationStreamServerInterceptor(),
 		),
 		// 添加 gRPC 服务器选项 - 使用 StatsHandler 替代拦截器
@@ -89,14 +91,12 @@ func main() {
 	defer apiServer.Stop()
 
 	// 创建并安装 helloworld API 组
-	helloworldInstaller := helloworld.NewInstaller(logger)
-	if err := apiServer.InstallAPIGroup(helloworldInstaller); err != nil {
-		logger.Fatal("安装helloworld API组失败", zap.Error(err))
-	}
+	helloworldInstaller := helloworld.NewInstaller()
+	apiServer.InstallAPIGroup(helloworldInstaller)
 
 	// 添加指标路由（如果启用）
 	if cfg.Observability.Metrics.Enabled {
-		logger.Info("启用Prometheus指标", zap.String("path", cfg.Observability.Metrics.Path))
+		log.Infof("启用Prometheus指标，路径: %s", cfg.Observability.Metrics.Path)
 		apiServer.GetHTTPServer().Router().Handle(cfg.Observability.Metrics.Path, metrics.PrometheusHandler())
 	}
 
@@ -109,22 +109,20 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		sig := <-sigChan
-		logger.Info("接收到信号", zap.String("signal", sig.String()))
+		log.Infof("接收到信号: %s", sig.String())
 		cancel()
 	}()
 
 	// 启动服务器
 	if err := apiServer.Start(ctx); err != nil {
-		log.Fatal(err)
+		log.Fatalf("启动服务器失败: %v", err)
 	}
 }
 
 // getConfigPath 返回配置文件路径
 func getConfigPath() string {
-	// 从环境变量获取配置路径，如果未设置则使用默认路径
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
-		// 默认使用当前目录下的configs/config.yaml
 		configPath = filepath.Join("configs", "config.yaml")
 	}
 	return configPath

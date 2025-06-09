@@ -73,3 +73,18 @@ middleware:
     limit: 100
     burst: 200
     window: 1m
+
+# 日志配置
+log:
+  # 日志级别: debug, info, warn, error, dpanic, panic, fatal
+  level: "info"
+  # 日志格式: console, json
+  format: "console"
+  # 是否开启调用者信息
+  enable-caller: true
+  # 日志输出路径: stdout, stderr, 或文件路径
+  output-paths:
+    - "stdout"
+  # 错误日志输出路径
+  error-output-paths:
+    - "stderr"
