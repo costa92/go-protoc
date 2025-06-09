@@ -4,11 +4,11 @@ import (
 	"context"
 	"net"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/costa92/go-protoc/pkg/log"
 	"github.com/gorilla/mux"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
 
@@ -37,7 +37,6 @@ type App struct {
 	httpServer *HTTPServer
 	grpcServer *grpc.Server
 	opts       *Options
-	wg         sync.WaitGroup
 }
 
 // NewApp 创建一个新的 App 实例。
@@ -79,43 +78,77 @@ func NewApp(httpAddr, grpcAddr string, opts ...ServerOption) *App {
 
 // Start 启动应用程序。
 func (a *App) Start(ctx context.Context) error {
+	g, ctx := errgroup.WithContext(ctx)
+
 	// 启动 gRPC 服务器
-	a.wg.Add(1)
-	go func() {
-		defer a.wg.Done()
+	g.Go(func() error {
 		log.L().Infof("gRPC server is listening on %s", a.opts.grpcListener.Addr().String())
-		if err := a.grpcServer.Serve(a.opts.grpcListener); err != nil {
-			log.L().Fatalf("gRPC server failed to serve: %v", err)
+		if err := a.grpcServer.Serve(a.opts.grpcListener); err != nil && err != grpc.ErrServerStopped {
+			log.L().Errorf("gRPC server failed to serve: %v", err)
+			return err
 		}
-	}()
+		return nil
+	})
 
 	// 启动 HTTP 服务器
-	a.wg.Add(1)
-	go func() {
-		defer a.wg.Done()
+	g.Go(func() error {
 		log.L().Infof("HTTP server is listening on %s", a.opts.httpAddr)
 		if err := a.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.L().Fatalf("HTTP server failed to listen and serve: %v", err)
+			log.L().Errorf("HTTP server failed to listen and serve: %v", err)
+			return err
 		}
-	}()
+		return nil
+	})
 
-	<-ctx.Done()
-	return a.Stop()
+	// 监听上下文取消
+	g.Go(func() error {
+		<-ctx.Done()
+		// 当上下文被取消时，主动调用 Stop
+		if err := a.Stop(); err != nil {
+			log.L().Errorf("Error during shutdown: %v", err)
+			return err
+		}
+		return ctx.Err()
+	})
+
+	// 等待所有协程完成或出现错误
+	if err := g.Wait(); err != nil && err != context.Canceled {
+		return err
+	}
+
+	return nil
 }
 
 // Stop 优雅地停止应用程序。
 func (a *App) Stop() error {
 	log.L().Infof("Shutting down servers...")
 
-	// 停止 gRPC 服务器
-	a.grpcServer.GracefulStop()
+	// 创建一个带超时的上下文
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	// 停止 HTTP 服务器
-	if err := a.httpServer.Shutdown(context.Background()); err != nil {
+	// 首先停止 HTTP 服务器
+	if err := a.httpServer.Shutdown(ctx); err != nil {
 		log.L().Errorf("Failed to shutdown HTTP server: %v", err)
 	}
 
-	a.wg.Wait()
+	// 然后停止 gRPC 服务器
+	// 创建一个通道来跟踪 GracefulStop 的完成
+	done := make(chan struct{})
+	go func() {
+		a.grpcServer.GracefulStop()
+		close(done)
+	}()
+
+	// 等待 gRPC 服务器关闭或超时
+	select {
+	case <-ctx.Done():
+		log.L().Warnf("gRPC server graceful shutdown timed out, forcing stop")
+		a.grpcServer.Stop()
+	case <-done:
+		log.L().Infof("gRPC server stopped gracefully")
+	}
+
 	log.L().Infof("Servers are shut down.")
 	return nil
 }

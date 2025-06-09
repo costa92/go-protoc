@@ -19,7 +19,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("创建服务器失败: %v", err)
 	}
-	defer server.Stop()
 
 	// 创建一个带取消的上下文
 	ctx, cancel := context.WithCancel(context.Background())

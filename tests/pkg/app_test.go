@@ -59,14 +59,14 @@ func TestApp(t *testing.T) {
 
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	// 启动应用
 	errChan := make(chan error, 1)
 	go func() {
-		if err := app.Start(ctx); err != nil {
+		if err := app.Start(ctx); err != nil && err != context.Canceled {
 			errChan <- err
 		}
+		close(errChan)
 	}()
 
 	// 等待服务器启动
@@ -126,33 +126,34 @@ func TestApp(t *testing.T) {
 		// 触发关闭
 		cancel()
 
-		// 等待关闭完成
-		shutdownTimeout := time.After(3 * time.Second)
+		// 等待服务器关闭
 		select {
-		case err := <-errChan:
-			if err != nil {
+		case err, ok := <-errChan:
+			if ok && err != nil {
 				t.Errorf("Error during shutdown: %v", err)
 			}
-		case <-shutdownTimeout:
-			// 验证服务器已关闭
-			httpClient := http.Client{Timeout: time.Second}
-			resp, err := httpClient.Get("http://localhost:18090/test")
-			if err == nil {
-				resp.Body.Close()
-				t.Error("HTTP server still running after shutdown")
-			}
+		case <-time.After(5 * time.Second):
+			t.Fatal("Server shutdown timeout")
+		}
 
-			dialCtx, dialCancel := context.WithTimeout(context.Background(), time.Second)
-			defer dialCancel()
+		// 验证服务器已关闭
+		time.Sleep(time.Second)
 
-			// 创建 gRPC 连接
-			conn, err := grpc.DialContext(dialCtx, "localhost:18091",
-				grpc.WithTransportCredentials(insecure.NewCredentials()),
-			)
-			if err == nil {
-				conn.Close()
-				t.Error("gRPC server still running after shutdown")
-			}
+		// 验证 HTTP 服务器已关闭
+		httpClient := http.Client{Timeout: time.Second}
+		if _, err := httpClient.Get("http://localhost:18090/test"); err == nil {
+			t.Error("HTTP server still running after shutdown")
+		}
+
+		// 验证 gRPC 服务器已关闭
+		dialCtx, dialCancel := context.WithTimeout(context.Background(), time.Second)
+		defer dialCancel()
+		if conn, err := grpc.DialContext(dialCtx, "localhost:18091",
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithBlock(),
+		); err == nil {
+			conn.Close()
+			t.Error("gRPC server still running after shutdown")
 		}
 	})
 }
@@ -191,13 +192,13 @@ func TestAppOptions(t *testing.T) {
 
 	// 启动服务器
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	errChan := make(chan error, 1)
 	go func() {
-		if err := app.Start(ctx); err != nil {
+		if err := app.Start(ctx); err != nil && err != context.Canceled {
 			errChan <- err
 		}
+		close(errChan)
 	}()
 
 	// 等待服务器启动
@@ -223,11 +224,11 @@ func TestAppOptions(t *testing.T) {
 
 	// 等待服务器关闭
 	select {
-	case err := <-errChan:
-		if err != nil {
+	case err, ok := <-errChan:
+		if ok && err != nil {
 			t.Errorf("Error during shutdown: %v", err)
 		}
-	case <-time.After(3 * time.Second):
-		t.Error("Server shutdown timeout")
+	case <-time.After(5 * time.Second):
+		t.Fatal("Server shutdown timeout")
 	}
 }
