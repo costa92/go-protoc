@@ -8,8 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gorilla/mux"
-	"go.uber.org/zap"
+	"github.com/costa92/go-protoc/pkg/app"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health"
@@ -19,16 +18,19 @@ import (
 // 测试用的 API 组
 type testAPIGroup struct{}
 
-func (t *testAPIGroup) Install(router *mux.Router) error {
+func (t *testAPIGroup) Install(grpcServer *grpc.Server, httpServer *app.HTTPServer) {
+	// 注册 HTTP 路由
+	router := httpServer.Router()
 	router.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("test ok"))
+		_, err := w.Write([]byte("test ok"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	})
-	return nil
-}
 
-func (t *testAPIGroup) RegisterGRPC(srv *grpc.Server) error {
-	healthpb.RegisterHealthServer(srv, health.NewServer())
-	return nil
+	// 注册 gRPC 服务
+	healthpb.RegisterHealthServer(grpcServer, health.NewServer())
 }
 
 // 测试中间件
@@ -44,22 +46,16 @@ func testGRPCInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryS
 	return handler(ctx, req)
 }
 
-// go test -timeout 30s -run ^TestApp$ ./pkg/app -v -count=1
 // TestApp 测试应用功能
 func TestApp(t *testing.T) {
-	// 创建日志器
-	logger, _ := zap.NewDevelopment()
-
 	// 创建应用实例
-	app := NewApp(":18090", ":18091", logger,
-		WithHTTPMiddlewares(testHTTPMiddleware),
-		WithGRPCUnaryInterceptors(testGRPCInterceptor),
+	app := app.NewApp(":18090", ":18091",
+		app.WithHTTPMiddlewares(testHTTPMiddleware),
+		app.WithGRPCUnaryInterceptors(testGRPCInterceptor),
 	)
 
 	// 安装测试 API 组
-	if err := app.InstallAPIGroup(&testAPIGroup{}); err != nil {
-		t.Fatalf("Failed to install API group: %v", err)
-	}
+	app.InstallAPIGroup(&testAPIGroup{})
 
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
@@ -78,7 +74,7 @@ func TestApp(t *testing.T) {
 
 	// 测试 HTTP 服务器
 	t.Run("HTTP Server", func(t *testing.T) {
-		resp, err := http.Get("http://localhost:18090/api/test")
+		resp, err := http.Get("http://localhost:18090/test")
 		if err != nil {
 			t.Fatalf("Failed to make HTTP request: %v", err)
 		}
@@ -90,7 +86,10 @@ func TestApp(t *testing.T) {
 		}
 
 		// 验证响应
-		body, _ := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("Failed to read response body: %v", err)
+		}
 		if string(body) != "test ok" {
 			t.Errorf("Unexpected response: %s", string(body))
 		}
@@ -99,7 +98,11 @@ func TestApp(t *testing.T) {
 	// 测试 gRPC 服务器
 	t.Run("gRPC Server", func(t *testing.T) {
 		// 创建 gRPC 连接
-		conn, err := grpc.Dial("localhost:18091",
+		dialCtx, dialCancel := context.WithTimeout(context.Background(), time.Second)
+		defer dialCancel()
+
+		// 创建 gRPC 连接
+		conn, err := grpc.DialContext(dialCtx, "localhost:18091",
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 		)
 		if err != nil {
@@ -133,17 +136,21 @@ func TestApp(t *testing.T) {
 		case <-shutdownTimeout:
 			// 验证服务器已关闭
 			httpClient := http.Client{Timeout: time.Second}
-			_, err := httpClient.Get("http://localhost:18090/api/test")
+			resp, err := httpClient.Get("http://localhost:18090/test")
 			if err == nil {
+				resp.Body.Close()
 				t.Error("HTTP server still running after shutdown")
 			}
 
-			_, err = grpc.Dial("localhost:18091",
+			dialCtx, dialCancel := context.WithTimeout(context.Background(), time.Second)
+			defer dialCancel()
+
+			// 创建 gRPC 连接
+			conn, err := grpc.DialContext(dialCtx, "localhost:18091",
 				grpc.WithTransportCredentials(insecure.NewCredentials()),
-				grpc.WithBlock(),
-				grpc.WithTimeout(time.Second),
 			)
 			if err == nil {
+				conn.Close()
 				t.Error("gRPC server still running after shutdown")
 			}
 		}
@@ -152,8 +159,6 @@ func TestApp(t *testing.T) {
 
 // TestAppOptions 测试选项功能
 func TestAppOptions(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
-
 	// 测试多个中间件
 	middleware1 := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -170,27 +175,36 @@ func TestAppOptions(t *testing.T) {
 	}
 
 	// 创建应用实例
-	app := NewApp(":18092", ":18093", logger,
-		WithHTTPMiddlewares(middleware1, middleware2),
+	app := app.NewApp(":18092", ":18093",
+		app.WithHTTPMiddlewares(middleware1, middleware2),
 	)
 
 	// 安装测试路由
-	router := app.httpServer.Router()
+	router := app.GetHTTPServer().Router()
 	router.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "ok")
+		_, err := fmt.Fprintf(w, "ok")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	})
 
 	// 启动服务器
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go app.Start(ctx)
+	errChan := make(chan error, 1)
+	go func() {
+		if err := app.Start(ctx); err != nil {
+			errChan <- err
+		}
+	}()
 
 	// 等待服务器启动
 	time.Sleep(2 * time.Second)
 
 	// 测试中间件链
-	resp, err := http.Get("http://localhost:18092/api/test")
+	resp, err := http.Get("http://localhost:18092/test")
 	if err != nil {
 		t.Fatalf("Failed to make HTTP request: %v", err)
 	}
@@ -202,5 +216,18 @@ func TestAppOptions(t *testing.T) {
 	}
 	if resp.Header.Get("X-Test-2") != "test2" {
 		t.Error("Second middleware not working")
+	}
+
+	// 关闭服务器
+	cancel()
+
+	// 等待服务器关闭
+	select {
+	case err := <-errChan:
+		if err != nil {
+			t.Errorf("Error during shutdown: %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Error("Server shutdown timeout")
 	}
 }

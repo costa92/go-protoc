@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/costa92/go-protoc/pkg/log"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -72,7 +73,9 @@ func ForwardResponseMessage(ctx context.Context, mux *runtime.ServeMux, marshale
 	}
 
 	if _, err := w.Write(buf); err != nil {
-		// Log write error
+		log.Errorf("Failed to write response: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -91,6 +94,8 @@ func CustomHTTPErrorHandler(ctx context.Context, mux *runtime.ServeMux, marshale
 	buf, _ := json.Marshal(wrappedErr)
 	w.WriteHeader(runtime.HTTPStatusFromCode(s.Code()))
 	if _, wErr := w.Write(buf); wErr != nil {
-		// Log write error
+		log.Errorf("Failed to write error response: %v", wErr)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 }

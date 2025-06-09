@@ -10,17 +10,6 @@ import (
 
 var validate = validator.New()
 
-type validationError struct {
-	Field   string `json:"field"`
-	Tag     string `json:"tag"`
-	Value   string `json:"value,omitempty"`
-	Message string `json:"message"`
-}
-
-func (v *validationError) Error() string {
-	return v.Message
-}
-
 // ValidationMiddleware 创建一个验证中间件
 func ValidationMiddleware() mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {

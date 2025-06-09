@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/costa92/go-protoc/pkg/log"
 	"github.com/gorilla/mux"
@@ -149,8 +150,9 @@ func NewHTTPServer(addr string, middlewares ...mux.MiddlewareFunc) *HTTPServer {
 
 	return &HTTPServer{
 		Server: &http.Server{
-			Addr:    addr,
-			Handler: router,
+			Addr:              addr,
+			Handler:           router,
+			ReadHeaderTimeout: 60 * time.Second,
 		},
 		router: router,
 	}

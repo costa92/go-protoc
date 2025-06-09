@@ -4,7 +4,7 @@
 
 ## 项目结构
 
-```
+```bash
 .
 ├── api/                    # API 定义和生成的代码
 │   ├── openapi/           # OpenAPI/Swagger 文档
@@ -107,14 +107,14 @@ make build
 
 ### API 文档
 
-- Swagger UI: http://localhost:8090/swagger/index.html
-- OpenAPI 规范: http://localhost:8090/swagger/doc.json
+- Swagger UI: <http://localhost:8090/swagger/index.html>
+- OpenAPI 规范: <http://localhost:8090/swagger/doc.json>
 
 ### 监控和调试
 
-- Prometheus 指标: http://localhost:8090/metrics
-- pprof 调试: http://localhost:8090/debug/pprof/
-- 健康检查: http://localhost:8090/healthz
+- Prometheus 指标: <http://localhost:8090/metrics>
+- pprof 调试: <http://localhost:8090/debug/pprof/>
+- 健康检查: <http://localhost:8090/healthz>
 
 ## 配置说明
 

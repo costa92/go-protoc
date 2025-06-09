@@ -32,6 +32,39 @@ linters-settings:
     suggest-new: true
   misspell:
     locale: US
+  depguard:
+    rules:
+      main:
+        files:
+          - $all
+          - "!$test"
+        allow:
+          - $gostd
+          - github.com/costa92/go-protoc
+          - github.com/gorilla/mux
+          - github.com/grpc-ecosystem/grpc-gateway/v2
+          - github.com/spf13/viper
+          - github.com/spf13/pflag
+          - go.uber.org/zap
+          - google.golang.org/grpc
+          - google.golang.org/protobuf
+          - k8s.io/klog/v2
+          - k8s.io/apimachinery
+          - github.com/prometheus/client_golang
+          - go.opentelemetry.io/otel
+          - go.opentelemetry.io/contrib
+          - github.com/go-playground/validator/v10
+          - golang.org/x/time/rate
+      tests:
+        files:
+          - "$test"
+        allow:
+          - $gostd
+          - github.com/costa92/go-protoc
+          - github.com/gorilla/mux
+          - github.com/grpc-ecosystem/grpc-gateway/v2
+          - google.golang.org/grpc
+          - google.golang.org/protobuf
 
 linters:
   disable-all: true

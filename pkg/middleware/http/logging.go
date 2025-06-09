@@ -14,6 +14,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+const UnknownTraceID = "unknown"
+
 // LoggingMiddleware 创建一个 HTTP 日志中间件
 func LoggingMiddleware() mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
@@ -22,7 +24,7 @@ func LoggingMiddleware() mux.MiddlewareFunc {
 			rw := &responseWriter{w, http.StatusOK}
 
 			spanCtx := trace.SpanContextFromContext(r.Context())
-			traceID := "unknown"
+			traceID := UnknownTraceID
 			if spanCtx.IsValid() {
 				traceID = spanCtx.TraceID().String()
 			}
@@ -75,7 +77,7 @@ func RecoveryMiddleware() mux.MiddlewareFunc {
 			defer func() {
 				if err := recover(); err != nil {
 					spanCtx := trace.SpanContextFromContext(r.Context())
-					traceID := "unknown"
+					traceID := UnknownTraceID
 					if spanCtx.IsValid() {
 						traceID = spanCtx.TraceID().String()
 					}

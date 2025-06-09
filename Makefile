@@ -96,3 +96,14 @@ vet: ## 代码静态检查
 mod-tidy: ## 整理依赖
 	@echo ">> 整理Go模块依赖"
 	@go mod tidy
+
+# 添加新的命令
+.PHONY: run-api
+run-api: ## 运行 API 服务器
+	@echo ">> 启动 API 服务器"
+	@go run cmd/apiserver/main.go
+
+.PHONY: gen-swagger-docs
+gen-swagger-docs: ## 生成 Swagger 文档
+	@echo ">> 生成 Swagger 文档"
+	@go run cmd/gen-swaggertype-docs/swagger_type_docs.go -s $(TYPE_SRC) -f $(FUNC_DEST)

@@ -1,8 +1,6 @@
 package log
 
 import (
-	"sort"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -153,11 +151,4 @@ func (l *SugaredLogger) WithValues(keysAndValues ...interface{}) Logger {
 // Sync 同步底层 zap 日志记录器。
 func (l *SugaredLogger) Sync() {
 	_ = l.SugaredLogger.Sync()
-}
-
-// sortFields 按键对字段进行排序。
-func sortFields(fields []zap.Field) {
-	sort.Slice(fields, func(i, j int) bool {
-		return fields[i].Key < fields[j].Key
-	})
 }
