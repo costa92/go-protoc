@@ -36,7 +36,7 @@ func main() {
 	}
 	defer log.Sync()
 
-	log.Infof("成功加载配置文件来自: %s", configPath)
+	log.Infow("成功加载配置文件来自", "path", configPath)
 
 	// 初始化 OpenTelemetry Tracer
 	tp, err := tracing.InitTracer(&cfg.Observability.Tracing)

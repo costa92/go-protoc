@@ -21,6 +21,20 @@ type Logger interface {
 	Panicf(format string, args ...interface{})
 	// Fatalf 使用 fmt.Sprintf 格式记录一条致命级别的消息，然后调用 os.Exit。
 	Fatalf(format string, args ...interface{})
+
+	// Debugw 记录一条调试级别的结构化消息。
+	Debugw(msg string, keysAndValues ...interface{})
+	// Infow 记录一条信息级别的结构化消息。
+	Infow(msg string, keysAndValues ...interface{})
+	// Warnw 记录一条警告级别的结构化消息。
+	Warnw(msg string, keysAndValues ...interface{})
+	// Errorw 记录一条错误级别的结构化消息。
+	Errorw(msg string, keysAndValues ...interface{})
+	// Panicw 记录一条 panic 级别的结构化消息，然后 panic。
+	Panicw(msg string, keysAndValues ...interface{})
+	// Fatalw 记录一条致命级别的结构化消息，然后调用 os.Exit。
+	Fatalw(msg string, keysAndValues ...interface{})
+
 	// WithValues 添加一些上下文键值对到日志记录器。
 	WithValues(keysAndValues ...interface{}) Logger
 	// Sync 调用底层 Core 的 Sync 方法，刷新所有缓冲的日志条目。
@@ -103,6 +117,36 @@ func Panicf(format string, args ...interface{}) {
 // Fatalf 使用全局日志记录器记录一条致命级别的消息。
 func Fatalf(format string, args ...interface{}) {
 	std.Fatalf(format, args...)
+}
+
+// Debugw 使用全局日志记录器记录一条调试级别的结构化消息。
+func Debugw(msg string, keysAndValues ...interface{}) {
+	std.Debugw(msg, keysAndValues...)
+}
+
+// Infow 使用全局日志记录器记录一条信息级别的结构化消息。
+func Infow(msg string, keysAndValues ...interface{}) {
+	std.Infow(msg, keysAndValues...)
+}
+
+// Warnw 使用全局日志记录器记录一条警告级别的结构化消息。
+func Warnw(msg string, keysAndValues ...interface{}) {
+	std.Warnw(msg, keysAndValues...)
+}
+
+// Errorw 使用全局日志记录器记录一条错误级别的结构化消息。
+func Errorw(msg string, keysAndValues ...interface{}) {
+	std.Errorw(msg, keysAndValues...)
+}
+
+// Panicw 使用全局日志记录器记录一条 panic 级别的结构化消息。
+func Panicw(msg string, keysAndValues ...interface{}) {
+	std.Panicw(msg, keysAndValues...)
+}
+
+// Fatalw 使用全局日志记录器记录一条致命级别的结构化消息。
+func Fatalw(msg string, keysAndValues ...interface{}) {
+	std.Fatalw(msg, keysAndValues...)
 }
 
 // WithValues 返回一个包含额外上下文的全局日志记录器。

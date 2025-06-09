@@ -54,6 +54,14 @@ func NewZapLogger(opts *Options) (Logger, error) {
 	return logger, nil
 }
 
+func (l *zapLogger) Debugw(msg string, keysAndValues ...interface{}) {
+	l.z.Sugar().Debugw(msg, keysAndValues...)
+}
+
+func (l *zapLogger) Infow(msg string, keysAndValues ...interface{}) {
+	l.z.Sugar().Infow(msg, keysAndValues...)
+}
+
 func (l *zapLogger) Debugf(format string, args ...interface{}) {
 	l.z.Sugar().Debugf(format, args...)
 }
@@ -76,6 +84,22 @@ func (l *zapLogger) Panicf(format string, args ...interface{}) {
 
 func (l *zapLogger) Fatalf(format string, args ...interface{}) {
 	l.z.Sugar().Fatalf(format, args...)
+}
+
+func (l *zapLogger) Errorw(msg string, keysAndValues ...interface{}) {
+	l.z.Sugar().Errorw(msg, keysAndValues...)
+}
+
+func (l *zapLogger) Panicw(msg string, keysAndValues ...interface{}) {
+	l.z.Sugar().Panicw(msg, keysAndValues...)
+}
+
+func (l *zapLogger) Fatalw(msg string, keysAndValues ...interface{}) {
+	l.z.Sugar().Fatalw(msg, keysAndValues...)
+}
+
+func (l *zapLogger) Warnw(msg string, keysAndValues ...interface{}) {
+	l.z.Sugar().Warnw(msg, keysAndValues...)
 }
 
 func (l *zapLogger) WithValues(keysAndValues ...interface{}) Logger {
