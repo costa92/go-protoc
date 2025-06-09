@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/costa92/go-protoc/pkg/metrics"
+	"github.com/costa92/go-protoc/pkg/middleware/config"
 	"github.com/gorilla/mux"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -14,8 +15,21 @@ import (
 
 // LoggingMiddleware 创建一个 HTTP 日志中间件
 func LoggingMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
+	// 使用默认配置
+	cfg := config.DefaultObservabilityConfig()
+	return LoggingMiddlewareWithConfig(logger, cfg)
+}
+
+// LoggingMiddlewareWithConfig 创建一个带自定义配置的 HTTP 日志中间件
+func LoggingMiddlewareWithConfig(logger *zap.Logger, cfg *config.ObservabilityConfig) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// 检查是否在白名单中
+			if cfg.ShouldSkip(r.URL.Path) {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			start := time.Now()
 
 			// 创建一个自定义的 ResponseWriter 来捕获状态码
@@ -73,8 +87,21 @@ func (rw *responseWriter) WriteHeader(status int) {
 
 // RecoveryMiddleware 创建一个 HTTP 恢复中间件
 func RecoveryMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
+	// 使用默认配置
+	cfg := config.DefaultObservabilityConfig()
+	return RecoveryMiddlewareWithConfig(logger, cfg)
+}
+
+// RecoveryMiddlewareWithConfig 创建一个带自定义配置的 HTTP 恢复中间件
+func RecoveryMiddlewareWithConfig(logger *zap.Logger, cfg *config.ObservabilityConfig) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// 检查是否在白名单中
+			if cfg.ShouldSkip(r.URL.Path) {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			defer func() {
 				if err := recover(); err != nil {
 					// 从context中提取TraceID
@@ -99,8 +126,21 @@ func RecoveryMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 
 // TimeoutMiddleware 创建一个超时中间件
 func TimeoutMiddleware(timeout time.Duration) mux.MiddlewareFunc {
+	// 使用默认配置
+	cfg := config.DefaultObservabilityConfig()
+	return TimeoutMiddlewareWithConfig(timeout, cfg)
+}
+
+// TimeoutMiddlewareWithConfig 创建一个带自定义配置的超时中间件
+func TimeoutMiddlewareWithConfig(timeout time.Duration, cfg *config.ObservabilityConfig) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// 检查是否在白名单中
+			if cfg.ShouldSkip(r.URL.Path) {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			ctx := r.Context()
 			ctx, cancel := context.WithTimeout(ctx, timeout)
 			defer cancel()

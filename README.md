@@ -1,154 +1,137 @@
-# Go-Protoc 服务框架
+# Go-Protoc 项目
 
-一个基于gRPC和HTTP Gateway的Go微服务框架，支持多版本API、配置管理和可观测性。
-
-## 主要特性
-
-- **多版本API支持**：同时支持多个API版本，便于API演进
-- **双协议支持**：通过gRPC-Gateway支持gRPC和HTTP两种协议
-- **配置管理**：使用Viper支持从文件和环境变量加载配置
-- **可观测性**：
-  - 集成OpenTelemetry实现分布式追踪
-  - 支持Prometheus指标监控
-  - 结构化日志记录
-- **开发工具**：
-  - 完整的Makefile命令
-  - 代码质量检查工具
-  - Swagger API文档
-
-## 目录结构
+## 项目结构
 
 ```
-├── cmd/            # 各个主程序（可执行文件）入口
-├── pkg/            # 可被外部项目引用的库代码
-├── internal/       # 仅限本项目内部使用的代码
-├── api/            # API 定义（如 Protobuf、OpenAPI 等）
+.
+├── api/            # API 定义和生成的代码
+├── cmd/            # 应用程序入口
 ├── configs/        # 配置文件
-├── scripts/        # 各类运维脚本
-├── build/          # 打包与持续集成相关文件
-├── deployments/    # 部署相关文件（如 Docker、K8s）
-├── test/           # 额外的外部测试代码
-├── go.mod
-├── go.sum
-└── README.md
+├── docs/          # 文档
+│   ├── errors/    # 错误处理文档
+│   └── middleware/ # 中间件文档
+├── pkg/           # 项目包
+│   ├── api/       # API 实现
+│   ├── errors/    # 错误处理
+│   └── middleware/ # 中间件
+└── scripts/       # 脚本文件
 ```
 
-## 安装与配置
+## 功能特性
 
-### 依赖工具
+- gRPC 和 HTTP 双协议支持
+- Swagger/OpenAPI 文档
+- 错误处理系统
+- 中间件支持
+  - 日志记录
+  - 请求追踪
+  - 错误恢复
+  - 超时控制
+  - 可观察性（白名单）
+- Prometheus 指标
+- 健康检查
 
-- Go 1.18+
-- Protocol Buffers 编译器 (protoc)
-- 相关插件：
-  - `protoc-gen-go`
-  - `protoc-gen-go-grpc`
-  - `protoc-gen-grpc-gateway`
+## 快速开始
 
-### 安装工具
+### 安装依赖
 
 ```bash
-# 安装开发所需工具
 make install-tools
 ```
 
-### 配置管理
-
-配置文件位于 `configs/config.yaml`，也可通过环境变量覆盖配置：
+### 生成 API 代码
 
 ```bash
-# 通过环境变量配置HTTP端口
-export GO_PROTOC_SERVER_HTTP_ADDR=:8080
-
-# 指定配置文件路径
-export CONFIG_PATH=/path/to/config.yaml
-```
-
-## 构建与运行
-
-### 构建服务
-
-```bash
-# 生成Protocol Buffers代码
 make proto
-
-# 构建服务
-go build -o bin/apiserver cmd/apiserver/main.go
 ```
 
 ### 运行服务
 
 ```bash
-# 直接运行
-./bin/apiserver
-
-# 或者使用go run
 go run cmd/apiserver/main.go
 ```
 
-### API访问
+## API 文档
 
-- gRPC服务默认运行在`:8091`
-- HTTP服务默认运行在`:8090`
-- API文档访问：`http://localhost:8090/swagger/index.html`
-- Prometheus指标：`http://localhost:8090/metrics`
+- Swagger UI: http://localhost:8090/swagger/index.html
+- OpenAPI 规范: http://localhost:8090/swagger/doc.json
+
+## 监控和调试
+
+- Prometheus 指标: http://localhost:8090/metrics
+- pprof 调试: http://localhost:8090/debug/pprof/
+- 健康检查: http://localhost:8090/healthz
+
+## 中间件
+
+### 可观察性中间件
+
+项目包含了一套完整的可观察性中间件系统，支持请求日志记录、监控指标收集和错误追踪。为了避免系统路径产生不必要的日志和指标，实现了白名单机制。
+
+#### 默认白名单路径
+
+以下路径默认不会被记录：
+
+- `/metrics` - Prometheus 指标
+- `/debug/` - Debug 端点
+- `/swagger/` - Swagger UI
+- `/healthz` - 健康检查
+- `/favicon.ico` - 浏览器图标请求
+
+详细文档请参考：[可观察性中间件配置指南](docs/middleware/observability.md)
+
+### 错误处理
+
+项目实现了统一的错误处理系统，包括：
+
+- 标准错误码
+- 错误响应格式
+- 错误类型判断
+- 错误详情支持
+
+详细文档请参考：[错误处理文档](docs/errors/README.md)
+
+## 配置
+
+配置文件位于 `configs/` 目录下，支持：
+
+- YAML 配置文件
+- 环境变量覆盖
+- 命令行参数
 
 ## 开发指南
 
-### 添加新API
+### 添加新的 API
 
-1. 在`api/`目录下创建Protobuf定义文件
-2. 运行`make proto`生成代码
-3. 在`internal/`中实现服务逻辑
-4. 在`internal/{service}/installer.go`中注册服务
+1. 在 `pkg/api/` 目录下创建新的 proto 文件
+2. 运行 `make proto` 生成代码
+3. 实现服务接口
+4. 在 `cmd/apiserver/main.go` 中注册服务
 
-### 单元测试与代码质量
+### 自定义中间件配置
 
-```bash
-# 运行测试
-make test
+可以通过创建自定义配置来控制中间件行为：
 
-# 检查代码覆盖率
-make test-coverage
+```go
+customConfig := &config.ObservabilityConfig{
+    SkipPaths: []string{
+        "/metrics",
+        "/custom/path",
+        // 添加更多路径
+    },
+}
 
-# 代码格式化
-make fmt
-
-# 代码静态检查
-make vet
-
-# 代码质量分析
-make lint
+router.Use(http.LoggingMiddlewareWithConfig(logger, customConfig))
 ```
 
-## 可观测性
+## 贡献指南
 
-### 链路追踪
-
-服务默认集成了OpenTelemetry，支持以下导出器：
-
-- `stdout`: 输出到标准输出（默认）
-- `jaeger`: 输出到Jaeger
-- `otlp`: 输出到OpenTelemetry Collector
-
-配置示例：
-
-```yaml
-observability:
-  tracing:
-    service_name: "my-service"
-    enabled: true
-    exporter: "jaeger"
-```
-
-### 指标监控
-
-服务暴露Prometheus格式的指标，包括：
-
-- HTTP请求计数和耗时
-- gRPC请求计数和耗时
-
-访问`/metrics`端点获取指标数据。
+1. Fork 项目
+2. 创建特性分支
+3. 提交变更
+4. 推送到分支
+5. 创建 Pull Request
 
 ## 许可证
 
-本项目采用MIT许可证。
+[MIT License](LICENSE)
