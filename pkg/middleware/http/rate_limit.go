@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/costa92/go-protoc/pkg/config"
 	"github.com/gorilla/mux"
 	"golang.org/x/time/rate"
 )
@@ -38,9 +37,14 @@ func cleanup(cleanupInterval time.Duration) {
 	}()
 }
 
-// RateLimitMiddleware 创建一个限流中间件
-func RateLimitMiddleware(cfg *config.Config) mux.MiddlewareFunc {
-	if !cfg.Middleware.RateLimit.Enable {
+// RateLimitMiddleware 创建一个限流中间件，接受明确的配置参数而不是依赖全局配置
+func RateLimitMiddleware(
+	enable bool,
+	limit float64,
+	burst int,
+	skipPaths []string, // 可选的跳过路径列表
+) mux.MiddlewareFunc {
+	if !enable {
 		return func(next http.Handler) http.Handler {
 			return next
 		}
@@ -52,9 +56,11 @@ func RateLimitMiddleware(cfg *config.Config) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// 检查是否在白名单中
-			if shouldSkip(cfg.Observability.SkipPaths, r.URL.Path) {
-				next.ServeHTTP(w, r)
-				return
+			for _, path := range skipPaths {
+				if r.URL.Path == path {
+					next.ServeHTTP(w, r)
+					return
+				}
 			}
 
 			// 获取客户端 IP
@@ -68,7 +74,7 @@ func RateLimitMiddleware(cfg *config.Config) mux.MiddlewareFunc {
 			limiter, exists := rateLimiters[ip]
 			if !exists {
 				limiter = &rateLimiter{
-					limiter: rate.NewLimiter(rate.Limit(cfg.Middleware.RateLimit.Limit), cfg.Middleware.RateLimit.Burst),
+					limiter: rate.NewLimiter(rate.Limit(limit), burst),
 				}
 				rateLimiters[ip] = limiter
 			}

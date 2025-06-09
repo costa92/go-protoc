@@ -6,19 +6,25 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
 
 	"github.com/costa92/go-protoc/pkg/log"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
 
-// Wrapper is your desired unified JSON structure
+// Wrapper 是统一的响应包装结构
 type Wrapper struct {
-	Status  string      `json:"status"`            // "success" or "error"
-	Data    interface{} `json:"data,omitempty"`    // Business data
-	Message string      `json:"message,omitempty"` // Message
-	Code    int         `json:"code"`              // Code
+	// Status 表示请求状态，"success" 或 "error"
+	Status string `json:"status"`
+	// Code 表示 HTTP 状态码
+	Code int `json:"code"`
+	// Message 包含响应的消息说明
+	Message string `json:"message"`
+	// Data 包含响应的具体数据
+	Data interface{} `json:"data,omitempty"`
+	// Error 包含详细错误信息，仅在开发环境中返回
+	Error interface{} `json:"error,omitempty"`
 }
 
 // CustomMarshaler implements the runtime.Marshaler interface
@@ -79,23 +85,72 @@ func ForwardResponseMessage(ctx context.Context, mux *runtime.ServeMux, marshale
 	}
 }
 
-// CustomHTTPErrorHandler wraps gRPC errors into the desired uniform JSON format.
-func CustomHTTPErrorHandler(ctx context.Context, mux *runtime.ServeMux, marshaler runtime.Marshaler, w http.ResponseWriter, req *http.Request, err error) {
-	s := status.Convert(err)
-	w.Header().Set("Content-Type", "application/json") // Ensure content type is JSON
+// NewSuccessResponse 创建一个成功响应
+func NewSuccessResponse(data interface{}, message string) *Wrapper {
+	if message == "" {
+		message = "请求成功"
+	}
 
-	wrappedErr := Wrapper{
+	return &Wrapper{
+		Status:  "success",
+		Code:    200,
+		Message: message,
+		Data:    data,
+	}
+}
+
+// NewErrorResponse 创建一个错误响应
+func NewErrorResponse(code int, message string, err error) *Wrapper {
+	resp := &Wrapper{
 		Status:  "error",
-		Message: s.Message(),
-		Data:    nil,
-		Code:    runtime.HTTPStatusFromCode(s.Code()),
+		Code:    code,
+		Message: message,
 	}
 
-	buf, _ := json.Marshal(wrappedErr)
-	w.WriteHeader(runtime.HTTPStatusFromCode(s.Code()))
-	if _, wErr := w.Write(buf); wErr != nil {
-		log.Errorf("Failed to write error response: %v", wErr)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+	// 仅在开发环境中包含详细错误信息
+	if err != nil && isDevEnvironment() {
+		resp.Error = err.Error()
 	}
+
+	return resp
+}
+
+// NewBadRequestResponse 创建400错误响应
+func NewBadRequestResponse(message string, err error) *Wrapper {
+	return NewErrorResponse(http.StatusBadRequest, message, err)
+}
+
+// NewUnauthorizedResponse 创建401错误响应
+func NewUnauthorizedResponse(message string, err error) *Wrapper {
+	return NewErrorResponse(http.StatusUnauthorized, message, err)
+}
+
+// NewForbiddenResponse 创建403错误响应
+func NewForbiddenResponse(message string, err error) *Wrapper {
+	return NewErrorResponse(http.StatusForbidden, message, err)
+}
+
+// NewNotFoundResponse 创建404错误响应
+func NewNotFoundResponse(message string, err error) *Wrapper {
+	return NewErrorResponse(http.StatusNotFound, message, err)
+}
+
+// NewInternalServerErrorResponse 创建500错误响应
+func NewInternalServerErrorResponse(message string, err error) *Wrapper {
+	return NewErrorResponse(http.StatusInternalServerError, message, err)
+}
+
+// isDevEnvironment 检查是否为开发环境
+func isDevEnvironment() bool {
+	env := getEnv("ENV", "development")
+	return env == "development" || env == "dev"
+}
+
+// getEnv 获取环境变量，如果不存在则返回默认值
+func getEnv(key, defaultValue string) string {
+	value := defaultValue
+	if envValue, exists := os.LookupEnv(key); exists {
+		value = envValue
+	}
+	return value
 }

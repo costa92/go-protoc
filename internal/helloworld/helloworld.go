@@ -3,10 +3,12 @@ package helloworld
 import (
 	"context"
 
+	"github.com/costa92/go-protoc/internal/apiserver"
 	"github.com/costa92/go-protoc/pkg/app"
+
 	// "github.com/costa92/go-protoc/pkg/auth"
 	"github.com/costa92/go-protoc/pkg/log"
-	"google.golang.org/grpc"
+	"github.com/costa92/go-protoc/pkg/response"
 
 	helloworldv1 "github.com/costa92/go-protoc/pkg/api/helloworld/v1"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -42,16 +44,36 @@ func NewInstaller() *Installer {
 }
 
 // Install 将 helloworld API 组安装到 gRPC 和 HTTP 服务器。
-func (i *Installer) Install(grpcServer *grpc.Server, httpServer *app.HTTPServer) {
+func (i *Installer) Install(grpcServer *app.GRPCServer, httpServer *app.HTTPServer) error {
 	s := NewGreeterServer()
-	helloworldv1.RegisterGreeterServer(grpcServer, s)
+	helloworldv1.RegisterGreeterServer(grpcServer.Server(), s)
 
+	// 创建一个带有自定义 marshalers 的 ServeMux
 	gwmux := runtime.NewServeMux()
+
+	// 配置统一响应系统
+	response.Setup(gwmux)
+
+	// 注册 gRPC-Gateway 处理器
 	if err := helloworldv1.RegisterGreeterHandlerServer(context.Background(), gwmux, s); err != nil {
-		log.L().Fatalf("Failed to register greeter handler server: %v", err)
+		log.L().Errorf("Failed to register greeter handler server: %v", err)
+		return err
 	}
 
-	httpServer.Router().PathPrefix("/").Handler(gwmux)
+	// 注册直接的 HTTP 处理器
+	router := httpServer.Router()
+	router.HandleFunc("/health", HealthCheckHandler).Methods("GET")
+	router.HandleFunc("/error-example", SimpleErrorHandler).Methods("GET")
+	router.HandleFunc("/download-example", FileDownloadHandler).Methods("GET")
+
+	// 注册 gRPC 网关路由，处理其他请求
+	router.PathPrefix("/").Handler(gwmux)
+	return nil
 }
 
-var _ app.APIGroupInstaller = &Installer{}
+// 在初始化时自动注册
+func init() {
+	apiserver.RegisterAPIGroup(NewInstaller())
+}
+
+var _ apiserver.APIGroupInstaller = &Installer{}

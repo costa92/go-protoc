@@ -2,11 +2,12 @@ package apiserver
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
-	"github.com/costa92/go-protoc/internal/helloworld"
 	"github.com/costa92/go-protoc/pkg/app"
 	"github.com/costa92/go-protoc/pkg/config"
 	"github.com/costa92/go-protoc/pkg/log"
@@ -21,13 +22,13 @@ import (
 	"google.golang.org/grpc"
 )
 
-// Server represents the API server
+// Server 表示 API 服务器
 type Server struct {
 	app *app.App
 	tp  *sdktrace.TracerProvider
 }
 
-// NewServer creates a new API server instance
+// NewServer 创建一个新的 API 服务器实例
 func NewServer(configPath string) (*Server, error) {
 	// 加载配置
 	cfg, err := config.LoadConfig(configPath)
@@ -40,7 +41,7 @@ func NewServer(configPath string) (*Server, error) {
 		return nil, initErr
 	}
 
-	log.Infow("成功加载配置文件来自", "path", configPath)
+	log.Infof("成功加载配置文件来自 %s", configPath)
 
 	// 初始化 OpenTelemetry Tracer
 	tp, err := tracing.InitTracer(&cfg.Observability.Tracing)
@@ -48,78 +49,141 @@ func NewServer(configPath string) (*Server, error) {
 		return nil, err
 	}
 
+	// 创建 HTTP 服务器
+	httpServer := createHTTPServer(cfg)
+
+	// 创建 gRPC 服务器
+	grpcServer, err := createGRPCServer(cfg, tp)
+	if err != nil {
+		return nil, err
+	}
+
+	// 创建应用实例，管理所有服务
+	application := app.NewApp("api-server", httpServer, grpcServer)
+
+	// 安装所有已注册的 API 组
+	if err := installAPIGroups(grpcServer, httpServer); err != nil {
+		return nil, err
+	}
+
+	// 添加指标路由（如果启用）
+	if cfg.Observability.Metrics.Enabled {
+		log.Infof("启用 Prometheus 指标，路径: %s", cfg.Observability.Metrics.Path)
+		httpServer.Router().Handle(cfg.Observability.Metrics.Path, metrics.PrometheusHandler())
+	}
+
+	return &Server{
+		app: application,
+		tp:  tp,
+	}, nil
+}
+
+// createHTTPServer 创建和配置 HTTP 服务器
+func createHTTPServer(cfg *config.Config) *app.HTTPServer {
 	// 为 OpenTelemetry HTTP 追踪创建一个中间件
 	otelHTTPMiddleware := func(next http.Handler) http.Handler {
 		return otelhttp.NewHandler(next, "http-server")
 	}
 
+	// 创建带中间件的 HTTP 服务器
+	return app.NewHTTPServer(
+		"api-http",
+		cfg.Server.HTTP.Addr,
+		otelHTTPMiddleware,
+		httpmiddleware.LoggingMiddleware(),
+		httpmiddleware.RecoveryMiddleware(),
+		httpmiddleware.TimeoutMiddleware(time.Duration(cfg.Middleware.Timeout)),
+		httpmiddleware.CORSMiddleware(
+			cfg.Middleware.CORS.AllowOrigins,
+			cfg.Middleware.CORS.AllowMethods,
+			cfg.Middleware.CORS.AllowHeaders,
+			cfg.Middleware.CORS.ExposeHeaders,
+			cfg.Middleware.CORS.AllowCredentials,
+			cfg.Middleware.CORS.MaxAge,
+		),
+		httpmiddleware.RateLimitMiddleware(
+			cfg.Middleware.RateLimit.Enable,
+			float64(cfg.Middleware.RateLimit.Limit),
+			cfg.Middleware.RateLimit.Burst,
+			cfg.Observability.SkipPaths,
+		),
+		httpmiddleware.ValidationMiddleware(),
+	)
+}
+
+// createGRPCServer 创建和配置 gRPC 服务器
+func createGRPCServer(cfg *config.Config, tp *sdktrace.TracerProvider) (*app.GRPCServer, error) {
+	// 创建 gRPC 监听器
+	lis, err := net.Listen("tcp", cfg.Server.GRPC.Addr)
+	if err != nil {
+		return nil, err
+	}
+
 	// 创建 gRPC 统计处理器
 	otelGrpcHandler := otelgrpc.NewServerHandler(otelgrpc.WithTracerProvider(tp))
 
-	// 创建应用实例
-	apiServer := app.NewApp(
-		cfg.Server.HTTP.Addr,
-		cfg.Server.GRPC.Addr,
-		// 添加 HTTP 中间件
-		app.WithHTTPMiddlewares(
-			otelHTTPMiddleware,
-			httpmiddleware.LoggingMiddleware(),
-			httpmiddleware.RecoveryMiddleware(),
-			httpmiddleware.TimeoutMiddleware(cfg),
-			httpmiddleware.CORSMiddleware(cfg),
-			httpmiddleware.RateLimitMiddleware(cfg),
-			httpmiddleware.ValidationMiddleware(),
-		),
-		// 添加 gRPC 拦截器
-		app.WithGRPCUnaryInterceptors(
+	// 创建带拦截器的 gRPC 服务器
+	return app.NewGRPCServer(
+		"api-grpc",
+		lis,
+		grpc.ChainUnaryInterceptor(
 			grpcmiddleware.UnaryLoggingInterceptor(),
 			grpcmiddleware.UnaryRecoveryInterceptor(),
 			grpcmiddleware.ValidationUnaryServerInterceptor(),
 		),
-		app.WithGRPCStreamInterceptors(
+		grpc.ChainStreamInterceptor(
 			grpcmiddleware.StreamLoggingInterceptor(),
 			grpcmiddleware.StreamRecoveryInterceptor(),
 			grpcmiddleware.ValidationStreamServerInterceptor(),
 		),
-		// 添加 gRPC 服务器选项 - 使用 StatsHandler 替代拦截器
-		app.WithGRPCOptions(
-			grpc.StatsHandler(otelGrpcHandler),
-		),
-	)
-
-	// 创建并安装 helloworld API 组
-	helloworldInstaller := helloworld.NewInstaller()
-	apiServer.InstallAPIGroup(helloworldInstaller)
-
-	// 添加指标路由（如果启用）
-	if cfg.Observability.Metrics.Enabled {
-		log.Infof("启用Prometheus指标，路径: %s", cfg.Observability.Metrics.Path)
-		apiServer.GetHTTPServer().Router().Handle(cfg.Observability.Metrics.Path, metrics.PrometheusHandler())
-	}
-
-	return &Server{
-		app: apiServer,
-		tp:  tp,
-	}, nil
+		grpc.StatsHandler(otelGrpcHandler),
+	), nil
 }
 
-// Start starts the server
+// installAPIGroups 安装所有已注册的 API 组
+func installAPIGroups(grpcServer *app.GRPCServer, httpServer *app.HTTPServer) error {
+	// 从注册表获取所有 API 组并安装
+	for _, installer := range GetAPIGroups() {
+		if err := installer.Install(grpcServer, httpServer); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Start 启动服务器
 func (s *Server) Start(ctx context.Context) error {
+	// 创建一个带超时的上下文，用于优雅关闭
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// 设置关闭处理
+	go func() {
+		<-ctx.Done() // 等待取消信号
+		log.Infof("接收到关闭信号，开始优雅关闭...")
+		if err := s.app.Stop(shutdownCtx); err != nil {
+			log.Errorf("关闭服务器时发生错误: %v", err)
+		}
+	}()
+
+	// 启动应用
 	return s.app.Start(ctx)
 }
 
-// Stop stops the server
-func (s *Server) Stop() {
-	log.Infow("开始关闭服务器...")
+// Stop 停止服务器
+func (s *Server) Stop(ctx context.Context) error {
+	log.Infof("开始关闭服务器...")
 	if s.tp != nil {
-		if err := s.tp.Shutdown(context.Background()); err != nil {
+		if err := s.tp.Shutdown(ctx); err != nil {
 			log.Errorf("关闭追踪器失败: %v", err)
+			return err
 		}
 	}
 	log.Sync() // 忽略错误，因为这是在关闭时的清理操作
+	return nil
 }
 
-// GetConfigPath returns the configuration file path
+// GetConfigPath 返回配置文件路径
 func GetConfigPath() string {
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {

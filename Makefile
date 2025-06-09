@@ -66,6 +66,10 @@ install-tools: ## Install CI-related tools. Install all tools by specifying `A=1
 		$(MAKE) _install.other ;                                            \
 	fi
 
+.PHONY: install-protoc-gen-validate
+install-protoc-gen-validate: ## Install protoc-gen-validate.
+	@$(MAKE) _install.protoc-gen-validate
+
 .PHONY: test
 test: ## 运行单元测试
 	@echo ">> 运行单元测试"

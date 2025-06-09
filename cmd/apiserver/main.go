@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/costa92/go-protoc/internal/apiserver"
 	"github.com/costa92/go-protoc/pkg/log"
@@ -40,7 +41,10 @@ func main() {
 
 	// 在服务器停止后，调用 Stop 方法进行完整的清理
 	log.Infof("服务器正在关闭，执行清理操作...")
-	server.Stop()
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+	if err := server.Stop(shutdownCtx); err != nil {
+		log.Errorf("服务器关闭过程中发生错误: %v", err)
+	}
 	log.Infof("清理完成，程序退出。")
-
 }

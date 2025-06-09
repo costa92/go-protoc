@@ -2,33 +2,40 @@ package http
 
 import (
 	"net/http"
+	"time"
 
-	"github.com/costa92/go-protoc/pkg/config"
 	"github.com/gorilla/mux"
 )
 
-// CORSMiddleware 创建一个 CORS 中间件
-func CORSMiddleware(cfg *config.Config) mux.MiddlewareFunc {
+// CORSMiddleware 创建一个 CORS 中间件，接受明确的配置参数而不是依赖全局配置
+func CORSMiddleware(
+	allowOrigins []string,
+	allowMethods []string,
+	allowHeaders []string,
+	exposeHeaders []string,
+	allowCredentials bool,
+	maxAge time.Duration,
+) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// 设置 CORS 头
-			if len(cfg.Middleware.CORS.AllowOrigins) > 0 {
-				w.Header().Set("Access-Control-Allow-Origin", cfg.Middleware.CORS.AllowOrigins[0])
+			if len(allowOrigins) > 0 {
+				w.Header().Set("Access-Control-Allow-Origin", allowOrigins[0])
 			}
-			if len(cfg.Middleware.CORS.AllowMethods) > 0 {
-				w.Header().Set("Access-Control-Allow-Methods", joinStrings(cfg.Middleware.CORS.AllowMethods))
+			if len(allowMethods) > 0 {
+				w.Header().Set("Access-Control-Allow-Methods", joinStrings(allowMethods))
 			}
-			if len(cfg.Middleware.CORS.AllowHeaders) > 0 {
-				w.Header().Set("Access-Control-Allow-Headers", joinStrings(cfg.Middleware.CORS.AllowHeaders))
+			if len(allowHeaders) > 0 {
+				w.Header().Set("Access-Control-Allow-Headers", joinStrings(allowHeaders))
 			}
-			if len(cfg.Middleware.CORS.ExposeHeaders) > 0 {
-				w.Header().Set("Access-Control-Expose-Headers", joinStrings(cfg.Middleware.CORS.ExposeHeaders))
+			if len(exposeHeaders) > 0 {
+				w.Header().Set("Access-Control-Expose-Headers", joinStrings(exposeHeaders))
 			}
-			if cfg.Middleware.CORS.AllowCredentials {
+			if allowCredentials {
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
 			}
-			if cfg.Middleware.CORS.MaxAge > 0 {
-				w.Header().Set("Access-Control-Max-Age", cfg.Middleware.CORS.MaxAge.String())
+			if maxAge > 0 {
+				w.Header().Set("Access-Control-Max-Age", maxAge.String())
 			}
 
 			// 处理预检请求

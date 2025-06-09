@@ -36,3 +36,7 @@ _install.swagger:
 _install.golangci-lint: ## Install golangci-lint.
 	@$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 	@$(SCRIPTS_DIR)/add-completion.sh golangci-lint bash
+
+.PHONY: _install.protoc-gen-validate
+_install.protoc-gen-validate: ## Install protoc-gen-validate.
+	@$(GO) install github.com/envoyproxy/protoc-gen-validate@$(PROTOC_GEN_VALIDATE_VERSION)

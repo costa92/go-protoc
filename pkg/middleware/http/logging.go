@@ -1,13 +1,10 @@
 package http
 
 import (
-	"context"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/costa92/go-protoc/pkg/config"
 	"github.com/costa92/go-protoc/pkg/log"
 	"github.com/costa92/go-protoc/pkg/metrics"
 	"github.com/gorilla/mux"
@@ -94,52 +91,4 @@ func RecoveryMiddleware() mux.MiddlewareFunc {
 			next.ServeHTTP(w, r)
 		})
 	}
-}
-
-// TimeoutMiddleware 创建一个超时中间件
-func TimeoutMiddleware(cfg *config.Config) mux.MiddlewareFunc {
-	return TimeoutMiddlewareWithConfig(cfg.Middleware.Timeout, &cfg.Observability)
-}
-
-// TimeoutMiddlewareWithConfig 创建一个带自定义配置的超时中间件
-func TimeoutMiddlewareWithConfig(timeout time.Duration, cfg *config.ObservabilityConfig) mux.MiddlewareFunc {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// 检查是否在白名单中
-			if shouldSkip(cfg.SkipPaths, r.URL.Path) {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			ctx := r.Context()
-			ctx, cancel := context.WithTimeout(ctx, timeout)
-			defer cancel()
-
-			r = r.WithContext(ctx)
-			done := make(chan struct{})
-
-			go func() {
-				next.ServeHTTP(w, r)
-				close(done)
-			}()
-
-			select {
-			case <-done:
-				return
-			case <-ctx.Done():
-				w.WriteHeader(http.StatusGatewayTimeout)
-				return
-			}
-		})
-	}
-}
-
-// shouldSkip 检查是否应该跳过该路径
-func shouldSkip(skipPaths []string, path string) bool {
-	for _, skipPath := range skipPaths {
-		if strings.HasPrefix(path, skipPath) {
-			return true
-		}
-	}
-	return false
 }
