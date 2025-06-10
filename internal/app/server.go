@@ -1,4 +1,4 @@
-package apiserver
+package app
 
 import (
 	"context"
@@ -30,20 +30,12 @@ type Server struct {
 }
 
 // NewServer 创建一个新的 API 服务器实例
-func NewServer(configPath string) (*Server, error) {
-	// 加载配置
-	cfg, err := config.LoadConfig(configPath)
-	if err != nil {
-		return nil, err
+func NewServer(name string, cfg *config.Config, opts ...Option) (*Server, error) {
+	apiServer := &Server{}
+	// Apply all the options
+	for _, opt := range opts {
+		opt(apiServer)
 	}
-
-	// 初始化日志记录器
-	if initErr := log.Init(cfg.Log); initErr != nil {
-		return nil, initErr
-	}
-
-	log.Infof("成功加载配置文件来自 %s", configPath)
-
 	// 初始化 OpenTelemetry Tracer
 	tp, err := tracing.InitTracer(&cfg.Observability.Tracing)
 	if err != nil {
@@ -60,7 +52,7 @@ func NewServer(configPath string) (*Server, error) {
 	}
 
 	// 创建应用实例，管理所有服务
-	application := app.NewApp("api-server", httpServer, grpcServer)
+	application := app.NewApp(name, httpServer, grpcServer)
 
 	// 安装所有已注册的 API 组
 	if err := installAPIGroups(grpcServer, httpServer); err != nil {
