@@ -7,6 +7,7 @@ require (
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/gorilla/mux v1.8.1
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3
 	github.com/prometheus/client_golang v1.22.0
 	github.com/spf13/cobra v1.9.1
