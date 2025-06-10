@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/costa92/go-protoc/pkg/log"
 	"github.com/gorilla/mux"
 )
 
@@ -16,6 +17,7 @@ func TimeoutMiddleware(timeout time.Duration) mux.MiddlewareFunc {
 
 // TimeoutMiddlewareWithSkipPaths 创建一个带跳过路径的超时中间件
 func TimeoutMiddlewareWithSkipPaths(timeout time.Duration, skipPaths []string) mux.MiddlewareFunc {
+	log.Infow("TimeoutMiddlewareWithSkipPaths", "skipPaths", skipPaths)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// 检查是否在白名单中

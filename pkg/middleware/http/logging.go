@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"slices"
 	"strconv"
 	"time"
 
@@ -14,16 +15,20 @@ import (
 const UnknownTraceID = "unknown"
 
 // LoggingMiddleware 创建一个 HTTP 日志中间件
-func LoggingMiddleware() mux.MiddlewareFunc {
+func LoggingMiddleware(skipPaths []string) mux.MiddlewareFunc {
+	log.Infow("LoggingMiddleware", "skipPaths", skipPaths)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 			rw := &responseWriter{w, http.StatusOK}
 
-			spanCtx := trace.SpanContextFromContext(r.Context())
+			log.Infow("LoggingMiddleware", "r.URL.Path", r.URL.Path)
 			traceID := UnknownTraceID
-			if spanCtx.IsValid() {
-				traceID = spanCtx.TraceID().String()
+			if !slices.Contains(skipPaths, r.URL.Path) {
+				spanCtx := trace.SpanContextFromContext(r.Context())
+				if spanCtx.IsValid() {
+					traceID = spanCtx.TraceID().String()
+				}
 			}
 
 			next.ServeHTTP(rw, r)

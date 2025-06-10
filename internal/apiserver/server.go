@@ -90,7 +90,9 @@ func createHTTPServer(cfg *config.Config) *app.HTTPServer {
 		"api-http",
 		cfg.Server.HTTP.Addr,
 		otelHTTPMiddleware,
-		httpmiddleware.LoggingMiddleware(),
+		httpmiddleware.LoggingMiddleware(
+			cfg.Observability.SkipPaths,
+		),
 		httpmiddleware.RecoveryMiddleware(),
 		httpmiddleware.TimeoutMiddleware(time.Duration(cfg.Middleware.Timeout)),
 		httpmiddleware.CORSMiddleware(
@@ -142,12 +144,21 @@ func createGRPCServer(cfg *config.Config, tp *sdktrace.TracerProvider) (*app.GRP
 
 // installAPIGroups 安装所有已注册的 API 组
 func installAPIGroups(grpcServer *app.GRPCServer, httpServer *app.HTTPServer) error {
+	log.Infow("开始安装 API 组")
 	// 从注册表获取所有 API 组并安装
-	for _, installer := range GetAPIGroups() {
+	installers := GetAPIGroups()
+	log.Infow("找到 %d 个 API 组安装器", "installers_len", len(installers))
+
+	for i, installer := range installers {
+		log.Infof("安装 API 组 %d: %T", i, installer)
 		if err := installer.Install(grpcServer, httpServer); err != nil {
+			log.Errorf("安装 API 组 %d 失败: %v", i, err)
 			return err
 		}
+		log.Infow("成功安装 API 组", "index", i)
 	}
+
+	log.Infow("所有 API 组安装完成")
 	return nil
 }
 

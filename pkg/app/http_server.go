@@ -5,40 +5,65 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/http/pprof"
 	"time"
 
 	"github.com/costa92/go-protoc/pkg/log"
+	"github.com/costa92/go-protoc/pkg/response"
 	"github.com/gorilla/mux"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 )
 
 // HTTPServer 是对 http.Server 的包装，实现了 Server 接口
 type HTTPServer struct {
 	*http.Server
-	router *mux.Router
-	name   string
+	router     *mux.Router
+	gatewayMux *runtime.ServeMux
+	name       string
 }
 
 // NewHTTPServer 创建一个新的 HTTPServer 实例
 func NewHTTPServer(name, addr string, middlewares ...mux.MiddlewareFunc) *HTTPServer {
 	router := mux.NewRouter()
+
+	// 应用中间件
 	for _, mw := range middlewares {
 		router.Use(mw)
 	}
 
-	return &HTTPServer{
+	// 创建 gRPC-Gateway mux
+	gwmux := runtime.NewServeMux()
+	response.Setup(gwmux)
+
+	httpServer := &HTTPServer{
 		Server: &http.Server{
 			Addr:              addr,
 			Handler:           router,
 			ReadHeaderTimeout: 60 * time.Second,
 		},
-		router: router,
-		name:   name,
+		router:     router,
+		gatewayMux: gwmux,
+		name:       name,
 	}
+
+	// 注册健康检查和调试路由
+	httpServer.registerDebugHandlers()
+
+	// 重要：确保直接路由都已注册后，才将 gRPC-Gateway 注册为默认处理器
+	// 注册 gRPC-Gateway 路由作为默认处理器（始终放在最后）
+	router.PathPrefix("/").Handler(gwmux)
+
+	return httpServer
 }
 
 // Router 返回 mux.Router 实例
 func (s *HTTPServer) Router() *mux.Router {
 	return s.router
+}
+
+// GatewayMux 返回 gRPC-Gateway ServeMux 实例
+func (s *HTTPServer) GatewayMux() *runtime.ServeMux {
+	return s.gatewayMux
 }
 
 // Start 实现 Server 接口的 Start 方法
@@ -65,4 +90,46 @@ func (s *HTTPServer) Stop(ctx context.Context) error {
 	}
 	log.Infof("HTTP 服务器 %s 已成功关闭", s.name)
 	return nil
+}
+
+// registerDebugHandlers 注册调试处理器
+func (s *HTTPServer) registerDebugHandlers() {
+	// 注册健康检查路由
+	s.router.HandleFunc("/healthz", s.handleHealthCheck).Methods("GET")
+	log.Infow("已注册健康检查路由", "path", "/healthz")
+
+	// 注册 pprof 路由
+	// 注意：使用 gorilla/mux 注册 pprof 路由需要单独为每个处理器注册路由
+	s.router.HandleFunc("/debug/pprof/", pprof.Index)
+	s.router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	s.router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	s.router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	s.router.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
+	// 添加堆、goroutine、线程创建、块分析等分析器
+	s.router.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+	s.router.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+	s.router.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+	s.router.Handle("/debug/pprof/block", pprof.Handler("block"))
+	s.router.Handle("/debug/pprof/mutex", pprof.Handler("mutex"))
+	// 添加 allocs 分析器的直接支持
+	// allocs 实际上是 heap 分析器的一种视图
+	s.router.HandleFunc("/debug/pprof/allocs", func(w http.ResponseWriter, r *http.Request) {
+		// 复制请求并添加参数
+		r2 := new(http.Request)
+		*r2 = *r
+		q := r2.URL.Query()
+		q.Set("gc", "1") // 触发 GC
+		r2.URL.RawQuery = q.Encode()
+		pprof.Handler("allocs").ServeHTTP(w, r2)
+	})
+
+	log.Infow("已注册 pprof 调试路由", "path", "/debug/pprof/")
+}
+
+// handleHealthCheck 处理健康检查请求
+func (s *HTTPServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
+	log.Infow("health check")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("ok"))
 }

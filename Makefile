@@ -21,6 +21,7 @@ PROTOC_GEN_GRPC_GATEWAY := $(shell go env GOPATH)/bin/protoc-gen-grpc-gateway
 PROTOC_GEN_VALIDATE := $(shell go env GOPATH)/bin/protoc-gen-validate-go
 GOOGLEAPIS := $(shell go env GOPATH)/pkg/mod/github.com/googleapis/googleapis@*/
 
+# 处理 proto 文件路径
 PROTO_DIRS := pkg/api/helloworld/v1 pkg/api/helloworld/v2
 PROTO_FILES := $(foreach dir,$(PROTO_DIRS),$(wildcard $(dir)/*.proto))
 

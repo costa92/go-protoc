@@ -1,0 +1,438 @@
+{"level":"info","ts":1749523070.8957982,"caller":"helloworld/helloworld.go:95","msg":"Registering helloworld API group"}
+{"level":"info","ts":1749523070.8958404,"caller":"log/log.go:99","msg":"注册 API 组 *helloworld.Installer"}
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	log/log.go:99	成功加载配置文件来自 configs/config.yaml
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	log/log.go:99	开始安装 API 组
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	log/log.go:99	已添加测试路由 /test
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	log/log.go:99	获取 1 个注册的 API 组
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	log/log.go:99	找到 1 个 API 组安装器
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	log/log.go:99	安装 API 组 0: *helloworld.Installer
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	helloworld/helloworld.go:51	开始安装 helloworld API 组
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	helloworld/helloworld.go:56	已注册 gRPC 服务
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	helloworld/helloworld.go:59	开始注册 gRPC-Gateway 处理器
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	helloworld/helloworld.go:65	开始调用 RegisterGreeterHandlerServer
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	helloworld/helloworld.go:70	已成功注册 gRPC-Gateway 处理器
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	helloworld/helloworld.go:77	已注册自定义 HTTP 处理器
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	helloworld/helloworld.go:88	已添加直接路由 /v1/hello/direct/{name}
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	log/log.go:99	成功安装 API 组 0
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	log/log.go:99	所有 API 组安装完成
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	log/log.go:99	启用 Prometheus 指标，路径: /metrics
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	log/log.go:99	启动应用 api-server
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	log/log.go:99	正在启动服务 *app.GRPCServer
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	log/log.go:99	gRPC 服务器 api-grpc 正在监听 [::]:9091
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	log/log.go:99	正在启动服务 *app.HTTPServer
+2025-06-10T10:37:50.904+0800	INFO	go-protoc	log/log.go:99	HTTP 服务器 api-http 正在监听 :9090
+2025-06-10T10:37:58.620+0800	INFO	go-protoc	http/logging.go:53	http request	{"method": "GET", "path": "/test", "status": 404, "remote_addr": "127.0.0.1:36082", "user_agent": "Go-http-client/1.1", "duration": "117.5µs", "trace_id": "bb4f24a40554d4e99a68264e3fa1ae38"}
+{
+	"Name": "http-server",
+	"SpanContext": {
+		"TraceID": "bb4f24a40554d4e99a68264e3fa1ae38",
+		"SpanID": "45b8f6f43a1f09ff",
+		"TraceFlags": "01",
+		"TraceState": "",
+		"Remote": false
+	},
+	"Parent": {
+		"TraceID": "00000000000000000000000000000000",
+		"SpanID": "0000000000000000",
+		"TraceFlags": "00",
+		"TraceState": "",
+		"Remote": false
+	},
+	"SpanKind": 2,
+	"StartTime": "2025-06-10T10:37:58.620584148+08:00",
+	"EndTime": "2025-06-10T10:37:58.620798286+08:00",
+	"Attributes": [
+		{
+			"Key": "server.address",
+			"Value": {
+				"Type": "STRING",
+				"Value": "localhost"
+			}
+		},
+		{
+			"Key": "http.request.method",
+			"Value": {
+				"Type": "STRING",
+				"Value": "GET"
+			}
+		},
+		{
+			"Key": "url.scheme",
+			"Value": {
+				"Type": "STRING",
+				"Value": "http"
+			}
+		},
+		{
+			"Key": "server.port",
+			"Value": {
+				"Type": "INT64",
+				"Value": 9090
+			}
+		},
+		{
+			"Key": "network.peer.address",
+			"Value": {
+				"Type": "STRING",
+				"Value": "127.0.0.1"
+			}
+		},
+		{
+			"Key": "network.peer.port",
+			"Value": {
+				"Type": "INT64",
+				"Value": 36082
+			}
+		},
+		{
+			"Key": "user_agent.original",
+			"Value": {
+				"Type": "STRING",
+				"Value": "Go-http-client/1.1"
+			}
+		},
+		{
+			"Key": "client.address",
+			"Value": {
+				"Type": "STRING",
+				"Value": "127.0.0.1"
+			}
+		},
+		{
+			"Key": "url.path",
+			"Value": {
+				"Type": "STRING",
+				"Value": "/test"
+			}
+		},
+		{
+			"Key": "network.protocol.version",
+			"Value": {
+				"Type": "STRING",
+				"Value": "1.1"
+			}
+		},
+		{
+			"Key": "http.response.body.size",
+			"Value": {
+				"Type": "INT64",
+				"Value": 51
+			}
+		},
+		{
+			"Key": "http.response.status_code",
+			"Value": {
+				"Type": "INT64",
+				"Value": 404
+			}
+		}
+	],
+	"Events": null,
+	"Links": null,
+	"Status": {
+		"Code": "Unset",
+		"Description": ""
+	},
+	"DroppedAttributes": 0,
+	"DroppedEvents": 0,
+	"DroppedLinks": 0,
+	"ChildSpanCount": 0,
+	"Resource": [
+		{
+			"Key": "service.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "go-protoc-service"
+			}
+		}
+	],
+	"InstrumentationScope": {
+		"Name": "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
+		"Version": "0.61.0",
+		"SchemaURL": "",
+		"Attributes": null
+	},
+	"InstrumentationLibrary": {
+		"Name": "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
+		"Version": "0.61.0",
+		"SchemaURL": "",
+		"Attributes": null
+	}
+}
+2025-06-10T10:38:02.277+0800	INFO	go-protoc	http/logging.go:53	http request	{"method": "GET", "path": "/v1/hello/direct/world", "status": 404, "remote_addr": "127.0.0.1:48290", "user_agent": "Go-http-client/1.1", "duration": "50.028µs", "trace_id": "6ade9d09a76220a8bce5c631558ccd40"}
+{
+	"Name": "http-server",
+	"SpanContext": {
+		"TraceID": "6ade9d09a76220a8bce5c631558ccd40",
+		"SpanID": "e227a6e96f87c5c6",
+		"TraceFlags": "01",
+		"TraceState": "",
+		"Remote": false
+	},
+	"Parent": {
+		"TraceID": "00000000000000000000000000000000",
+		"SpanID": "0000000000000000",
+		"TraceFlags": "00",
+		"TraceState": "",
+		"Remote": false
+	},
+	"SpanKind": 2,
+	"StartTime": "2025-06-10T10:38:02.277811473+08:00",
+	"EndTime": "2025-06-10T10:38:02.277931264+08:00",
+	"Attributes": [
+		{
+			"Key": "server.address",
+			"Value": {
+				"Type": "STRING",
+				"Value": "localhost"
+			}
+		},
+		{
+			"Key": "http.request.method",
+			"Value": {
+				"Type": "STRING",
+				"Value": "GET"
+			}
+		},
+		{
+			"Key": "url.scheme",
+			"Value": {
+				"Type": "STRING",
+				"Value": "http"
+			}
+		},
+		{
+			"Key": "server.port",
+			"Value": {
+				"Type": "INT64",
+				"Value": 9090
+			}
+		},
+		{
+			"Key": "network.peer.address",
+			"Value": {
+				"Type": "STRING",
+				"Value": "127.0.0.1"
+			}
+		},
+		{
+			"Key": "network.peer.port",
+			"Value": {
+				"Type": "INT64",
+				"Value": 48290
+			}
+		},
+		{
+			"Key": "user_agent.original",
+			"Value": {
+				"Type": "STRING",
+				"Value": "Go-http-client/1.1"
+			}
+		},
+		{
+			"Key": "client.address",
+			"Value": {
+				"Type": "STRING",
+				"Value": "127.0.0.1"
+			}
+		},
+		{
+			"Key": "url.path",
+			"Value": {
+				"Type": "STRING",
+				"Value": "/v1/hello/direct/world"
+			}
+		},
+		{
+			"Key": "network.protocol.version",
+			"Value": {
+				"Type": "STRING",
+				"Value": "1.1"
+			}
+		},
+		{
+			"Key": "http.response.body.size",
+			"Value": {
+				"Type": "INT64",
+				"Value": 51
+			}
+		},
+		{
+			"Key": "http.response.status_code",
+			"Value": {
+				"Type": "INT64",
+				"Value": 404
+			}
+		}
+	],
+	"Events": null,
+	"Links": null,
+	"Status": {
+		"Code": "Unset",
+		"Description": ""
+	},
+	"DroppedAttributes": 0,
+	"DroppedEvents": 0,
+	"DroppedLinks": 0,
+	"ChildSpanCount": 0,
+	"Resource": [
+		{
+			"Key": "service.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "go-protoc-service"
+			}
+		}
+	],
+	"InstrumentationScope": {
+		"Name": "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
+		"Version": "0.61.0",
+		"SchemaURL": "",
+		"Attributes": null
+	},
+	"InstrumentationLibrary": {
+		"Name": "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
+		"Version": "0.61.0",
+		"SchemaURL": "",
+		"Attributes": null
+	}
+}
+2025-06-10T10:38:06.233+0800	INFO	go-protoc	http/logging.go:53	http request	{"method": "GET", "path": "/v1/hello/world", "status": 200, "remote_addr": "127.0.0.1:48302", "user_agent": "Go-http-client/1.1", "duration": "104.57µs", "trace_id": "7def20c997c66031c15374e9ad799a7e"}
+{
+	"Name": "http-server",
+	"SpanContext": {
+		"TraceID": "7def20c997c66031c15374e9ad799a7e",
+		"SpanID": "14577a25dade7ae1",
+		"TraceFlags": "01",
+		"TraceState": "",
+		"Remote": false
+	},
+	"Parent": {
+		"TraceID": "00000000000000000000000000000000",
+		"SpanID": "0000000000000000",
+		"TraceFlags": "00",
+		"TraceState": "",
+		"Remote": false
+	},
+	"SpanKind": 2,
+	"StartTime": "2025-06-10T10:38:06.233031806+08:00",
+	"EndTime": "2025-06-10T10:38:06.233208454+08:00",
+	"Attributes": [
+		{
+			"Key": "server.address",
+			"Value": {
+				"Type": "STRING",
+				"Value": "localhost"
+			}
+		},
+		{
+			"Key": "http.request.method",
+			"Value": {
+				"Type": "STRING",
+				"Value": "GET"
+			}
+		},
+		{
+			"Key": "url.scheme",
+			"Value": {
+				"Type": "STRING",
+				"Value": "http"
+			}
+		},
+		{
+			"Key": "server.port",
+			"Value": {
+				"Type": "INT64",
+				"Value": 9090
+			}
+		},
+		{
+			"Key": "network.peer.address",
+			"Value": {
+				"Type": "STRING",
+				"Value": "127.0.0.1"
+			}
+		},
+		{
+			"Key": "network.peer.port",
+			"Value": {
+				"Type": "INT64",
+				"Value": 48302
+			}
+		},
+		{
+			"Key": "user_agent.original",
+			"Value": {
+				"Type": "STRING",
+				"Value": "Go-http-client/1.1"
+			}
+		},
+		{
+			"Key": "client.address",
+			"Value": {
+				"Type": "STRING",
+				"Value": "127.0.0.1"
+			}
+		},
+		{
+			"Key": "url.path",
+			"Value": {
+				"Type": "STRING",
+				"Value": "/v1/hello/world"
+			}
+		},
+		{
+			"Key": "network.protocol.version",
+			"Value": {
+				"Type": "STRING",
+				"Value": "1.1"
+			}
+		},
+		{
+			"Key": "http.response.body.size",
+			"Value": {
+				"Type": "INT64",
+				"Value": 99
+			}
+		},
+		{
+			"Key": "http.response.status_code",
+			"Value": {
+				"Type": "INT64",
+				"Value": 200
+			}
+		}
+	],
+	"Events": null,
+	"Links": null,
+	"Status": {
+		"Code": "Unset",
+		"Description": ""
+	},
+	"DroppedAttributes": 0,
+	"DroppedEvents": 0,
+	"DroppedLinks": 0,
+	"ChildSpanCount": 0,
+	"Resource": [
+		{
+			"Key": "service.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "go-protoc-service"
+			}
+		}
+	],
+	"InstrumentationScope": {
+		"Name": "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
+		"Version": "0.61.0",
+		"SchemaURL": "",
+		"Attributes": null
+	},
+	"InstrumentationLibrary": {
+		"Name": "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
+		"Version": "0.61.0",
+		"SchemaURL": "",
+		"Attributes": null
+	}
+}
+signal: killed

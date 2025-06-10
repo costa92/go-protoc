@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/costa92/go-protoc/pkg/app"
+	"github.com/costa92/go-protoc/pkg/log"
 )
 
 // APIGroupInstaller 定义了用于安装 API 组的接口
@@ -24,6 +25,7 @@ var (
 func RegisterAPIGroup(installer APIGroupInstaller) {
 	mutex.Lock()
 	defer mutex.Unlock()
+	log.Infof("注册 API 组 %T", installer)
 	apiGroups = append(apiGroups, installer)
 }
 
@@ -32,6 +34,7 @@ func RegisterAPIGroup(installer APIGroupInstaller) {
 func GetAPIGroups() []APIGroupInstaller {
 	mutex.Lock()
 	defer mutex.Unlock()
+	log.Infof("获取 %d 个注册的 API 组", len(apiGroups))
 	result := make([]APIGroupInstaller, len(apiGroups))
 	copy(result, apiGroups)
 	return result
