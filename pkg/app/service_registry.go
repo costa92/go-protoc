@@ -1,16 +1,15 @@
-package apiserver
+package app
 
 import (
 	"sync"
 
-	"github.com/costa92/go-protoc/pkg/app"
 	"github.com/costa92/go-protoc/pkg/log"
 )
 
 // APIGroupInstaller 定义了用于安装 API 组的接口
 type APIGroupInstaller interface {
 	// Install 将 API 组的路由安装到给定的服务中
-	Install(grpcServer *app.GRPCServer, httpServer *app.HTTPServer) error
+	Install(grpcServer *GRPCServer, httpServer *HTTPServer) error
 }
 
 var (

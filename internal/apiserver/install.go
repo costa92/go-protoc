@@ -65,7 +65,7 @@ func (i *Installer) Install(grpcServer *app.GRPCServer, httpServer *app.HTTPServ
 // 在初始化时自动注册
 func init() {
 	log.L().Infow("Registering helloworld API group")
-	RegisterAPIGroup(NewInstaller())
+	app.RegisterAPIGroup(NewInstaller())
 }
 
-var _ APIGroupInstaller = &Installer{}
+var _ app.APIGroupInstaller = &Installer{}

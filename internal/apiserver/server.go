@@ -20,6 +20,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 // Server 表示 API 服务器
@@ -69,7 +70,7 @@ func NewServer(configPath string) (*Server, error) {
 	// 添加指标路由（如果启用）
 	if cfg.Observability.Metrics.Enabled {
 		log.Infof("启用 Prometheus 指标，路径: %s", cfg.Observability.Metrics.Path)
-		httpServer.Router().Handle(cfg.Observability.Metrics.Path, metrics.PrometheusHandler())
+		httpServer.AddRoute(cfg.Observability.Metrics.Path, metrics.PrometheusHandler().ServeHTTP)
 	}
 
 	return &Server{
@@ -146,7 +147,7 @@ func createGRPCServer(cfg *config.Config, tp *sdktrace.TracerProvider) (*app.GRP
 func installAPIGroups(grpcServer *app.GRPCServer, httpServer *app.HTTPServer) error {
 	log.Infow("开始安装 API 组")
 	// 从注册表获取所有 API 组并安装
-	installers := GetAPIGroups()
+	installers := app.GetAPIGroups()
 	log.Infow("找到 %d 个 API 组安装器", "installers_len", len(installers))
 
 	for i, installer := range installers {
@@ -157,6 +158,10 @@ func installAPIGroups(grpcServer *app.GRPCServer, httpServer *app.HTTPServer) er
 		}
 		log.Infow("成功安装 API 组", "index", i)
 	}
+
+	// 注册 gRPC 反射服务，使 grpcurl 等工具可以自省 API
+	reflection.Register(grpcServer.Server())
+	log.Infow("已注册 gRPC 反射服务")
 
 	log.Infow("所有 API 组安装完成")
 	return nil
