@@ -3,7 +3,6 @@ package apiserver
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/costa92/go-protoc/internal/apiserver/service"
 	"github.com/costa92/go-protoc/pkg/app"
@@ -41,10 +40,6 @@ func (i *Installer) Install(grpcServer *app.GRPCServer, httpServer *app.HTTPServ
 	if gwmux == nil {
 		return fmt.Errorf("GatewayMux is nil")
 	}
-
-	gwmux.HandlePath("GET", "/test", func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
-		w.Write([]byte("test "))
-	})
 
 	log.L().Infow("开始调用 RegisterGreeterHandlerServer")
 	if err := helloworldv1.RegisterGreeterHandlerServer(context.Background(), gwmux, s); err != nil {
