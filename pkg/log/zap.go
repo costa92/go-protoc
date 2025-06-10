@@ -12,7 +12,7 @@ type zapLogger struct {
 }
 
 // NewZapLogger 根据给定的选项创建一个新的 zapLogger。
-func NewZapLogger(opts *Options) (Logger, error) {
+func NewZapLogger(opts *LogOptions) (Logger, error) {
 	var zapLevel zapcore.Level
 	if err := zapLevel.UnmarshalText([]byte(opts.Level)); err != nil {
 		zapLevel = zapcore.InfoLevel

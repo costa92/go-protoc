@@ -59,7 +59,7 @@ func init() {
 
 // Init 使用给定的选项初始化全局日志记录器。
 // 它会替换掉 failsafe 日志记录器。
-func Init(opts *Options) (err error) {
+func Init(opts *LogOptions) (err error) {
 	mu.Lock()
 	defer mu.Unlock()
 
