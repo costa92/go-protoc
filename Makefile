@@ -37,8 +37,8 @@ proto:
 		--go-grpc_out . --go-grpc_opt paths=source_relative \
 		--grpc-gateway_out . --grpc-gateway_opt paths=source_relative \
 		--validate-go_out . --validate-go_opt paths=source_relative \
-		--openapi_out=fq_schema_naming=true,default_response=false:$(PROJECT_ROOT)/pkg/api/openapi \
-		--openapiv2_out=$(PROJECT_ROOT)/pkg/api/openapi \
+		--openapi_out=fq_schema_naming=true,default_response=false:$(PROJECT_ROOT)/api/openapi \
+		--openapiv2_out=$(PROJECT_ROOT)/api/openapi \
 		--openapiv2_opt=logtostderr=true \
 		--openapiv2_opt=json_names_for_fields=false \
 		$(PROTO_FILES)
