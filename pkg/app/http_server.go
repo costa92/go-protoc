@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/costa92/go-protoc/pkg/log"
+	"github.com/costa92/go-protoc/pkg/logger"
 	"github.com/costa92/go-protoc/pkg/response"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -77,7 +77,7 @@ func (s *HTTPServer) AddRoute(path string, handler http.HandlerFunc, methods ...
 
 	// 如果已经添加了 gRPC-Gateway 作为默认处理器，警告用户
 	if s.gatewayAdded {
-		log.Warnw("尝试在 gRPC-Gateway 默认处理器之后添加路由，这可能导致路由无法访问", "path", path)
+		logger.Warnw("尝试在 gRPC-Gateway 默认处理器之后添加路由，这可能导致路由无法访问", "path", path)
 		// 我们需要移除之前的 catch-all 路由并在添加新路由后重新添加它
 		// 但这在 gorilla/mux 中并不容易实现，因此只是发出警告
 	}
@@ -88,7 +88,7 @@ func (s *HTTPServer) AddRoute(path string, handler http.HandlerFunc, methods ...
 		route.Methods(methods...)
 	}
 
-	log.Infow("已添加自定义路由", "path", path, "methods", methods)
+	logger.Infow("已添加自定义路由", "path", path, "methods", methods)
 }
 
 // FinalizeRoutes 在所有自定义路由添加完毕后调用，注册 gRPC-Gateway 作为默认处理器
@@ -100,9 +100,9 @@ func (s *HTTPServer) FinalizeRoutes() {
 		// 注册 gRPC-Gateway 路由作为默认处理器（始终放在最后）
 		s.router.PathPrefix("/").Handler(s.gatewayMux)
 		s.gatewayAdded = true
-		log.Infow("已注册 gRPC-Gateway 作为默认处理器")
+		logger.Infow("已注册 gRPC-Gateway 作为默认处理器")
 	} else {
-		log.Warnw("尝试重复注册 gRPC-Gateway 作为默认处理器，操作被忽略")
+		logger.Warnw("尝试重复注册 gRPC-Gateway 作为默认处理器，操作被忽略")
 	}
 }
 
@@ -113,12 +113,12 @@ func (s *HTTPServer) Start(ctx context.Context) error {
 		s.FinalizeRoutes()
 	}
 
-	log.Infof("HTTP 服务器 %s 正在监听 %s", s.name, s.Addr)
+	logger.Infof("HTTP 服务器 %s 正在监听 %s", s.name, s.Addr)
 
 	// 在后台启动 HTTP 服务器
 	go func() {
 		if err := s.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Errorf("HTTP 服务器 %s 失败: %v", s.name, err)
+			logger.Errorf("HTTP 服务器 %s 失败: %v", s.name, err)
 		}
 	}()
 
@@ -129,11 +129,11 @@ func (s *HTTPServer) Start(ctx context.Context) error {
 
 // Stop 实现 Server 接口的 Stop 方法
 func (s *HTTPServer) Stop(ctx context.Context) error {
-	log.Infof("正在关闭 HTTP 服务器 %s", s.name)
+	logger.Infof("正在关闭 HTTP 服务器 %s", s.name)
 	if err := s.Shutdown(ctx); err != nil {
 		return fmt.Errorf("HTTP 服务器 %s 关闭失败: %v", s.name, err)
 	}
-	log.Infof("HTTP 服务器 %s 已成功关闭", s.name)
+	logger.Infof("HTTP 服务器 %s 已成功关闭", s.name)
 	return nil
 }
 
@@ -169,12 +169,12 @@ func (s *HTTPServer) registerDebugHandlers() {
 		pprof.Handler("allocs").ServeHTTP(w, r2)
 	})
 
-	log.Infow("已注册 pprof 调试路由", "path", "/debug/pprof/")
+	logger.Infow("已注册 pprof 调试路由", "path", "/debug/pprof/")
 }
 
 // handleHealthCheck 处理健康检查请求
 func (s *HTTPServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
-	log.Infow("health check")
+	logger.Infow("health check")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("ok"))
 }

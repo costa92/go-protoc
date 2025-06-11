@@ -3,7 +3,7 @@ package http
 import (
 	"net/http"
 
-	"github.com/costa92/go-protoc/pkg/log"
+	"github.com/costa92/go-protoc/pkg/logger"
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 )
@@ -15,13 +15,13 @@ func ValidationMiddleware() mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if err := r.ParseForm(); err != nil {
-				log.L().Errorf("Failed to parse form: %v", err)
+				logger.L().Errorf("Failed to parse form: %v", err)
 				http.Error(w, "Bad Request", http.StatusBadRequest)
 				return
 			}
 
 			if err := validate.Struct(r); err != nil {
-				log.L().Errorf("Validation failed: %v", err)
+				logger.L().Errorf("Validation failed: %v", err)
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}

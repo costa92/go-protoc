@@ -18,7 +18,7 @@ type HTTPOptions struct {
 func NewHTTPOptions() *HTTPOptions {
 	return &HTTPOptions{
 		Enabled: true, // HTTP 服务默认启用
-		Addr:    "127.0.0.1:8080",
+		Addr:    "127.0.0.1:8081",
 		Timeout: 10 * time.Second,
 	}
 }

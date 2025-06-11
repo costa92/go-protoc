@@ -1,9 +1,11 @@
-package log
+package logger
 
 import (
 	"sync"
 
 	"go.uber.org/zap"
+
+	"github.com/google/wire"
 )
 
 // Logger 定义了项目所需的日志接口。
@@ -154,4 +156,19 @@ func WithValues(keysAndValues ...interface{}) Logger {
 	mu.Lock()
 	defer mu.Unlock()
 	return std.WithValues(keysAndValues...)
+}
+
+// ProviderSet 是 logger 的 Wire 提供者集合
+var ProviderSet = wire.NewSet(
+	NewLogOptions,
+	NewLoggerFromOptions,
+)
+
+// NewLoggerFromOptions 从选项创建一个新的 Logger 实例
+func NewLoggerFromOptions(opts *LogOptions) (Logger, error) {
+	err := Init(opts)
+	if err != nil {
+		return nil, err
+	}
+	return L(), nil
 }

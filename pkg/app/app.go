@@ -128,12 +128,14 @@ var cfgFile string
 func (a *App) initConfig() error {
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
+		fmt.Printf("使用指定的配置文件: %s\n", cfgFile)
 	} else {
 		viper.AddConfigPath(".")
-		viper.AddConfigPath("./config")
+		viper.AddConfigPath("./configs")
 		viper.AddConfigPath("$HOME")
-		viper.SetConfigName(a.basename)
+		viper.SetConfigName("config")
 		viper.SetConfigType("yaml")
+		fmt.Printf("搜索配置文件路径: ., ./configs, $HOME\n")
 	}
 
 	viper.SetEnvPrefix(strings.ToUpper(a.basename))
@@ -142,22 +144,40 @@ func (a *App) initConfig() error {
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			return err
+			return fmt.Errorf("读取配置文件失败: %v", err)
 		}
+		fmt.Printf("未找到配置文件，将使用默认值\n")
+	} else {
+		fmt.Printf("成功加载配置文件: %s\n", viper.ConfigFileUsed())
 	}
 
 	// 将 viper 加载的配置反序列化到我们的 Options 结构体中
 	if a.options != nil {
 		if err := viper.Unmarshal(a.options); err != nil {
-			return err
+			return fmt.Errorf("解析配置文件失败: %v", err)
 		}
+		fmt.Printf("配置加载完成，开始验证配置...\n")
+
+		// 验证配置
+		if errs := a.options.Validate(); len(errs) > 0 {
+			for _, err := range errs {
+				fmt.Printf("配置验证错误: %v\n", err)
+			}
+			if len(errs) > 0 {
+				return fmt.Errorf("配置验证失败")
+			}
+		}
+		fmt.Printf("配置验证通过\n")
 	}
 
 	// 监控配置文件变化
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
+		fmt.Printf("配置文件发生变化: %s\n", e.Name)
 		if err := viper.Unmarshal(a.options); err != nil {
-			fmt.Printf("unmarshal config error: %s\n", err)
+			fmt.Printf("重新加载配置失败: %v\n", err)
+		} else {
+			fmt.Printf("配置已重新加载\n")
 		}
 	})
 

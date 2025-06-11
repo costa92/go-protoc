@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/costa92/go-protoc/pkg/log"
+	"github.com/costa92/go-protoc/pkg/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -17,7 +17,7 @@ func UnaryLoggingInterceptor() grpc.UnaryServerInterceptor {
 		resp, err := handler(ctx, req)
 		duration := time.Since(start)
 
-		log.L().WithValues(
+		logger.WithValues(
 			"method", info.FullMethod,
 			"duration", duration,
 			"error", err,
@@ -34,7 +34,7 @@ func StreamLoggingInterceptor() grpc.StreamServerInterceptor {
 		err := handler(srv, ss)
 		duration := time.Since(start)
 
-		log.L().WithValues(
+		logger.WithValues(
 			"method", info.FullMethod,
 			"duration", duration,
 			"error", err,
@@ -49,7 +49,7 @@ func UnaryRecoveryInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		defer func() {
 			if r := recover(); r != nil {
-				log.L().WithValues(
+				logger.WithValues(
 					"method", info.FullMethod,
 					"panic", r,
 				).Errorf("gRPC panic recovered")
@@ -65,7 +65,7 @@ func StreamRecoveryInterceptor() grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
 		defer func() {
 			if r := recover(); r != nil {
-				log.L().WithValues(
+				logger.WithValues(
 					"method", info.FullMethod,
 					"panic", r,
 				).Errorf("gRPC stream panic recovered")

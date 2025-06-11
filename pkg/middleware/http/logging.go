@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/costa92/go-protoc/pkg/log"
+	"github.com/costa92/go-protoc/pkg/logger"
 	"github.com/costa92/go-protoc/pkg/metrics"
 	"github.com/gorilla/mux"
 	"go.opentelemetry.io/otel/trace"
@@ -16,13 +16,13 @@ const UnknownTraceID = "unknown"
 
 // LoggingMiddleware 创建一个 HTTP 日志中间件
 func LoggingMiddleware(skipPaths []string) mux.MiddlewareFunc {
-	log.Infow("LoggingMiddleware", "skipPaths", skipPaths)
+	logger.Infow("LoggingMiddleware", "skipPaths", skipPaths)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 			rw := &responseWriter{w, http.StatusOK}
 
-			log.Infow("LoggingMiddleware", "r.URL.Path", r.URL.Path)
+			logger.Infow("LoggingMiddleware", "r.URL.Path", r.URL.Path)
 			traceID := UnknownTraceID
 			if !slices.Contains(skipPaths, r.URL.Path) {
 				spanCtx := trace.SpanContextFromContext(r.Context())
@@ -47,7 +47,7 @@ func LoggingMiddleware(skipPaths []string) mux.MiddlewareFunc {
 			).Observe(duration.Seconds())
 
 			// 记录请求信息
-			log.L().WithValues(
+			logger.L().WithValues(
 				"method", r.Method,
 				"path", r.URL.Path,
 				"status", rw.status,
@@ -84,7 +84,7 @@ func RecoveryMiddleware() mux.MiddlewareFunc {
 						traceID = spanCtx.TraceID().String()
 					}
 
-					log.L().WithValues(
+					logger.L().WithValues(
 						"error", err,
 						"path", r.URL.Path,
 						"trace_id", traceID,

@@ -18,7 +18,7 @@ type GRPCOptions struct {
 func NewGRPCOptions() *GRPCOptions {
 	return &GRPCOptions{
 		Enabled: true, // gRPC 服务默认启用
-		Addr:    "127.0.0.1:9090",
+		Addr:    "127.0.0.1:9091",
 		Timeout: 10 * time.Second,
 	}
 }
