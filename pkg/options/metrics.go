@@ -30,3 +30,7 @@ func (o *MetricsOptions) Validate() []error {
 	}
 	return errs
 }
+
+func (o *MetricsOptions) Complete() error {
+	return nil
+}

@@ -1,10 +1,15 @@
 package options
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/costa92/go-protoc/pkg/telemetry"
 	"github.com/spf13/pflag"
 )
+
+// TracerShutdownFunc 用于在应用程序关闭时关闭 tracer
+var TracerShutdownFunc func(context.Context) error
 
 type TracingOptions struct {
 	ServiceName  string `json:"service_name"    mapstructure:"service_name"`
@@ -38,5 +43,30 @@ func (o *TracingOptions) Validate() []error {
 }
 
 func (o *TracingOptions) Complete() error {
+	// 如果未启用，则跳过初始化
+	if !o.Enabled {
+		return nil
+	}
+
+	// 根据导出器类型设置端点
+	endpoint := o.OTLPEndpoint
+	if o.Exporter == "stdout" {
+		endpoint = "stdout"
+	} else if o.Exporter == "jaeger" {
+		// 可以设置默认的 Jaeger 端点
+		// 这里暂时使用 OTLP 端点
+	}
+
+	// 初始化 OpenTelemetry Tracer
+	shutdown, err := telemetry.InitTracer(o.ServiceName, endpoint)
+	if err != nil {
+		return fmt.Errorf("failed to initialize tracer: %w", err)
+	}
+
+	// 保存 shutdown 函数以便在应用程序关闭时使用
+	TracerShutdownFunc = shutdown
+
+	fmt.Println("Tracer initialized successfully, shutdown function registered")
+
 	return nil
 }

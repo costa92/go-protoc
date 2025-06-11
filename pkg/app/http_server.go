@@ -66,6 +66,14 @@ func (s *HTTPServer) GatewayMux() *runtime.ServeMux {
 	return s.gatewayMux
 }
 
+// AddMiddleware 添加一个中间件到路由器
+func (s *HTTPServer) AddMiddleware(middleware mux.MiddlewareFunc) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.router.Use(middleware)
+	logger.Infow("已添加 HTTP 中间件")
+}
+
 // AddRoute 添加一个新的 HTTP 路由
 // 此方法确保路由在 gRPC-Gateway 的 catch-all 路由之前添加
 // path: 路由路径

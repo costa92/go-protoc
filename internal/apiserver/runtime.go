@@ -6,15 +6,19 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/costa92/go-protoc/internal/apiserver/handlers"
-	"github.com/costa92/go-protoc/internal/apiserver/options"
+	apiserver_options "github.com/costa92/go-protoc/internal/apiserver/options"
 	"github.com/costa92/go-protoc/pkg/app"
 	"github.com/costa92/go-protoc/pkg/logger"
+	"github.com/costa92/go-protoc/pkg/metrics"
+	pkg_options "github.com/costa92/go-protoc/pkg/options"
+	"github.com/costa92/go-protoc/pkg/telemetry"
 )
 
 // RunFunc 定义运行 API 服务器的函数类型
-type RunFunc func(opts *options.Options) error
+type RunFunc func(opts *apiserver_options.Options) error
 
 // APIServer 封装 API 服务器的运行时
 type APIServer struct {
@@ -37,7 +41,7 @@ func NewAPIServer(
 }
 
 // Run 运行 API 服务器
-func (s *APIServer) Run(opts *options.Options) error {
+func (s *APIServer) Run(opts *apiserver_options.Options) error {
 	// 完成选项配置，从配置文件加载配置
 	if err := opts.Complete(); err != nil {
 		return err
@@ -70,6 +74,24 @@ func (s *APIServer) Run(opts *options.Options) error {
 	// 创建服务器
 	grpcServer := app.NewGRPCServer(s.name, grpcListener)
 	httpServer := app.NewHTTPServer(s.name, httpOpts.Addr)
+
+	// 如果启用了 tracing，应用 tracing 中间件
+	if opts.Tracing.Enabled {
+		s.logger.Infow("启用 tracing 功能",
+			"service_name", opts.Tracing.ServiceName,
+			"otlp_endpoint", opts.Tracing.OTLPEndpoint)
+
+		// 添加 gRPC 一元拦截器
+		grpcServer.AddUnaryServerInterceptors(telemetry.UnaryServerInterceptor())
+
+		// 添加 HTTP 中间件
+		httpServer.AddMiddleware(telemetry.TracingMiddleware)
+	}
+
+	// 添加 metrics 路由
+	if opts.Metrics.Enabled {
+		httpServer.AddRoute(opts.Metrics.Path, metrics.PrometheusHandler().ServeHTTP)
+	}
 
 	// 使用installer安装API
 	s.logger.Infow("使用installer安装API组")
@@ -124,6 +146,16 @@ func (s *APIServer) Run(opts *options.Options) error {
 
 		if err := httpServer.Stop(shutdownCtx); err != nil {
 			s.logger.Errorw("关闭 HTTP 服务器失败", "error", err)
+		}
+
+		// 如果启用了 tracing，关闭 tracer
+		if opts.Tracing.Enabled && pkg_options.TracerShutdownFunc != nil {
+			s.logger.Infow("关闭 tracer")
+			timeoutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := pkg_options.TracerShutdownFunc(timeoutCtx); err != nil {
+				s.logger.Errorw("关闭 tracer 失败", "error", err)
+			}
 		}
 
 		s.logger.Infow("服务器已关闭")

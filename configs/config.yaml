@@ -2,13 +2,13 @@
 # HTTP服务相关配置
 http:
   # HTTP服务地址
-  addr: ":8082"
+  addr: ":8080"
     # 请求超时时间(秒)
   timeout: 5
   # gRPC服务相关配置
 grpc:
     # gRPC服务地址
-  addr: ":9093"
+  addr: ":8100"
     # 服务关闭超时时间(秒)
   shutdown_timeout: 10
 
@@ -68,7 +68,7 @@ middleware:
 # 日志配置
 log:
   # 日志级别: debug, info, warn, error, dpanic, panic, fatal
-  level: "info"
+  level: "debug"
   # 日志格式: console, json
   format: "console"
   # 是否开启调用者信息
