@@ -25,7 +25,8 @@ func InitializeAPIServer() (*APIServer, error) {
 	}
 	greeterV1Service := service.NewGreeterV1Service(loggerLogger)
 	greeterV2Service := service.NewGreeterV2Service(loggerLogger)
-	apiGroupInstaller := service.NewGreeterInstaller(greeterV1Service, greeterV2Service)
+	userService := service.NewUserService(loggerLogger)
+	apiGroupInstaller := service.NewGreeterInstaller(greeterV1Service, greeterV2Service, userService)
 	apiServer := NewAPIServer(string2, loggerLogger, apiGroupInstaller)
 	return apiServer, nil
 }

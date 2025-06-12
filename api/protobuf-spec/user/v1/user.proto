@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package user.v1;
+
+import "validate/validate.proto";
+
+option go_package = "github.com/costa92/go-protoc/api/protobuf-spec/user/v1;userv1";
+
+// User 用户信息
+message User {
+  // 用户ID
+  string id = 1 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 64
+  }];
+
+  // 用户名
+  string username = 2 [(validate.rules).string = {
+    min_len: 3,
+    max_len: 20,
+    pattern: "^[a-zA-Z0-9_-]+$"
+  }];
+
+  // 邮箱
+  string email = 3 [(validate.rules).string = {
+    email: true
+  }];
+
+  // 年龄
+  int32 age = 4 [(validate.rules).int32 = {
+    gte: 0,
+    lte: 150
+  }];
+}
+
+// CreateUserRequest 创建用户请求
+message CreateUserRequest {
+  // 用户信息
+  User user = 1 [(validate.rules).message = {
+    required: true
+  }];
+}

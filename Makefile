@@ -9,44 +9,30 @@ include scripts/make-rules/all.mk
 
 # --- Variáveis ---
 # Ferramentas
-PROTOC ?= protoc
 GO ?= go
 
 API_DIR = pkg/api
 BINARY_PATH = ./bin/$(BINARY_NAME)
 
-PROTOC_GEN_GO := $(shell go env GOPATH)/bin/protoc-gen-go
-PROTOC_GEN_GO_GRPC := $(shell go env GOPATH)/bin/protoc-gen-go-grpc
-PROTOC_GEN_GRPC_GATEWAY := $(shell go env GOPATH)/bin/protoc-gen-grpc-gateway
-PROTOC_GEN_VALIDATE := $(shell go env GOPATH)/bin/protoc-gen-validate-go
-GOOGLEAPIS := $(shell go env GOPATH)/pkg/mod/github.com/googleapis/googleapis@*/
-
 # 处理 proto 文件路径
-PROTO_DIRS := pkg/api/helloworld/v1 pkg/api/helloworld/v2
+PROTO_DIRS := pkg/api/user/v1
 PROTO_FILES := $(foreach dir,$(PROTO_DIRS),$(wildcard $(dir)/*.proto))
 
 .PHONY: all proto clean
 
 all: proto
 
-proto:
-	$(PROTOC) -I. \
-		-Ithird_party/ \
-		-I$(shell go env GOPATH)/pkg/mod/github.com/envoyproxy/protoc-gen-validate@v1.2.1/ \
-		--go_out . --go_opt paths=source_relative \
-		--go-grpc_out . --go-grpc_opt paths=source_relative \
-		--grpc-gateway_out . --grpc-gateway_opt paths=source_relative \
-		--validate-go_out . --validate-go_opt paths=source_relative \
-		--openapi_out=fq_schema_naming=true,default_response=false:$(PROJECT_ROOT)/api/openapi \
-		--openapiv2_out=$(PROJECT_ROOT)/api/openapi \
-		--openapiv2_opt=logtostderr=true \
-		--openapiv2_opt=json_names_for_fields=false \
-		$(PROTO_FILES)
+proto: ## Generate protobuf code
+	@echo ">> Generating protobuf code..."
+	@if ! which buf > /dev/null; then \
+		echo "buf is not installed. Installing..."; \
+		go install github.com/bufbuild/buf/cmd/buf@latest; \
+	fi
+	buf generate
 
 .PHONY: swagger
-#swagger: gen.protoc
-swagger: ## Generate and aggregate swagger document.
-	@$(MAKE) swagger.run
+swagger: ## Generate swagger documentation using buf
+	buf generate
 
 .PHONY: swagger.serve
 serve-swagger: ## Serve swagger spec and docs at 65534.

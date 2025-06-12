@@ -24,7 +24,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/helloworldv1HelloReply"
+              "$ref": "#/definitions/v1HelloReply"
             }
           },
           "default": {
@@ -40,7 +40,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/helloworldv1HelloRequest"
+              "$ref": "#/definitions/v1HelloRequest"
             }
           }
         ],
@@ -57,7 +57,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/helloworldv1HelloReply"
+              "$ref": "#/definitions/v1HelloReply"
             }
           },
           "default": {
@@ -82,22 +82,6 @@
     }
   },
   "definitions": {
-    "helloworldv1HelloReply": {
-      "type": "object",
-      "properties": {
-        "message": {
-          "type": "string"
-        }
-      }
-    },
-    "helloworldv1HelloRequest": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        }
-      }
-    },
     "protobufAny": {
       "type": "object",
       "properties": {
@@ -123,6 +107,22 @@
             "type": "object",
             "$ref": "#/definitions/protobufAny"
           }
+        }
+      }
+    },
+    "v1HelloReply": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1HelloRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
         }
       }
     }

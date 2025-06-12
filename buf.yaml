@@ -1,0 +1,12 @@
+version: v1
+name: buf.build/costa92/go-protoc
+deps:
+  - buf.build/envoyproxy/protoc-gen-validate
+  - third_party/protobuf/google
+  - buf.build/grpc-ecosystem/grpc-gateway
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - DEFAULT
