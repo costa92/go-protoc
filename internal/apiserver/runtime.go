@@ -14,6 +14,7 @@ import (
 	"github.com/costa92/go-protoc/pkg/app"
 	"github.com/costa92/go-protoc/pkg/logger"
 	"github.com/costa92/go-protoc/pkg/metrics"
+	"github.com/costa92/go-protoc/pkg/middleware"
 	pkg_options "github.com/costa92/go-protoc/pkg/options"
 	"github.com/costa92/go-protoc/pkg/telemetry"
 )
@@ -23,9 +24,10 @@ type RunFunc func(opts *apiserver_options.Options) error
 
 // APIServer 封装 API 服务器的运行时
 type APIServer struct {
-	name         string
-	logger       logger.Logger
-	apiInstaller app.APIGroupInstaller // 1. 新增此行: 接收 API 安装器
+	name              string
+	logger            logger.Logger
+	apiInstaller      app.APIGroupInstaller // 1. 新增此行: 接收 API 安装器
+	middlewareManager *middleware.Manager   // 新增: 中间件管理器
 }
 
 // NewAPIServer 创建一个新的 API 服务器实例
@@ -60,6 +62,23 @@ func (s *APIServer) Run(opts *apiserver_options.Options) error {
 		"rate_limit_limit", opts.Middleware.RateLimit.Limit,
 	)
 
+	// ===================== 新增: 初始化中间件系统 =====================
+	s.logger.Infow("初始化可插拔中间件系统...")
+
+	// 从配置中构建中间件配置
+	middlewareConfig := s.buildMiddlewareConfig(opts)
+
+	// 初始化中间件管理器
+	var err error
+	s.middlewareManager, err = middleware.InitializeMiddleware(middlewareConfig)
+	if err != nil {
+		s.logger.Errorw("初始化中间件管理器失败", "error", err)
+		return err
+	}
+
+	s.logger.Infow("中间件系统初始化完成")
+	// ================================================================
+
 	grpcOpts := opts.GetGRPCOptions()
 	httpOpts := opts.GetHTTPOptions()
 
@@ -71,6 +90,24 @@ func (s *APIServer) Run(opts *apiserver_options.Options) error {
 
 	grpcServer := app.NewGRPCServer(s.name, grpcListener)
 	httpServer := app.NewHTTPServer(s.name, httpOpts.Addr)
+
+	// ===================== 新增: 应用中间件链 =====================
+	s.logger.Infow("应用中间件链到服务器...")
+
+	// 将中间件链应用到 HTTP 服务器
+	if err := s.middlewareManager.ApplyToHTTPServer(httpServer); err != nil {
+		s.logger.Errorw("应用 HTTP 中间件失败", "error", err)
+		return err
+	}
+
+	// 将中间件链应用到 gRPC 服务器
+	if err := s.middlewareManager.ApplyToGRPCServer(grpcServer); err != nil {
+		s.logger.Errorw("应用 gRPC 中间件失败", "error", err)
+		return err
+	}
+
+	s.logger.Infow("中间件链应用完成")
+	// ================================================================
 
 	if opts.Tracing.Enabled {
 		s.logger.Infow("启用 tracing 功能",
@@ -132,6 +169,14 @@ func (s *APIServer) Run(opts *apiserver_options.Options) error {
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), grpcOpts.Timeout)
 		defer shutdownCancel()
 
+		// ===================== 新增: 关闭中间件管理器 =====================
+		if s.middlewareManager != nil {
+			if err := s.middlewareManager.Shutdown(shutdownCtx); err != nil {
+				s.logger.Errorw("关闭中间件管理器失败", "error", err)
+			}
+		}
+		// ================================================================
+
 		if err := grpcServer.Stop(shutdownCtx); err != nil {
 			s.logger.Errorw("关闭 gRPC 服务器失败", "error", err)
 		}
@@ -155,4 +200,35 @@ func (s *APIServer) Run(opts *apiserver_options.Options) error {
 		s.logger.Errorw("服务器发生错误", "error", err)
 		return err
 	}
+}
+
+// buildMiddlewareConfig 根据配置选项构建中间件配置
+func (s *APIServer) buildMiddlewareConfig(opts *apiserver_options.Options) map[string]map[string]interface{} {
+	config := make(map[string]map[string]interface{})
+
+	// 基础配置
+	config["recovery"] = map[string]interface{}{
+		"enabled":  true,
+		"priority": 10,
+	}
+
+	config["logging"] = map[string]interface{}{
+		"enabled":    true,
+		"priority":   100,
+		"skip_paths": []interface{}{"/health", "/metrics"},
+	}
+
+	// CORS 配置 - 根据需要启用
+	config["cors"] = map[string]interface{}{
+		"enabled":       false, // 可以根据配置文件决定是否启用
+		"priority":      50,
+		"allow_origins": []interface{}{"*"},
+		"allow_methods": []interface{}{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		"allow_headers": []interface{}{"Content-Type", "Authorization"},
+	}
+
+	// 可以根据 opts.Middleware 配置添加更多的中间件配置
+	// 比如限流、认证等
+
+	return config
 }
