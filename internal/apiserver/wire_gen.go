@@ -7,7 +7,6 @@
 package apiserver
 
 import (
-	"github.com/costa92/go-protoc/internal/apiserver/handlers"
 	"github.com/costa92/go-protoc/internal/apiserver/options"
 	"github.com/costa92/go-protoc/internal/apiserver/service"
 	"github.com/costa92/go-protoc/pkg/logger"
@@ -24,13 +23,10 @@ func InitializeAPIServer() (*APIServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	serviceRegistry := handlers.NewServiceRegistry(loggerLogger)
 	greeterV1Service := service.NewGreeterV1Service(loggerLogger)
-	greeterV1Registration := handlers.NewGreeterV1Registration(greeterV1Service, loggerLogger)
 	greeterV2Service := service.NewGreeterV2Service(loggerLogger)
-	greeterV2Registration := handlers.NewGreeterV2Registration(greeterV2Service, loggerLogger)
-	installer := handlers.NewInstaller(serviceRegistry, greeterV1Registration, greeterV2Registration, loggerLogger)
-	apiServer := NewAPIServer(string2, loggerLogger, installer)
+	apiGroupInstaller := service.NewGreeterInstaller(greeterV1Service, greeterV2Service)
+	apiServer := NewAPIServer(string2, loggerLogger, apiGroupInstaller)
 	return apiServer, nil
 }
 
@@ -44,5 +40,5 @@ func ProvideServerName() string {
 // 将所有提供者集合组合到一起
 var allProviderSets = wire.NewSet(
 	ProvideServerName,
-	NewAPIServer, options.ProviderSet, logger.ProviderSet, service.ProviderSet, handlers.ProviderSet,
+	NewAPIServer, options.ProviderSet, logger.ProviderSet, service.ProviderSet,
 )

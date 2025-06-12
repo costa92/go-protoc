@@ -6,7 +6,6 @@ package apiserver
 import (
 	"github.com/google/wire"
 
-	"github.com/costa92/go-protoc/internal/apiserver/handlers"
 	"github.com/costa92/go-protoc/internal/apiserver/options"
 	"github.com/costa92/go-protoc/internal/apiserver/service"
 	"github.com/costa92/go-protoc/pkg/logger"
@@ -24,7 +23,6 @@ var allProviderSets = wire.NewSet(
 	options.ProviderSet,
 	logger.ProviderSet,
 	service.ProviderSet,
-	handlers.ProviderSet,
 )
 
 // InitializeAPIServer 初始化 API 服务器
