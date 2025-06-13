@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/costa92/go-protoc/pkg/options"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -15,14 +14,14 @@ import (
 type Option func(*App)
 
 // RunFunc 定义了应用启动时要执行的函数的签名。
-type RunFunc func(basename string) error
+type RunFunc func() error
 
 // App 是一个命令行应用的核心结构。
 type App struct {
 	basename    string
 	name        string
 	description string
-	options     options.CliOptions // 关键改动：依赖于接口而非具体实现
+	options     any // 关键改动：依赖于接口而非具体实现
 	runFunc     RunFunc            // 应用启动时要执行的真正业务逻辑
 	silence     bool
 	commands    []*cobra.Command
@@ -31,7 +30,7 @@ type App struct {
 }
 
 // WithOptions 设置应用的命令行选项。
-func WithOptions(opts options.CliOptions) Option {
+func WithOptions(opts any) Option {
 	return func(a *App) {
 		a.options = opts
 	}
@@ -51,7 +50,7 @@ func WithDescription(desc string) Option {
 	}
 }
 
-// NewApp 创建一个新的 App 实例
+
 // NewApp 创建一个新的 App 实例。
 func NewApp(name string, basename string, opts ...Option) *App {
 	a := &App{

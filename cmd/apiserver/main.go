@@ -1,16 +1,17 @@
 package main
 
 import (
-	_ "go.uber.org/automaxprocs"
+	"fmt"
 
-	"github.com/costa92/go-protoc/internal/apiserver"
-	"github.com/costa92/go-protoc/internal/apiserver/options"
+	"github.com/costa92/go-protoc/cmd/apiserver/app/options"
 	"github.com/costa92/go-protoc/pkg/app"
+	_ "go.uber.org/automaxprocs"
+	genericapiserver "k8s.io/apiserver/pkg/server"
 )
 
 func main() {
 	// 1. 创建具体的 Options 实例
-	opts := options.NewOptions()
+	opts := options.NewServerOptions()
 
 	// 2. 创建一个 App 构建器
 	//    - 传入应用名称和二进制文件名
@@ -26,19 +27,17 @@ func main() {
 }
 
 // run 函数创建了一个闭包，它持有具体的 options 实例
-func run(opts *options.Options) app.RunFunc {
+func run(opts *options.ServerOptions) app.RunFunc {
 	return func() error {
 		cfg, err := opts.Config()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get config: %w", err)
 		}
-		return Run()
+		ctx := genericapiserver.SetupSignalContext()
+		server, err := cfg.NewServer(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to create server: %w", err)
+		}
+		return server.Run(ctx)
 	}
-}
-
-func Run(c *apiserver.Config) error {
-	// 这里可以添加实际的业务逻辑
-	// 比如启动 gRPC 或 HTTP 服务器等
-	// 目前只是一个占位符
-	return nil
 }
