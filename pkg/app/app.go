@@ -16,13 +16,19 @@ type Option func(*App)
 // RunFunc 定义了应用启动时要执行的函数的签名。
 type RunFunc func() error
 
+// CliOptions 定义了命令行选项接口
+type CliOptions interface {
+	Validate() error
+	AddFlags(*cobra.Command)
+}
+
 // App 是一个命令行应用的核心结构。
 type App struct {
 	basename    string
 	name        string
 	description string
-	options     any // 关键改动：依赖于接口而非具体实现
-	runFunc     RunFunc            // 应用启动时要执行的真正业务逻辑
+	options     CliOptions // 使用接口而非 any
+	runFunc     RunFunc    // 应用启动时要执行的真正业务逻辑
 	silence     bool
 	commands    []*cobra.Command
 	args        cobra.PositionalArgs
@@ -30,7 +36,7 @@ type App struct {
 }
 
 // WithOptions 设置应用的命令行选项。
-func WithOptions(opts any) Option {
+func WithOptions(opts CliOptions) Option {
 	return func(a *App) {
 		a.options = opts
 	}
@@ -49,7 +55,6 @@ func WithDescription(desc string) Option {
 		a.description = desc
 	}
 }
-
 
 // NewApp 创建一个新的 App 实例。
 func NewApp(name string, basename string, opts ...Option) *App {
@@ -85,29 +90,33 @@ func (a *App) buildCommand() {
 
 	// 添加来自 Options 的标志
 	if a.options != nil {
-		a.options.AddFlags(cmd.PersistentFlags())
+		a.options.AddFlags(&cmd)
 	}
 
 	a.cmd = &cmd
 }
 
 // Run 启动应用。
-func (a *App) Run() {
+func (a *App) Run() error {
 	if err := a.cmd.Execute(); err != nil {
-		fmt.Printf("%v\n", err)
-		os.Exit(1)
+		return err
 	}
+
+	return nil
 }
 
+// run 是实际的应用运行函数。
 func (a *App) run(cmd *cobra.Command, args []string) error {
+	// 验证选项
 	if a.options != nil {
-		if errs := a.options.Validate(); len(errs) > 0 {
-			return errs[0]
+		if err := a.options.Validate(); err != nil {
+			return err
 		}
 	}
 
+	// 执行业务逻辑
 	if a.runFunc != nil {
-		return a.runFunc(a.basename)
+		return a.runFunc()
 	}
 
 	return nil
@@ -115,59 +124,46 @@ func (a *App) run(cmd *cobra.Command, args []string) error {
 
 var cfgFile string
 
+// initConfig 初始化配置。
 func (a *App) initConfig() error {
 	if cfgFile != "" {
+		// 使用命令行标志指定的配置文件
 		viper.SetConfigFile(cfgFile)
-		fmt.Printf("使用指定的配置文件: %s\n", cfgFile)
 	} else {
+		// 在当前目录和用户主目录中查找配置文件
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return err
+		}
+
+		// 添加配置文件的搜索路径
 		viper.AddConfigPath(".")
-		viper.AddConfigPath("./configs")
-		viper.AddConfigPath("$HOME")
-		viper.SetConfigName("config")
+		viper.AddConfigPath(home)
+		viper.SetConfigName(fmt.Sprintf(".%s", a.basename))
 		viper.SetConfigType("yaml")
-		fmt.Printf("搜索配置文件路径: ., ./configs, $HOME\n")
 	}
 
+	// 读取环境变量
+	viper.AutomaticEnv()
 	viper.SetEnvPrefix(strings.ToUpper(a.basename))
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
-	viper.AutomaticEnv()
 
+	// 如果找到配置文件，读取它
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			return fmt.Errorf("读取配置文件失败: %v", err)
+			return fmt.Errorf("读取配置文件失败: %w", err)
 		}
-		fmt.Printf("未找到配置文件，将使用默认值\n")
-	} else {
-		fmt.Printf("成功加载配置文件: %s\n", viper.ConfigFileUsed())
 	}
 
-	// 将 viper 加载的配置反序列化到我们的 Options 结构体中
-	if a.options != nil {
-		if err := viper.Unmarshal(a.options); err != nil {
-			return fmt.Errorf("解析配置文件失败: %v", err)
-		}
-		fmt.Printf("配置加载完成，开始验证配置...\n")
-
-		// 验证配置
-		if errs := a.options.Validate(); len(errs) > 0 {
-			for _, err := range errs {
-				fmt.Printf("配置验证错误: %v\n", err)
-			}
-			if len(errs) > 0 {
-				return fmt.Errorf("配置验证失败")
-			}
-		}
-		fmt.Printf("配置验证通过\n")
-	}
-
-	// 监控配置文件变化
+	// 监听配置文件变化
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
-		fmt.Printf("配置文件发生变化: %s\n", e.Name)
-		if err := viper.Unmarshal(a.options); err != nil {
-			fmt.Printf("重新加载配置失败: %v\n", err)
-		} else {
-			fmt.Printf("配置已重新加载\n")
+		fmt.Printf("配置文件已更改: %s\n", e.Name)
+		// 验证新的配置
+		if a.options != nil {
+			if err := a.options.Validate(); err != nil {
+				fmt.Printf("新配置验证失败: %v\n", err)
+			}
 		}
 	})
 

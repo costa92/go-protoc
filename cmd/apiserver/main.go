@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/costa92/go-protoc/cmd/apiserver/app/options"
+	"github.com/costa92/go-protoc/internal/apiserver"
 	"github.com/costa92/go-protoc/pkg/app"
 	_ "go.uber.org/automaxprocs"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -29,12 +30,8 @@ func main() {
 // run 函数创建了一个闭包，它持有具体的 options 实例
 func run(opts *options.ServerOptions) app.RunFunc {
 	return func() error {
-		cfg, err := opts.Config()
-		if err != nil {
-			return fmt.Errorf("failed to get config: %w", err)
-		}
 		ctx := genericapiserver.SetupSignalContext()
-		server, err := cfg.NewServer(ctx)
+		server, err := apiserver.InitializeServer(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to create server: %w", err)
 		}

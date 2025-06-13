@@ -8,10 +8,8 @@ package apiserver
 
 import (
 	"context"
-
 	"github.com/costa92/go-protoc/internal/apiserver/server"
 	"github.com/costa92/go-protoc/internal/apiserver/service"
-	"github.com/costa92/go-protoc/pkg/app"
 	"github.com/costa92/go-protoc/pkg/logger"
 	"github.com/costa92/go-protoc/pkg/options"
 	"github.com/google/wire"
@@ -20,11 +18,12 @@ import (
 // Injectors from wire.go:
 
 // InitializeServer 初始化 API 服务器
-func InitializeServer() (*Server, error) {
-	context := ProvideContext()
-	config := ProvideConfig()
-	app := ProvideApp()
-	server, err := NewServer(context, config, app)
+func InitializeServer(ctx context.Context) (*Server, error) {
+	config, err := ProvideConfig()
+	if err != nil {
+		return nil, err
+	}
+	server, err := NewServer(ctx, config)
 	if err != nil {
 		return nil, err
 	}
@@ -33,34 +32,22 @@ func InitializeServer() (*Server, error) {
 
 // wire.go:
 
-// ProvideContext 提供上下文
-func ProvideContext() context.Context {
-	return context.Background()
-}
-
-// ProvideConfig 提供配置
-func ProvideConfig() *Config {
-	return &Config{
-		GRPCOptions: options.NewGRPCOptions(),
-		HTTPOptions: options.NewHTTPOptions(),
-	}
-}
-
-// ProvideApp 提供应用实例
-func ProvideApp() *app.App {
-	return app.NewApp("apiserver", "apiserver")
-}
-
 // ProvideServerName 提供服务器名称
 func ProvideServerName() string {
 	return "apiserver"
 }
 
+// ProvideConfig 提供服务器配置
+func ProvideConfig() (*Config, error) {
+	return &Config{
+		GRPCOptions: options.NewGRPCOptions(),
+		HTTPOptions: options.NewHTTPOptions(),
+	}, nil
+}
+
 // 将所有提供者集合组合到一起
 var allProviderSets = wire.NewSet(
-	ProvideContext,
-	ProvideConfig,
-	ProvideApp,
 	ProvideServerName,
-server.ProviderSet, logger.ProviderSet, service.ProviderSet,
+	ProvideConfig,
+	NewServer, server.ProviderSet, logger.ProviderSet, service.ProviderSet,
 )

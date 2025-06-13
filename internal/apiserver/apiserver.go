@@ -14,8 +14,8 @@ import (
 
 // Config contains application-related configurations.
 type Config struct {
-	GRPCOptions   *genericoptions.GRPCOptions
-	HTTPOptions   *genericoptions.HTTPOptions
+	GRPCOptions *genericoptions.GRPCOptions
+	HTTPOptions *genericoptions.HTTPOptions
 }
 
 // ErrServerNotInitialized 定义了服务器未初始化的错误
@@ -32,16 +32,20 @@ type Server struct {
 	isRunning  bool
 }
 
-
-
-
-
 // NewServer 创建并返回一个新的 Server 实例
-func (c *Config) NewServer(ctx context.Context) (*Server, error) {
+func NewServer(ctx context.Context, config *Config) (*Server, error) {
 	s := &Server{
-		config:    c,
+		config:    config,
 		isRunning: false,
+		stopCh:    make(chan struct{}),
 	}
+
+	// 初始化 GRPC 服务器
+	s.grpcServer = app.NewGRPCServer(config.GRPCOptions.Addr)
+
+	// 初始化 HTTP 服务器
+	s.httpServer = app.NewHTTPServer(config.HTTPOptions.Addr)
+
 	return s, nil
 }
 
@@ -57,11 +61,6 @@ func (s *Server) Run(ctx context.Context) error {
 
 	// 创建错误通道来收集潜在的错误
 	errChan := make(chan error, 2)
-
-	// 初始化 GRPC 服务器
-	s.grpcServer = app.NewGRPCServer(s.config.GRPCOptions.Addr)
-	// 初始化 HTTP 服务器
-	s.httpServer = app.NewHTTPServer(s.config.HTTPOptions.Addr)
 
 	// 启动 GRPC 服务
 	go func() {
@@ -123,6 +122,6 @@ func (s *Server) Shutdown() error {
 	if len(errs) > 0 {
 		return fmt.Errorf("shutdown errors: %v", errs)
 	}
-	
+
 	return nil
 }
