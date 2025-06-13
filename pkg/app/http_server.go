@@ -20,13 +20,12 @@ type HTTPServer struct {
 	*http.Server
 	router       *mux.Router
 	gatewayMux   *runtime.ServeMux
-	name         string
 	mu           sync.Mutex // 保护路由注册的并发安全
 	gatewayAdded bool       // 标记是否已添加 gRPC-Gateway 作为默认处理器
 }
 
 // NewHTTPServer 创建一个新的 HTTPServer 实例
-func NewHTTPServer(name, addr string, middlewares ...mux.MiddlewareFunc) *HTTPServer {
+func NewHTTPServer(addr string, middlewares ...mux.MiddlewareFunc) *HTTPServer {
 	router := mux.NewRouter()
 
 	// 应用中间件
@@ -46,7 +45,6 @@ func NewHTTPServer(name, addr string, middlewares ...mux.MiddlewareFunc) *HTTPSe
 		},
 		router:       router,
 		gatewayMux:   gwmux,
-		name:         name,
 		gatewayAdded: false,
 	}
 
@@ -121,12 +119,12 @@ func (s *HTTPServer) Start(ctx context.Context) error {
 		s.FinalizeRoutes()
 	}
 
-	logger.Infof("HTTP 服务器 %s 正在监听 %s", s.name, s.Addr)
+	logger.Infow("HTTP 服务器正在监听", "addr", s.Addr)
 
 	// 在后台启动 HTTP 服务器
 	go func() {
 		if err := s.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Errorf("HTTP 服务器 %s 失败: %v", s.name, err)
+			logger.Errorw("HTTP 服务器失败", "error", err)
 		}
 	}()
 
@@ -137,11 +135,11 @@ func (s *HTTPServer) Start(ctx context.Context) error {
 
 // Stop 实现 Server 接口的 Stop 方法
 func (s *HTTPServer) Stop(ctx context.Context) error {
-	logger.Infof("正在关闭 HTTP 服务器 %s", s.name)
+	logger.Infow("正在关闭 HTTP 服务器", "addr", s.Addr)
 	if err := s.Shutdown(ctx); err != nil {
-		return fmt.Errorf("HTTP 服务器 %s 关闭失败: %v", s.name, err)
+		return fmt.Errorf("HTTP 服务器关闭失败: %v", err)
 	}
-	logger.Infof("HTTP 服务器 %s 已成功关闭", s.name)
+	logger.Infow("HTTP 服务器已成功关闭", "addr", s.Addr)
 	return nil
 }
 

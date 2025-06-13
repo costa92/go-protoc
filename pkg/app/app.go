@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -11,14 +10,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-// Server 是服务器接口，定义了启动和停止方法
-type Server interface {
-	// Start 启动服务器并阻塞直到上下文取消
-	Start(ctx context.Context) error
-	// Stop 优雅地关闭服务器
-	Stop(ctx context.Context) error
-}
 
 // Option 是用于配置 App 的函数式选项。
 type Option func(*App)

@@ -13,7 +13,6 @@ import (
 type GRPCServer struct {
 	server             *grpc.Server
 	listener           net.Listener
-	name               string
 	baseOpts           []grpc.ServerOption // 基础服务器选项
 	unaryInterceptors  []grpc.UnaryServerInterceptor
 	streamInterceptors []grpc.StreamServerInterceptor
@@ -21,10 +20,13 @@ type GRPCServer struct {
 }
 
 // NewGRPCServer 创建一个新的 GRPCServer 实例
-func NewGRPCServer(name string, listener net.Listener, opts ...grpc.ServerOption) *GRPCServer {
+func NewGRPCServer(addr string, opts ...grpc.ServerOption) *GRPCServer {
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		logger.Fatalf("Failed to listen: %v", err)
+	}
 	return &GRPCServer{
 		listener:           listener,
-		name:               name,
 		baseOpts:           opts,
 		unaryInterceptors:  make([]grpc.UnaryServerInterceptor, 0),
 		streamInterceptors: make([]grpc.StreamServerInterceptor, 0),
@@ -168,7 +170,7 @@ func (s *GRPCServer) Start(ctx context.Context) error {
 		s.buildServer()
 	}
 
-	logger.Infof("gRPC 服务器 %s 正在监听 %s", s.name, s.listener.Addr().String())
+	logger.Infow("gRPC 服务器正在监听", "addr", s.listener.Addr().String())
 
 	// 创建一个 channel 用于接收服务器退出信号
 	errCh := make(chan error, 1)
@@ -176,7 +178,7 @@ func (s *GRPCServer) Start(ctx context.Context) error {
 	// 在后台启动 gRPC 服务器
 	go func() {
 		if err := s.server.Serve(s.listener); err != nil {
-			errCh <- fmt.Errorf("gRPC 服务器 %s 失败: %v", s.name, err)
+			errCh <- fmt.Errorf("gRPC 服务器 %s 失败: %v", s.listener.Addr().String(), err)
 		}
 		close(errCh)
 	}()
@@ -192,7 +194,7 @@ func (s *GRPCServer) Start(ctx context.Context) error {
 
 // Stop 实现 Server 接口的 Stop 方法
 func (s *GRPCServer) Stop(ctx context.Context) error {
-	logger.Infof("正在关闭 gRPC 服务器 %s", s.name)
+	logger.Infof("正在关闭 gRPC 服务器 %s", s.listener.Addr().String())
 
 	// 创建一个通道来跟踪 GracefulStop 的完成
 	done := make(chan struct{})
@@ -204,11 +206,11 @@ func (s *GRPCServer) Stop(ctx context.Context) error {
 	// 等待 gRPC 服务器关闭或超时
 	select {
 	case <-ctx.Done():
-		logger.Warnf("gRPC 服务器 %s 优雅关闭超时，强制停止", s.name)
+		logger.Warnf("gRPC 服务器 %s 优雅关闭超时，强制停止", s.listener.Addr().String())
 		s.server.Stop()
-		return fmt.Errorf("gRPC 服务器 %s 优雅关闭超时", s.name)
+		return fmt.Errorf("gRPC 服务器 %s 优雅关闭超时", s.listener.Addr().String())
 	case <-done:
-		logger.Infof("gRPC 服务器 %s 已成功关闭", s.name)
+		logger.Infof("gRPC 服务器 %s 已成功关闭", s.listener.Addr().String())
 		return nil
 	}
 }

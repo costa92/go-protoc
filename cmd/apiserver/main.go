@@ -3,9 +3,6 @@ package main
 import (
 	_ "go.uber.org/automaxprocs"
 
-	"fmt"
-	"os"
-
 	"github.com/costa92/go-protoc/internal/apiserver"
 	"github.com/costa92/go-protoc/internal/apiserver/options"
 	"github.com/costa92/go-protoc/pkg/app"
@@ -30,15 +27,18 @@ func main() {
 
 // run 函数创建了一个闭包，它持有具体的 options 实例
 func run(opts *options.Options) app.RunFunc {
-	return func(basename string) error {
-		// 使用 Wire 初始化 API 服务器
-		apiServer, err := apiserver.InitializeAPIServer()
+	return func() error {
+		cfg, err := opts.Config()
 		if err != nil {
-			fmt.Printf("初始化 API 服务器失败: %v\n", err)
-			os.Exit(1)
+			return err
 		}
-
-		// 运行 API 服务器
-		return apiServer.Run(opts)
+		return Run()
 	}
+}
+
+func Run(c *apiserver.Config) error {
+	// 这里可以添加实际的业务逻辑
+	// 比如启动 gRPC 或 HTTP 服务器等
+	// 目前只是一个占位符
+	return nil
 }

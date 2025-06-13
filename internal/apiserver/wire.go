@@ -7,6 +7,7 @@ import (
 	"github.com/google/wire"
 
 	"github.com/costa92/go-protoc/internal/apiserver/options"
+	"github.com/costa92/go-protoc/internal/apiserver/server"
 	"github.com/costa92/go-protoc/internal/apiserver/service"
 	"github.com/costa92/go-protoc/pkg/logger"
 )
@@ -19,6 +20,7 @@ func ProvideServerName() string {
 // 将所有提供者集合组合到一起
 var allProviderSets = wire.NewSet(
 	ProvideServerName,
+	server.ProviderSet,
 	NewAPIServer,
 	options.ProviderSet,
 	logger.ProviderSet,
