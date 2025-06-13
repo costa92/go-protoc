@@ -26,6 +26,23 @@ func CustomHTTPErrorHandler(ctx context.Context, mux *runtime.ServeMux, marshale
 		Message: s.Message(),
 	}
 
+	// 处理验证错误的特殊情况
+	if s.Code() == codes.InvalidArgument {
+		validationErrors := make([]map[string]string, 0)
+		// 解析错误消息，提取字段和原因
+		msg := s.Message()
+		if msg != "" {
+			validationError := map[string]string{
+				"field":   "request",
+				"message": msg,
+			}
+			validationErrors = append(validationErrors, validationError)
+		}
+		errorResp.Data = map[string]interface{}{
+			"validation_errors": validationErrors,
+		}
+	}
+
 	// 设置HTTP状态码和内容类型
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpStatus)
