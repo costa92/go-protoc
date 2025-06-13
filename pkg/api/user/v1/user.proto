@@ -1,0 +1,271 @@
+syntax = "proto3";
+
+package user.v1;
+
+import "validate/validate.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "github.com/costa92/go-protoc/pkg/api/user/v1;v1";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+    info: {
+        title: "User Service API";
+        version: "1.0";
+        description: "用户服务 API";
+        contact: {
+            name: "API Support";
+            url: "https://github.com/costa92/go-protoc";
+            email: "your-email@example.com";
+        };
+        license: {
+            name: "MIT";
+            url: "https://github.com/costa92/go-protoc/blob/main/LICENSE";
+        };
+    };
+    schemes: HTTPS;
+    consumes: "application/json";
+    produces: "application/json";
+};
+
+// User 用户信息
+message User {
+    // 用户ID
+    string user_id = 1;
+
+    // 用户名
+    string username = 2;
+
+    // 邮箱
+    string email = 3;
+
+    // 年龄
+    int32 age = 4;
+
+    // 创建时间
+    int64 created_at = 5;
+
+    // 更新时间
+    int64 updated_at = 6;
+}
+
+// CreateUserRequest 创建用户请求
+message CreateUserRequest {
+    // 用户名
+    string username = 1 [(validate.rules).string = {
+        min_len: 3,
+        max_len: 20,
+        pattern: "^[a-zA-Z0-9_]+$"
+    }];
+
+    // 邮箱
+    string email = 2 [(validate.rules).string = {
+        email: true
+    }];
+
+    // 年龄
+    int32 age = 3 [(validate.rules).int32 = {
+        gte: 0,
+        lte: 120
+    }];
+}
+
+// CreateUserResponse 创建用户响应
+message CreateUserResponse {
+    // 用户信息
+    User user = 1;
+}
+
+// GetUserRequest 获取用户请求
+message GetUserRequest {
+    // 用户ID
+    string user_id = 1 [(validate.rules).string.min_len = 1];
+}
+
+// GetUserResponse 获取用户响应
+message GetUserResponse {
+    // 用户信息
+    User user = 1;
+}
+
+// UpdateUserRequest 更新用户请求
+message UpdateUserRequest {
+    // 用户ID
+    string user_id = 1 [(validate.rules).string.min_len = 1];
+
+    // 用户名
+    string username = 2 [(validate.rules).string = {
+        min_len: 3,
+        max_len: 20,
+        pattern: "^[a-zA-Z0-9_]+$"
+    }];
+
+    // 邮箱
+    string email = 3 [(validate.rules).string = {
+        email: true
+    }];
+
+    // 年龄
+    int32 age = 4 [(validate.rules).int32 = {
+        gte: 0,
+        lte: 120
+    }];
+}
+
+// UpdateUserResponse 更新用户响应
+message UpdateUserResponse {
+    // 用户信息
+    User user = 1;
+}
+
+// DeleteUserRequest 删除用户请求
+message DeleteUserRequest {
+    // 用户ID
+    string user_id = 1 [(validate.rules).string.min_len = 1];
+}
+
+// DeleteUserResponse 删除用户响应
+message DeleteUserResponse {
+    // 是否成功
+    bool success = 1;
+}
+
+// ListUsersRequest 列出用户请求
+message ListUsersRequest {
+    // 页码
+    int32 page = 1 [(validate.rules).int32.gt = 0];
+
+    // 每页数量
+    int32 page_size = 2 [(validate.rules).int32 = {
+        gt: 0,
+        lte: 100
+    }];
+}
+
+// ListUsersResponse 列出用户响应
+message ListUsersResponse {
+    // 用户列表
+    repeated User users = 1;
+
+    // 总数
+    int64 total = 2;
+}
+
+// UserService 用户服务
+service UserService {
+    // CreateUser 创建用户
+    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
+        option (google.api.http) = {
+            post: "/v1/users"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "创建用户"
+            description: "创建一个新用户"
+            tags: ["users"]
+            responses: {
+                key: "201"
+                value: {
+                    description: "用户创建成功"
+                }
+            }
+            responses: {
+                key: "400"
+                value: {
+                    description: "无效的请求参数"
+                }
+            }
+        };
+    }
+
+    // GetUser 获取用户
+    rpc GetUser(GetUserRequest) returns (GetUserResponse) {
+        option (google.api.http) = {
+            get: "/v1/users/{user_id}"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "获取用户"
+            description: "根据用户ID获取用户信息"
+            tags: ["users"]
+            responses: {
+                key: "200"
+                value: {
+                    description: "成功获取用户信息"
+                }
+            }
+            responses: {
+                key: "404"
+                value: {
+                    description: "用户不存在"
+                }
+            }
+        };
+    }
+
+    // UpdateUser 更新用户
+    rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse) {
+        option (google.api.http) = {
+            put: "/v1/users/{user_id}"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "更新用户"
+            description: "更新用户信息"
+            tags: ["users"]
+            responses: {
+                key: "200"
+                value: {
+                    description: "用户更新成功"
+                }
+            }
+            responses: {
+                key: "404"
+                value: {
+                    description: "用户不存在"
+                }
+            }
+        };
+    }
+
+    // DeleteUser 删除用户
+    rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {
+        option (google.api.http) = {
+            delete: "/v1/users/{user_id}"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "删除用户"
+            description: "删除指定用户"
+            tags: ["users"]
+            responses: {
+                key: "200"
+                value: {
+                    description: "用户删除成功"
+                }
+            }
+            responses: {
+                key: "404"
+                value: {
+                    description: "用户不存在"
+                }
+            }
+        };
+    }
+
+    // ListUsers 列出用户
+    rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {
+        option (google.api.http) = {
+            get: "/v1/users"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "列出用户"
+            description: "分页获取用户列表"
+            tags: ["users"]
+            responses: {
+                key: "200"
+                value: {
+                    description: "成功获取用户列表"
+                }
+            }
+        };
+    }
+}

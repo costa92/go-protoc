@@ -4,12 +4,12 @@ produces:
     - application/json
 swagger: "2.0"
 info:
-    title: pkg/api/helloworld/v1/helloworld.proto
+    title: pkg/api/helloworld/v2/helloworld.proto
     version: version not set
 paths:
     /v1/hello:
         post:
-            operationId: Greeter_SayHello
+            operationId: Greeter_SayHelloMixin0
             parameters:
                 - in: body
                   name: body
@@ -30,7 +30,7 @@ paths:
                 - Greeter
     /v1/hello/{name}:
         get:
-            operationId: Greeter_SayHelloAgain
+            operationId: Greeter_SayHelloAgainMixin0
             parameters:
                 - in: path
                   name: name
@@ -50,7 +50,7 @@ paths:
                 - Greeter
     /v2/hello:
         post:
-            operationId: Greeter_SayHelloMixin0
+            operationId: Greeter_SayHello
             parameters:
                 - in: body
                   name: body
@@ -71,7 +71,7 @@ paths:
                 - Greeter
     /v2/hello/{name}:
         get:
-            operationId: Greeter_SayHelloAgainMixin0
+            operationId: Greeter_SayHelloAgain
             parameters:
                 - in: path
                   name: name
@@ -94,23 +94,23 @@ definitions:
         properties:
             message:
                 type: string
+                x-order: !!float 0
         type: object
     helloworldv1HelloRequest:
         properties:
             name:
                 type: string
+                x-order: !!float 0
         type: object
     helloworldv2HelloReply:
         properties:
             message:
                 type: string
-                x-order: !!float 0
         type: object
     helloworldv2HelloRequest:
         properties:
             name:
                 type: string
-                x-order: !!float 0
         type: object
     protobufAny:
         additionalProperties: {}

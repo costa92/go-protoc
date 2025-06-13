@@ -3,9 +3,13 @@ package app
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 
-	"github.com/costa92/go-protoc/pkg/log"
-	"golang.org/x/sync/errgroup"
+	"github.com/costa92/go-protoc/pkg/options"
+	"github.com/fsnotify/fsnotify"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // Server 是服务器接口，定义了启动和停止方法
@@ -16,65 +20,166 @@ type Server interface {
 	Stop(ctx context.Context) error
 }
 
-// App 是应用程序的框架，负责管理各种类型的服务
+// Option 是用于配置 App 的函数式选项。
+type Option func(*App)
+
+// RunFunc 定义了应用启动时要执行的函数的签名。
+type RunFunc func(basename string) error
+
+// App 是一个命令行应用的核心结构。
 type App struct {
-	servers []Server
-	name    string
+	basename    string
+	name        string
+	description string
+	options     options.CliOptions // 关键改动：依赖于接口而非具体实现
+	runFunc     RunFunc            // 应用启动时要执行的真正业务逻辑
+	silence     bool
+	commands    []*cobra.Command
+	args        cobra.PositionalArgs
+	cmd         *cobra.Command
+}
+
+// WithOptions 设置应用的命令行选项。
+func WithOptions(opts options.CliOptions) Option {
+	return func(a *App) {
+		a.options = opts
+	}
+}
+
+// WithRunFunc 设置应用启动时执行的函数。
+func WithRunFunc(run RunFunc) Option {
+	return func(a *App) {
+		a.runFunc = run
+	}
+}
+
+// WithDescription 设置应用的描述。
+func WithDescription(desc string) Option {
+	return func(a *App) {
+		a.description = desc
+	}
 }
 
 // NewApp 创建一个新的 App 实例
-func NewApp(name string, servers ...Server) *App {
-	return &App{
-		servers: servers,
-		name:    name,
+// NewApp 创建一个新的 App 实例。
+func NewApp(name string, basename string, opts ...Option) *App {
+	a := &App{
+		name:     name,
+		basename: basename,
+	}
+
+	for _, o := range opts {
+		o(a)
+	}
+
+	a.buildCommand()
+
+	return a
+}
+
+func (a *App) buildCommand() {
+	cmd := cobra.Command{
+		Use:   a.basename,
+		Short: a.name,
+		Long:  a.description,
+		// 在执行 RunE 之前，完成配置的加载和绑定
+		PersistentPreRunE: func(*cobra.Command, []string) error {
+			return a.initConfig()
+		},
+		RunE: a.run,
+	}
+	cmd.SilenceUsage = true
+
+	// 添加全局标志
+	cmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.apiserver.yaml or ./config.yaml or ./apiserver.yaml)")
+
+	// 添加来自 Options 的标志
+	if a.options != nil {
+		a.options.AddFlags(cmd.PersistentFlags())
+	}
+
+	a.cmd = &cmd
+}
+
+// Run 启动应用。
+func (a *App) Run() {
+	if err := a.cmd.Execute(); err != nil {
+		fmt.Printf("%v\n", err)
+		os.Exit(1)
 	}
 }
 
-// AddServer 向 App 添加一个服务
-func (a *App) AddServer(server Server) {
-	a.servers = append(a.servers, server)
+func (a *App) run(cmd *cobra.Command, args []string) error {
+	if a.options != nil {
+		if errs := a.options.Validate(); len(errs) > 0 {
+			return errs[0]
+		}
+	}
+
+	if a.runFunc != nil {
+		return a.runFunc(a.basename)
+	}
+
+	return nil
 }
 
-// Start 启动应用程序中的所有服务
-func (a *App) Start(ctx context.Context) error {
-	log.Infof("启动应用 %s", a.name)
+var cfgFile string
 
-	// 创建一个错误组，用于并发管理服务
-	g, ctx := errgroup.WithContext(ctx)
-
-	// 并发启动所有服务
-	for _, srv := range a.servers {
-		srv := srv // 创建闭包变量副本
-		g.Go(func() error {
-			log.Infof("正在启动服务 %T", srv)
-			return srv.Start(ctx)
-		})
+func (a *App) initConfig() error {
+	if cfgFile != "" {
+		viper.SetConfigFile(cfgFile)
+		fmt.Printf("使用指定的配置文件: %s\n", cfgFile)
+	} else {
+		viper.AddConfigPath(".")
+		viper.AddConfigPath("./configs")
+		viper.AddConfigPath("$HOME")
+		viper.SetConfigName("config")
+		viper.SetConfigType("yaml")
+		fmt.Printf("搜索配置文件路径: ., ./configs, $HOME\n")
 	}
 
-	// 等待所有服务完成或出现错误
-	return g.Wait()
-}
+	viper.SetEnvPrefix(strings.ToUpper(a.basename))
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
+	viper.AutomaticEnv()
 
-// Stop 优雅地停止应用程序中的所有服务
-func (a *App) Stop(ctx context.Context) error {
-	log.Infof("正在关闭应用 %s", a.name)
-
-	// 创建一个错误组，用于并发管理服务关闭
-	g, ctx := errgroup.WithContext(ctx)
-
-	// 并发停止所有服务
-	for _, srv := range a.servers {
-		srv := srv // 创建闭包变量副本
-		g.Go(func() error {
-			return srv.Stop(ctx)
-		})
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			return fmt.Errorf("读取配置文件失败: %v", err)
+		}
+		fmt.Printf("未找到配置文件，将使用默认值\n")
+	} else {
+		fmt.Printf("成功加载配置文件: %s\n", viper.ConfigFileUsed())
 	}
 
-	// 等待所有服务关闭或超时
-	if err := g.Wait(); err != nil {
-		return fmt.Errorf("关闭服务时发生错误: %v", err)
+	// 将 viper 加载的配置反序列化到我们的 Options 结构体中
+	if a.options != nil {
+		if err := viper.Unmarshal(a.options); err != nil {
+			return fmt.Errorf("解析配置文件失败: %v", err)
+		}
+		fmt.Printf("配置加载完成，开始验证配置...\n")
+
+		// 验证配置
+		if errs := a.options.Validate(); len(errs) > 0 {
+			for _, err := range errs {
+				fmt.Printf("配置验证错误: %v\n", err)
+			}
+			if len(errs) > 0 {
+				return fmt.Errorf("配置验证失败")
+			}
+		}
+		fmt.Printf("配置验证通过\n")
 	}
 
-	log.Infof("应用 %s 已成功关闭", a.name)
+	// 监控配置文件变化
+	viper.WatchConfig()
+	viper.OnConfigChange(func(e fsnotify.Event) {
+		fmt.Printf("配置文件发生变化: %s\n", e.Name)
+		if err := viper.Unmarshal(a.options); err != nil {
+			fmt.Printf("重新加载配置失败: %v\n", err)
+		} else {
+			fmt.Printf("配置已重新加载\n")
+		}
+	})
+
 	return nil
 }

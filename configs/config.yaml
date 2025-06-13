@@ -1,46 +1,37 @@
 # 服务配置
-server:
-  # HTTP服务相关配置
-  http:
-    # HTTP服务地址
-    addr: ":8081"
+# HTTP服务相关配置
+http:
+  # HTTP服务地址
+  addr: ":8080"
     # 请求超时时间(秒)
-    timeout: 5
-
+  timeout: 5
   # gRPC服务相关配置
-  grpc:
+grpc:
     # gRPC服务地址
-    addr: ":9090"
+  addr: ":8100"
     # 服务关闭超时时间(秒)
-    shutdown_timeout: 10
+  shutdown_timeout: 10
+
 
 # 可观测性相关配置
-observability:
-  # 链路追踪配置
-  tracing:
-    # 服务名称
-    service_name: "go-protoc-service"
-    # 是否启用
-    enabled: false
-    # 导出器类型: stdout, jaeger, otlp
-    exporter: "stdout"
-    # 如果使用otlp导出器，指定其端点
-    otlp_endpoint: "localhost:4317"
+# 链路追踪配置
+tracing:
+  # 服务名称
+  service_name: "go-protoc-service"
+  # 是否启用
+  enabled: false
+  # 导出器类型: stdout, jaeger, otlp
+  exporter: "stdout"
+  # 如果使用otlp导出器，指定其端点
+  otlp_endpoint: "localhost:4317"
 
   # 指标监控配置
-  metrics:
-    # 是否启用
-    enabled: true
-    # 指标路径
-    path: "/metrics"
+metrics:
+  # 是否启用
+  enabled: true
+  # 指标路径
+  path: "/metrics"
 
-  # 跳过路径配置
-  skip_paths:
-    - /metrics
-    - /debug/
-    - /swagger/
-    - /healthz
-    - /favicon.ico
 
 # 中间件配置
 middleware:
@@ -77,7 +68,7 @@ middleware:
 # 日志配置
 log:
   # 日志级别: debug, info, warn, error, dpanic, panic, fatal
-  level: "info"
+  level: "debug"
   # 日志格式: console, json
   format: "console"
   # 是否开启调用者信息

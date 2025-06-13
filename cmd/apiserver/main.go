@@ -1,50 +1,44 @@
 package main
 
 import (
-	"context"
+	_ "go.uber.org/automaxprocs"
+
+	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"github.com/costa92/go-protoc/internal/apiserver"
-	"github.com/costa92/go-protoc/pkg/log"
+	"github.com/costa92/go-protoc/internal/apiserver/options"
+	"github.com/costa92/go-protoc/pkg/app"
 )
 
 func main() {
-	// 获取配置文件路径
-	configPath := apiserver.GetConfigPath()
+	// 1. 创建具体的 Options 实例
+	opts := options.NewOptions()
 
-	// 创建服务器实例
-	server, err := apiserver.NewServer(configPath)
-	if err != nil {
-		log.Fatalf("创建服务器失败: %v", err)
+	// 2. 创建一个 App 构建器
+	//    - 传入应用名称和二进制文件名
+	//    - 注入具体的 Options（它满足 CliOptions 接口）
+	//    - 注入真正的业务运行逻辑 (通过 Wire 生成)
+	application := app.NewApp("API Server", "apiserver",
+		app.WithOptions(opts),
+		app.WithRunFunc(run(opts)),
+	)
+
+	// 3. 运行应用
+	application.Run()
+}
+
+// run 函数创建了一个闭包，它持有具体的 options 实例
+func run(opts *options.Options) app.RunFunc {
+	return func(basename string) error {
+		// 使用 Wire 初始化 API 服务器
+		apiServer, err := apiserver.InitializeAPIServer()
+		if err != nil {
+			fmt.Printf("初始化 API 服务器失败: %v\n", err)
+			os.Exit(1)
+		}
+
+		// 运行 API 服务器
+		return apiServer.Run(opts)
 	}
-
-	// 创建一个带取消的上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// 处理系统信号
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		sig := <-sigChan
-		log.Infof("接收到信号: %s", sig.String())
-		cancel()
-	}()
-
-	// 启动服务器
-	if err := server.Start(ctx); err != nil {
-		log.Infof("启动服务器失败: %v", err)
-	}
-
-	// 在服务器停止后，调用 Stop 方法进行完整的清理
-	log.Infof("服务器正在关闭，执行清理操作...")
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer shutdownCancel()
-	if err := server.Stop(shutdownCtx); err != nil {
-		log.Errorf("服务器关闭过程中发生错误: %v", err)
-	}
-	log.Infof("清理完成，程序退出。")
 }

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/costa92/go-protoc/pkg/log"
+	"github.com/costa92/go-protoc/pkg/logger"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/protobuf/proto"
 )
@@ -79,7 +79,7 @@ func ForwardResponseMessage(ctx context.Context, mux *runtime.ServeMux, marshale
 	}
 
 	if _, err := w.Write(buf); err != nil {
-		log.Errorf("Failed to write response: %v", err)
+		logger.Errorf("Failed to write response: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

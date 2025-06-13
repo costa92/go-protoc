@@ -164,7 +164,7 @@ import (
     "time"
 
     "github.com/costa92/go-protoc/pkg/app"
-    "github.com/costa92/go-protoc/pkg/log"
+    "github.com/costa92/go-protoc/pkg/logger"
 )
 
 func main() {
@@ -184,7 +184,7 @@ func main() {
 
     // 启动服务器
     if err := httpServer.Start(ctx); err != nil {
-        log.Fatalf("服务器启动失败: %v", err)
+        logger.Fatalf("服务器启动失败: %v", err)
     }
 }
 

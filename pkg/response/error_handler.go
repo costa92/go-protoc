@@ -26,6 +26,10 @@ func CustomHTTPErrorHandler(ctx context.Context, mux *runtime.ServeMux, marshale
 		Message: s.Message(),
 	}
 
+	// 处理验证错误的特殊情况
+	// if s.Code() == codes.InvalidArgument {
+	// }
+
 	// 设置HTTP状态码和内容类型
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpStatus)

@@ -1,0 +1,24 @@
+version: v1
+plugins:
+  - plugin: go
+    out: .
+    opt:
+      - paths=source_relative
+  - plugin: go-grpc
+    out: .
+    opt:
+      - paths=source_relative
+  - plugin: grpc-gateway
+    out: .
+    opt:
+      - paths=source_relative
+  - plugin: validate
+    out: .
+    opt:
+      - paths=source_relative
+      - lang=go
+  - plugin: openapiv2
+    out: api/openapi
+    opt:
+      - logtostderr=true
+      - json_names_for_fields=false

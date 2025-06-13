@@ -1,0 +1,390 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "User Service API",
+    "description": "用户服务 API",
+    "version": "1.0",
+    "contact": {
+      "name": "API Support",
+      "url": "https://github.com/costa92/go-protoc",
+      "email": "your-email@example.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://github.com/costa92/go-protoc/blob/main/LICENSE"
+    }
+  },
+  "tags": [
+    {
+      "name": "UserService"
+    }
+  ],
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/users": {
+      "get": {
+        "summary": "列出用户",
+        "description": "分页获取用户列表",
+        "operationId": "UserService_ListUsers",
+        "responses": {
+          "200": {
+            "description": "成功获取用户列表",
+            "schema": {
+              "$ref": "#/definitions/v1ListUsersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "description": "页码",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "page_size",
+            "description": "每页数量",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "users"
+        ]
+      },
+      "post": {
+        "summary": "创建用户",
+        "description": "创建一个新用户",
+        "operationId": "UserService_CreateUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateUserResponse"
+            }
+          },
+          "201": {
+            "description": "用户创建成功",
+            "schema": {}
+          },
+          "400": {
+            "description": "无效的请求参数",
+            "schema": {}
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/v1/users/{user_id}": {
+      "get": {
+        "summary": "获取用户",
+        "description": "根据用户ID获取用户信息",
+        "operationId": "UserService_GetUser",
+        "responses": {
+          "200": {
+            "description": "成功获取用户信息",
+            "schema": {
+              "$ref": "#/definitions/v1GetUserResponse"
+            }
+          },
+          "404": {
+            "description": "用户不存在",
+            "schema": {}
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "user_id",
+            "description": "用户ID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "users"
+        ]
+      },
+      "delete": {
+        "summary": "删除用户",
+        "description": "删除指定用户",
+        "operationId": "UserService_DeleteUser",
+        "responses": {
+          "200": {
+            "description": "用户删除成功",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteUserResponse"
+            }
+          },
+          "404": {
+            "description": "用户不存在",
+            "schema": {}
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "user_id",
+            "description": "用户ID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "users"
+        ]
+      },
+      "put": {
+        "summary": "更新用户",
+        "description": "更新用户信息",
+        "operationId": "UserService_UpdateUser",
+        "responses": {
+          "200": {
+            "description": "用户更新成功",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateUserResponse"
+            }
+          },
+          "404": {
+            "description": "用户不存在",
+            "schema": {}
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "user_id",
+            "description": "用户ID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UserServiceUpdateUserBody"
+            }
+          }
+        ],
+        "tags": [
+          "users"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "UserServiceUpdateUserBody": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "title": "用户名"
+        },
+        "email": {
+          "type": "string",
+          "title": "邮箱"
+        },
+        "age": {
+          "type": "integer",
+          "format": "int32",
+          "title": "年龄"
+        }
+      },
+      "title": "UpdateUserRequest 更新用户请求"
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1CreateUserRequest": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "title": "用户名"
+        },
+        "email": {
+          "type": "string",
+          "title": "邮箱"
+        },
+        "age": {
+          "type": "integer",
+          "format": "int32",
+          "title": "年龄"
+        }
+      },
+      "title": "CreateUserRequest 创建用户请求"
+    },
+    "v1CreateUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/v1User",
+          "title": "用户信息"
+        }
+      },
+      "title": "CreateUserResponse 创建用户响应"
+    },
+    "v1DeleteUserResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "是否成功"
+        }
+      },
+      "title": "DeleteUserResponse 删除用户响应"
+    },
+    "v1GetUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/v1User",
+          "title": "用户信息"
+        }
+      },
+      "title": "GetUserResponse 获取用户响应"
+    },
+    "v1ListUsersResponse": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1User"
+          },
+          "title": "用户列表"
+        },
+        "total": {
+          "type": "string",
+          "format": "int64",
+          "title": "总数"
+        }
+      },
+      "title": "ListUsersResponse 列出用户响应"
+    },
+    "v1UpdateUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/v1User",
+          "title": "用户信息"
+        }
+      },
+      "title": "UpdateUserResponse 更新用户响应"
+    },
+    "v1User": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "title": "用户ID"
+        },
+        "username": {
+          "type": "string",
+          "title": "用户名"
+        },
+        "email": {
+          "type": "string",
+          "title": "邮箱"
+        },
+        "age": {
+          "type": "integer",
+          "format": "int32",
+          "title": "年龄"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64",
+          "title": "创建时间"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64",
+          "title": "更新时间"
+        }
+      },
+      "title": "User 用户信息"
+    }
+  }
+}
