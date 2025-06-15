@@ -17,4 +17,5 @@ LOGCHECK_VERSION ?= v0.8.1
 # 安装 grpcurl 工具
 GRPCURL_VERSION ?= v1.8.9
 
+# 安装 code-generator 工具
 CODE_GENERATOR_VERSION ?= $(call get_go_version,k8s.io/code-generator)
