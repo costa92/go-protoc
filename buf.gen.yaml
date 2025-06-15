@@ -28,6 +28,19 @@ plugins:
   - local: protoc-gen-go-errors-code
     out: pkg/api
     opt: paths=source_relative
+  - local:  protoc-gen-validate
+    out: pkg/api
+    opt:
+      - lang=go                  # 必需字段：指定目标语言
+      - paths=source_relative
+  - local: protoc-gen-deepcopy
+    out: pkg/api
+    opt:
+      - paths=source_relative
+  - local: protoc-gen-go-errors
+    out: pkg/api
+    opt:
+      - paths=source_relative
 inputs:
   - directory: pkg/api
     exclude_paths:  # 排除生成目录
