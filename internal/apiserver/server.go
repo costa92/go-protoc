@@ -4,12 +4,13 @@ import (
 	"context"
 	"os"
 
+	"github.com/costa92/go-protoc/v2/internal/pkg/middleware/logging"
+	"github.com/costa92/go-protoc/v2/internal/pkg/middleware/tracing"
 	v1 "github.com/costa92/go-protoc/v2/pkg/api/apiserver/v1"
 	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
 	"github.com/costa92/go-protoc/v2/pkg/server"
 	"github.com/costa92/go-protoc/v2/pkg/version"
 	"github.com/go-kratos/kratos/v2/middleware"
-	"github.com/go-kratos/kratos/v2/middleware/logging"
 	"github.com/go-kratos/kratos/v2/middleware/selector"
 	"github.com/go-kratos/kratos/v2/registry"
 
@@ -82,6 +83,7 @@ func ProvideKratosAppConfig(registrar registry.Registrar) server.KratosAppConfig
 
 func NewMiddlewares(logger krtlog.Logger) []middleware.Middleware {
 	return []middleware.Middleware{
+		tracing.Server(),
 		logging.Server(logger),
 	}
 }
