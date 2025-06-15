@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package apiserver.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "github.com/costa92/go-protoc/v2/pkg/api/apiserver/v1;v1";
+
+service ApiServer {
+  rpc GetUser(GetUserRequest) returns (GetUserResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/{id}"
+    };
+  }
+}
+
+message GetUserRequest {
+  string id = 1;
+}
+
+message GetUserResponse {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+}

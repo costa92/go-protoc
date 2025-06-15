@@ -1,0 +1,18 @@
+version: v1
+plugins:
+  # 生成 HTML 文档
+  - plugin: doc
+    out: docs
+    opt: html,index.html
+  # 生成 Markdown 文档
+  - plugin: doc
+    out: docs
+    opt: markdown,README.md
+  # 生成 JSON 格式的文档
+  - plugin: doc
+    out: docs
+    opt: json,docs.json
+  # 生成 DocBook 格式的文档
+  - plugin: doc
+    out: docs
+    opt: docbook,docs.xml

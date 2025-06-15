@@ -1,0 +1,14 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+1. 使用 buf 参考 https://buf.build/docs/cli/quickstart/
+2. Proto 文件位置规范：
+   所有 .proto 文件必须放在 pkg/api 目录下
+   推荐的目录结构：pkg/api/<service>/<version>/*.proto
+   示例：pkg/api/apiserver/v1/error.proto
+3. 配置说明：
+  buf.yaml 已配置为排除 pkg/api 以外的所有目录
+  生成的代码会输出到 pkg/api 目录下
+  文档会生成到 docs 目录下

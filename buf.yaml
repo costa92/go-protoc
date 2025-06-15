@@ -1,0 +1,19 @@
+# For details on buf.yaml configuration, visit https://buf.build/docs/configuration/v2/buf-yaml
+version: v2
+modules:
+  # 您的模块定义，源目录只包含您自己编写的 proto 文件
+  - path: pkg/api
+    name: buf.build/costa92/go-protoc
+
+  - path: third_party/protobuf
+    excludes: []
+      # - "validate/validate.proto"
+    name: buf.build/costa92/protobuf
+# deps:
+  # - buf.build/envoyproxy/protoc-gen-validate
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - DEFAULT

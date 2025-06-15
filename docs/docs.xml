@@ -1,0 +1,424 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<article>
+  <title>Protocol Documentation</title>
+  
+  <section>
+    <title>apiserver/v1/apiserver.proto</title>
+    <para></para>
+    
+    <section id="apiserver.v1.GetUserRequest">
+      <title>GetUserRequest</title>
+      <para></para>
+      
+      <table frame="all">
+        <title><classname>GetUserRequest</classname> Fields</title>
+        <tgroup cols="4">
+          <colspec colwidth="*"/>
+          <colspec colwidth="*"/>
+          <colspec colwidth="0.5*"/>
+          <colspec colwidth="3*"/>
+          <thead>
+            <row>
+              <entry>Field</entry>
+              <entry>Type</entry>
+              <entry>Label</entry>
+              <entry>Description</entry>
+            </row>
+          </thead>
+          <tbody>
+            
+            <row>
+              <entry>id</entry>
+              <entry><link linkend="string">string</link></entry>
+              <entry></entry>
+              <entry><para></para></entry>
+            </row>
+            
+          </tbody>
+        </tgroup>
+      </table>
+      
+      
+    </section>
+    
+    <section id="apiserver.v1.GetUserResponse">
+      <title>GetUserResponse</title>
+      <para></para>
+      
+      <table frame="all">
+        <title><classname>GetUserResponse</classname> Fields</title>
+        <tgroup cols="4">
+          <colspec colwidth="*"/>
+          <colspec colwidth="*"/>
+          <colspec colwidth="0.5*"/>
+          <colspec colwidth="3*"/>
+          <thead>
+            <row>
+              <entry>Field</entry>
+              <entry>Type</entry>
+              <entry>Label</entry>
+              <entry>Description</entry>
+            </row>
+          </thead>
+          <tbody>
+            
+            <row>
+              <entry>id</entry>
+              <entry><link linkend="string">string</link></entry>
+              <entry></entry>
+              <entry><para></para></entry>
+            </row>
+            
+            <row>
+              <entry>name</entry>
+              <entry><link linkend="string">string</link></entry>
+              <entry></entry>
+              <entry><para></para></entry>
+            </row>
+            
+            <row>
+              <entry>email</entry>
+              <entry><link linkend="string">string</link></entry>
+              <entry></entry>
+              <entry><para></para></entry>
+            </row>
+            
+          </tbody>
+        </tgroup>
+      </table>
+      
+      
+    </section>
+    
+    
+
+    
+
+    
+    <section id="apiserver.v1.ApiServer">
+      <title>ApiServer</title>
+      <para></para>
+      <table frame="all">
+        <title><classname>ApiServer</classname> Methods</title>
+        <tgroup cols="4">
+          <colspec colwidth="*"/>
+          <colspec colwidth="*"/>
+          <colspec colwidth="*"/>
+          <colspec colwidth="3*"/>
+          <thead>
+            <row>
+              <entry>Method Name</entry>
+              <entry>Request Type</entry>
+              <entry>Response Type</entry>
+              <entry>Description</entry>
+            </row>
+          </thead>
+          <tbody>
+            
+            <row>
+              <entry>GetUser</entry>
+              <entry><link linkend="apiserver.v1.GetUserRequest">GetUserRequest</link></entry>
+              <entry><link linkend="apiserver.v1.GetUserResponse">GetUserResponse</link></entry>
+              <entry><para></para></entry>
+            </row>
+            
+          </tbody>
+        </tgroup>
+      </table>
+    </section>
+    
+  </section>
+  
+  <section>
+    <title>apiserver/v1/errors.proto</title>
+    <para></para>
+    
+    
+    <section id="apiserver.v1.ErrorReason">
+      <title>ErrorReason</title>
+      <para></para>
+      <table frame="all">
+        <title><classname>ErrorReason</classname> Values</title>
+        <tgroup cols="3">
+          <colspec colwidth="*"/>
+          <colspec colwidth="*"/>
+          <colspec colwidth="3*"/>
+          <thead>
+            <row>
+              <entry>Name</entry>
+              <entry>Number</entry>
+              <entry>Description</entry>
+            </row>
+          </thead>
+          <tbody>
+            
+            <row>
+              <entry>UserLoginFailed</entry>
+              <entry>0</entry>
+              <entry><para>用户登录失败，身份验证未通过</para></entry>
+            </row>
+            
+            <row>
+              <entry>UserAlreadyExists</entry>
+              <entry>1</entry>
+              <entry><para>用户已存在，无法创建用户</para></entry>
+            </row>
+            
+            <row>
+              <entry>UserNotFound</entry>
+              <entry>2</entry>
+              <entry><para>用户未找到，可能是用户不存在或输入的用户标识有误</para></entry>
+            </row>
+            
+            <row>
+              <entry>UserCreateFailed</entry>
+              <entry>3</entry>
+              <entry><para>创建用户失败，可能是由于服务器或其他问题导致的创建过程中的错误</para></entry>
+            </row>
+            
+            <row>
+              <entry>UserOperationForbidden</entry>
+              <entry>4</entry>
+              <entry><para>用户操作被禁止，可能是由于权限不足或其他安全限制导致的</para></entry>
+            </row>
+            
+            <row>
+              <entry>SecretReachMaxCount</entry>
+              <entry>5</entry>
+              <entry><para>密钥达到最大数量限制，无法继续创建新密钥</para></entry>
+            </row>
+            
+            <row>
+              <entry>SecretNotFound</entry>
+              <entry>6</entry>
+              <entry><para>密钥未找到，可能是由于密钥不存在或输入的密钥标识有误</para></entry>
+            </row>
+            
+            <row>
+              <entry>SecretCreateFailed</entry>
+              <entry>7</entry>
+              <entry><para>创建密钥失败，可能是由于服务器或其他问题导致的创建过程中的错误</para></entry>
+            </row>
+            
+          </tbody>
+        </tgroup>
+      </table>
+    </section>
+    
+
+    
+
+    
+  </section>
+  
+
+  <section>
+    <title>Scalar Value Types</title>
+    <informaltable frame="all">
+      <tgroup cols="5">
+        <colspec colwidth="*"/>
+        <colspec colwidth="5*"/>
+        <colspec colwidth="*"/>
+        <colspec colwidth="*"/>
+        <colspec colwidth="*"/>
+        <thead>
+          <row>
+            <entry>.proto Type</entry>
+            <entry>Notes</entry>
+            <entry>C++</entry>
+            <entry>Java</entry>
+            <entry>Python</entry>
+            <entry>Go</entry>
+            <entry>C#</entry>
+            <entry>PHP</entry>
+            <entry>Ruby</entry>
+          </row>
+        </thead>
+        <tbody>
+          
+          <row>
+            <entry id="double">double</entry>
+            <entry></entry>
+            <entry>double</entry>
+            <entry>double</entry>
+            <entry>float</entry>
+            <entry>float64</entry>
+            <entry>double</entry>
+            <entry>float</entry>
+            <entry>Float</entry>
+          </row>
+          
+          <row>
+            <entry id="float">float</entry>
+            <entry></entry>
+            <entry>float</entry>
+            <entry>float</entry>
+            <entry>float</entry>
+            <entry>float32</entry>
+            <entry>float</entry>
+            <entry>float</entry>
+            <entry>Float</entry>
+          </row>
+          
+          <row>
+            <entry id="int32">int32</entry>
+            <entry>Uses variable-length encoding. Inefficient for encoding negative numbers – if your field is likely to have negative values, use sint32 instead.</entry>
+            <entry>int32</entry>
+            <entry>int</entry>
+            <entry>int</entry>
+            <entry>int32</entry>
+            <entry>int</entry>
+            <entry>integer</entry>
+            <entry>Bignum or Fixnum (as required)</entry>
+          </row>
+          
+          <row>
+            <entry id="int64">int64</entry>
+            <entry>Uses variable-length encoding. Inefficient for encoding negative numbers – if your field is likely to have negative values, use sint64 instead.</entry>
+            <entry>int64</entry>
+            <entry>long</entry>
+            <entry>int/long</entry>
+            <entry>int64</entry>
+            <entry>long</entry>
+            <entry>integer/string</entry>
+            <entry>Bignum</entry>
+          </row>
+          
+          <row>
+            <entry id="uint32">uint32</entry>
+            <entry>Uses variable-length encoding.</entry>
+            <entry>uint32</entry>
+            <entry>int</entry>
+            <entry>int/long</entry>
+            <entry>uint32</entry>
+            <entry>uint</entry>
+            <entry>integer</entry>
+            <entry>Bignum or Fixnum (as required)</entry>
+          </row>
+          
+          <row>
+            <entry id="uint64">uint64</entry>
+            <entry>Uses variable-length encoding.</entry>
+            <entry>uint64</entry>
+            <entry>long</entry>
+            <entry>int/long</entry>
+            <entry>uint64</entry>
+            <entry>ulong</entry>
+            <entry>integer/string</entry>
+            <entry>Bignum or Fixnum (as required)</entry>
+          </row>
+          
+          <row>
+            <entry id="sint32">sint32</entry>
+            <entry>Uses variable-length encoding. Signed int value. These more efficiently encode negative numbers than regular int32s.</entry>
+            <entry>int32</entry>
+            <entry>int</entry>
+            <entry>int</entry>
+            <entry>int32</entry>
+            <entry>int</entry>
+            <entry>integer</entry>
+            <entry>Bignum or Fixnum (as required)</entry>
+          </row>
+          
+          <row>
+            <entry id="sint64">sint64</entry>
+            <entry>Uses variable-length encoding. Signed int value. These more efficiently encode negative numbers than regular int64s.</entry>
+            <entry>int64</entry>
+            <entry>long</entry>
+            <entry>int/long</entry>
+            <entry>int64</entry>
+            <entry>long</entry>
+            <entry>integer/string</entry>
+            <entry>Bignum</entry>
+          </row>
+          
+          <row>
+            <entry id="fixed32">fixed32</entry>
+            <entry>Always four bytes. More efficient than uint32 if values are often greater than 2^28.</entry>
+            <entry>uint32</entry>
+            <entry>int</entry>
+            <entry>int</entry>
+            <entry>uint32</entry>
+            <entry>uint</entry>
+            <entry>integer</entry>
+            <entry>Bignum or Fixnum (as required)</entry>
+          </row>
+          
+          <row>
+            <entry id="fixed64">fixed64</entry>
+            <entry>Always eight bytes. More efficient than uint64 if values are often greater than 2^56.</entry>
+            <entry>uint64</entry>
+            <entry>long</entry>
+            <entry>int/long</entry>
+            <entry>uint64</entry>
+            <entry>ulong</entry>
+            <entry>integer/string</entry>
+            <entry>Bignum</entry>
+          </row>
+          
+          <row>
+            <entry id="sfixed32">sfixed32</entry>
+            <entry>Always four bytes.</entry>
+            <entry>int32</entry>
+            <entry>int</entry>
+            <entry>int</entry>
+            <entry>int32</entry>
+            <entry>int</entry>
+            <entry>integer</entry>
+            <entry>Bignum or Fixnum (as required)</entry>
+          </row>
+          
+          <row>
+            <entry id="sfixed64">sfixed64</entry>
+            <entry>Always eight bytes.</entry>
+            <entry>int64</entry>
+            <entry>long</entry>
+            <entry>int/long</entry>
+            <entry>int64</entry>
+            <entry>long</entry>
+            <entry>integer/string</entry>
+            <entry>Bignum</entry>
+          </row>
+          
+          <row>
+            <entry id="bool">bool</entry>
+            <entry></entry>
+            <entry>bool</entry>
+            <entry>boolean</entry>
+            <entry>boolean</entry>
+            <entry>bool</entry>
+            <entry>bool</entry>
+            <entry>boolean</entry>
+            <entry>TrueClass/FalseClass</entry>
+          </row>
+          
+          <row>
+            <entry id="string">string</entry>
+            <entry>A string must always contain UTF-8 encoded or 7-bit ASCII text.</entry>
+            <entry>string</entry>
+            <entry>String</entry>
+            <entry>str/unicode</entry>
+            <entry>string</entry>
+            <entry>string</entry>
+            <entry>string</entry>
+            <entry>String (UTF-8)</entry>
+          </row>
+          
+          <row>
+            <entry id="bytes">bytes</entry>
+            <entry>May contain any arbitrary sequence of bytes.</entry>
+            <entry>string</entry>
+            <entry>ByteString</entry>
+            <entry>str</entry>
+            <entry>[]byte</entry>
+            <entry>ByteString</entry>
+            <entry>string</entry>
+            <entry>String (ASCII-8BIT)</entry>
+          </row>
+          
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </section>
+
+</article>

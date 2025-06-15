@@ -1,0 +1,607 @@
+{
+  "files": [
+    {
+      "name": "google/api/http.proto",
+      "description": "",
+      "package": "google.api",
+      "hasEnums": false,
+      "hasExtensions": false,
+      "hasMessages": true,
+      "hasServices": false,
+      "enums": [],
+      "extensions": [],
+      "messages": [
+        {
+          "name": "CustomHttpPattern",
+          "longName": "CustomHttpPattern",
+          "fullName": "google.api.CustomHttpPattern",
+          "description": "A custom pattern is used for defining custom HTTP verb.",
+          "hasExtensions": false,
+          "hasFields": true,
+          "hasOneofs": false,
+          "extensions": [],
+          "fields": [
+            {
+              "name": "kind",
+              "description": "The name of this custom HTTP verb.",
+              "label": "",
+              "type": "string",
+              "longType": "string",
+              "fullType": "string",
+              "ismap": false,
+              "isoneof": false,
+              "oneofdecl": "",
+              "defaultValue": ""
+            },
+            {
+              "name": "path",
+              "description": "The path matched by this custom verb.",
+              "label": "",
+              "type": "string",
+              "longType": "string",
+              "fullType": "string",
+              "ismap": false,
+              "isoneof": false,
+              "oneofdecl": "",
+              "defaultValue": ""
+            }
+          ]
+        },
+        {
+          "name": "Http",
+          "longName": "Http",
+          "fullName": "google.api.Http",
+          "description": "Defines the HTTP configuration for an API service. It contains a list of\n[HttpRule][google.api.HttpRule], each specifying the mapping of an RPC method\nto one or more HTTP REST API methods.",
+          "hasExtensions": false,
+          "hasFields": true,
+          "hasOneofs": false,
+          "extensions": [],
+          "fields": [
+            {
+              "name": "rules",
+              "description": "A list of HTTP configuration rules that apply to individual API methods.\n\n**NOTE:** All service configuration rules follow \"last one wins\" order.",
+              "label": "repeated",
+              "type": "HttpRule",
+              "longType": "HttpRule",
+              "fullType": "google.api.HttpRule",
+              "ismap": false,
+              "isoneof": false,
+              "oneofdecl": "",
+              "defaultValue": ""
+            },
+            {
+              "name": "fully_decode_reserved_expansion",
+              "description": "When set to true, URL path parameters will be fully URI-decoded except in\ncases of single segment matches in reserved expansion, where \"%2F\" will be\nleft encoded.\n\nThe default behavior is to not decode RFC 6570 reserved characters in multi\nsegment matches.",
+              "label": "",
+              "type": "bool",
+              "longType": "bool",
+              "fullType": "bool",
+              "ismap": false,
+              "isoneof": false,
+              "oneofdecl": "",
+              "defaultValue": ""
+            }
+          ]
+        },
+        {
+          "name": "HttpRule",
+          "longName": "HttpRule",
+          "fullName": "google.api.HttpRule",
+          "description": "# gRPC Transcoding\n\ngRPC Transcoding is a feature for mapping between a gRPC method and one or\nmore HTTP REST endpoints. It allows developers to build a single API service\nthat supports both gRPC APIs and REST APIs. Many systems, including [Google\nAPIs](https://github.com/googleapis/googleapis),\n[Cloud Endpoints](https://cloud.google.com/endpoints), [gRPC\nGateway](https://github.com/grpc-ecosystem/grpc-gateway),\nand [Envoy](https://github.com/envoyproxy/envoy) proxy support this feature\nand use it for large scale production services.\n\n`HttpRule` defines the schema of the gRPC/REST mapping. The mapping specifies\nhow different portions of the gRPC request message are mapped to the URL\npath, URL query parameters, and HTTP request body. It also controls how the\ngRPC response message is mapped to the HTTP response body. `HttpRule` is\ntypically specified as an `google.api.http` annotation on the gRPC method.\n\nEach mapping specifies a URL path template and an HTTP method. The path\ntemplate may refer to one or more fields in the gRPC request message, as long\nas each field is a non-repeated field with a primitive (non-message) type.\nThe path template controls how fields of the request message are mapped to\nthe URL path.\n\nExample:\n\n    service Messaging {\n      rpc GetMessage(GetMessageRequest) returns (Message) {\n        option (google.api.http) = {\n            get: \"/v1/{name=messages/*}\"\n        };\n      }\n    }\n    message GetMessageRequest {\n      string name = 1; // Mapped to URL path.\n    }\n    message Message {\n      string text = 1; // The resource content.\n    }\n\nThis enables an HTTP REST to gRPC mapping as below:\n\nHTTP | gRPC\n-----|-----\n`GET /v1/messages/123456`  | `GetMessage(name: \"messages/123456\")`\n\nAny fields in the request message which are not bound by the path template\nautomatically become HTTP query parameters if there is no HTTP request body.\nFor example:\n\n    service Messaging {\n      rpc GetMessage(GetMessageRequest) returns (Message) {\n        option (google.api.http) = {\n            get:\"/v1/messages/{message_id}\"\n        };\n      }\n    }\n    message GetMessageRequest {\n      message SubMessage {\n        string subfield = 1;\n      }\n      string message_id = 1; // Mapped to URL path.\n      int64 revision = 2;    // Mapped to URL query parameter `revision`.\n      SubMessage sub = 3;    // Mapped to URL query parameter `sub.subfield`.\n    }\n\nThis enables a HTTP JSON to RPC mapping as below:\n\nHTTP | gRPC\n-----|-----\n`GET /v1/messages/123456?revision=2\u0026sub.subfield=foo` |\n`GetMessage(message_id: \"123456\" revision: 2 sub: SubMessage(subfield:\n\"foo\"))`\n\nNote that fields which are mapped to URL query parameters must have a\nprimitive type or a repeated primitive type or a non-repeated message type.\nIn the case of a repeated type, the parameter can be repeated in the URL\nas `...?param=A\u0026param=B`. In the case of a message type, each field of the\nmessage is mapped to a separate parameter, such as\n`...?foo.a=A\u0026foo.b=B\u0026foo.c=C`.\n\nFor HTTP methods that allow a request body, the `body` field\nspecifies the mapping. Consider a REST update method on the\nmessage resource collection:\n\n    service Messaging {\n      rpc UpdateMessage(UpdateMessageRequest) returns (Message) {\n        option (google.api.http) = {\n          patch: \"/v1/messages/{message_id}\"\n          body: \"message\"\n        };\n      }\n    }\n    message UpdateMessageRequest {\n      string message_id = 1; // mapped to the URL\n      Message message = 2;   // mapped to the body\n    }\n\nThe following HTTP JSON to RPC mapping is enabled, where the\nrepresentation of the JSON in the request body is determined by\nprotos JSON encoding:\n\nHTTP | gRPC\n-----|-----\n`PATCH /v1/messages/123456 { \"text\": \"Hi!\" }` | `UpdateMessage(message_id:\n\"123456\" message { text: \"Hi!\" })`\n\nThe special name `*` can be used in the body mapping to define that\nevery field not bound by the path template should be mapped to the\nrequest body.  This enables the following alternative definition of\nthe update method:\n\n    service Messaging {\n      rpc UpdateMessage(Message) returns (Message) {\n        option (google.api.http) = {\n          patch: \"/v1/messages/{message_id}\"\n          body: \"*\"\n        };\n      }\n    }\n    message Message {\n      string message_id = 1;\n      string text = 2;\n    }\n\n\nThe following HTTP JSON to RPC mapping is enabled:\n\nHTTP | gRPC\n-----|-----\n`PATCH /v1/messages/123456 { \"text\": \"Hi!\" }` | `UpdateMessage(message_id:\n\"123456\" text: \"Hi!\")`\n\nNote that when using `*` in the body mapping, it is not possible to\nhave HTTP parameters, as all fields not bound by the path end in\nthe body. This makes this option more rarely used in practice when\ndefining REST APIs. The common usage of `*` is in custom methods\nwhich don't use the URL at all for transferring data.\n\nIt is possible to define multiple HTTP methods for one RPC by using\nthe `additional_bindings` option. Example:\n\n    service Messaging {\n      rpc GetMessage(GetMessageRequest) returns (Message) {\n        option (google.api.http) = {\n          get: \"/v1/messages/{message_id}\"\n          additional_bindings {\n            get: \"/v1/users/{user_id}/messages/{message_id}\"\n          }\n        };\n      }\n    }\n    message GetMessageRequest {\n      string message_id = 1;\n      string user_id = 2;\n    }\n\nThis enables the following two alternative HTTP JSON to RPC mappings:\n\nHTTP | gRPC\n-----|-----\n`GET /v1/messages/123456` | `GetMessage(message_id: \"123456\")`\n`GET /v1/users/me/messages/123456` | `GetMessage(user_id: \"me\" message_id:\n\"123456\")`\n\n## Rules for HTTP mapping\n\n1. Leaf request fields (recursive expansion nested messages in the request\n   message) are classified into three categories:\n   - Fields referred by the path template. They are passed via the URL path.\n   - Fields referred by the [HttpRule.body][google.api.HttpRule.body]. They are passed via the HTTP\n     request body.\n   - All other fields are passed via the URL query parameters, and the\n     parameter name is the field path in the request message. A repeated\n     field can be represented as multiple query parameters under the same\n     name.\n 2. If [HttpRule.body][google.api.HttpRule.body] is \"*\", there is no URL query parameter, all fields\n    are passed via URL path and HTTP request body.\n 3. If [HttpRule.body][google.api.HttpRule.body] is omitted, there is no HTTP request body, all\n    fields are passed via URL path and URL query parameters.\n\n### Path template syntax\n\n    Template = \"/\" Segments [ Verb ] ;\n    Segments = Segment { \"/\" Segment } ;\n    Segment  = \"*\" | \"**\" | LITERAL | Variable ;\n    Variable = \"{\" FieldPath [ \"=\" Segments ] \"}\" ;\n    FieldPath = IDENT { \".\" IDENT } ;\n    Verb     = \":\" LITERAL ;\n\nThe syntax `*` matches a single URL path segment. The syntax `**` matches\nzero or more URL path segments, which must be the last part of the URL path\nexcept the `Verb`.\n\nThe syntax `Variable` matches part of the URL path as specified by its\ntemplate. A variable template must not contain other variables. If a variable\nmatches a single path segment, its template may be omitted, e.g. `{var}`\nis equivalent to `{var=*}`.\n\nThe syntax `LITERAL` matches literal text in the URL path. If the `LITERAL`\ncontains any reserved character, such characters should be percent-encoded\nbefore the matching.\n\nIf a variable contains exactly one path segment, such as `\"{var}\"` or\n`\"{var=*}\"`, when such a variable is expanded into a URL path on the client\nside, all characters except `[-_.~0-9a-zA-Z]` are percent-encoded. The\nserver side does the reverse decoding. Such variables show up in the\n[Discovery\nDocument](https://developers.google.com/discovery/v1/reference/apis) as\n`{var}`.\n\nIf a variable contains multiple path segments, such as `\"{var=foo/*}\"`\nor `\"{var=**}\"`, when such a variable is expanded into a URL path on the\nclient side, all characters except `[-_.~/0-9a-zA-Z]` are percent-encoded.\nThe server side does the reverse decoding, except \"%2F\" and \"%2f\" are left\nunchanged. Such variables show up in the\n[Discovery\nDocument](https://developers.google.com/discovery/v1/reference/apis) as\n`{+var}`.\n\n## Using gRPC API Service Configuration\n\ngRPC API Service Configuration (service config) is a configuration language\nfor configuring a gRPC service to become a user-facing product. The\nservice config is simply the YAML representation of the `google.api.Service`\nproto message.\n\nAs an alternative to annotating your proto file, you can configure gRPC\ntranscoding in your service config YAML files. You do this by specifying a\n`HttpRule` that maps the gRPC method to a REST endpoint, achieving the same\neffect as the proto annotation. This can be particularly useful if you\nhave a proto that is reused in multiple services. Note that any transcoding\nspecified in the service config will override any matching transcoding\nconfiguration in the proto.\n\nExample:\n\n    http:\n      rules:\n        # Selects a gRPC method and applies HttpRule to it.\n        - selector: example.v1.Messaging.GetMessage\n          get: /v1/messages/{message_id}/{sub.subfield}\n\n## Special notes\n\nWhen gRPC Transcoding is used to map a gRPC to JSON REST endpoints, the\nproto to JSON conversion must follow the [proto3\nspecification](https://developers.google.com/protocol-buffers/docs/proto3#json).\n\nWhile the single segment variable follows the semantics of\n[RFC 6570](https://tools.ietf.org/html/rfc6570) Section 3.2.2 Simple String\nExpansion, the multi segment variable **does not** follow RFC 6570 Section\n3.2.3 Reserved Expansion. The reason is that the Reserved Expansion\ndoes not expand special characters like `?` and `#`, which would lead\nto invalid URLs. As the result, gRPC Transcoding uses a custom encoding\nfor multi segment variables.\n\nThe path variables **must not** refer to any repeated or mapped field,\nbecause client libraries are not capable of handling such variable expansion.\n\nThe path variables **must not** capture the leading \"/\" character. The reason\nis that the most common use case \"{var}\" does not capture the leading \"/\"\ncharacter. For consistency, all path variables must share the same behavior.\n\nRepeated message fields must not be mapped to URL query parameters, because\nno client library can support such complicated mapping.\n\nIf an API needs to use a JSON array for request or response body, it can map\nthe request or response body to a repeated field. However, some gRPC\nTranscoding implementations may not support this feature.",
+          "hasExtensions": false,
+          "hasFields": true,
+          "hasOneofs": true,
+          "extensions": [],
+          "fields": [
+            {
+              "name": "selector",
+              "description": "Selects a method to which this rule applies.\n\nRefer to [selector][google.api.DocumentationRule.selector] for syntax details.",
+              "label": "",
+              "type": "string",
+              "longType": "string",
+              "fullType": "string",
+              "ismap": false,
+              "isoneof": false,
+              "oneofdecl": "",
+              "defaultValue": ""
+            },
+            {
+              "name": "get",
+              "description": "Maps to HTTP GET. Used for listing and getting information about\nresources.",
+              "label": "",
+              "type": "string",
+              "longType": "string",
+              "fullType": "string",
+              "ismap": false,
+              "isoneof": true,
+              "oneofdecl": "pattern",
+              "defaultValue": ""
+            },
+            {
+              "name": "put",
+              "description": "Maps to HTTP PUT. Used for replacing a resource.",
+              "label": "",
+              "type": "string",
+              "longType": "string",
+              "fullType": "string",
+              "ismap": false,
+              "isoneof": true,
+              "oneofdecl": "pattern",
+              "defaultValue": ""
+            },
+            {
+              "name": "post",
+              "description": "Maps to HTTP POST. Used for creating a resource or performing an action.",
+              "label": "",
+              "type": "string",
+              "longType": "string",
+              "fullType": "string",
+              "ismap": false,
+              "isoneof": true,
+              "oneofdecl": "pattern",
+              "defaultValue": ""
+            },
+            {
+              "name": "delete",
+              "description": "Maps to HTTP DELETE. Used for deleting a resource.",
+              "label": "",
+              "type": "string",
+              "longType": "string",
+              "fullType": "string",
+              "ismap": false,
+              "isoneof": true,
+              "oneofdecl": "pattern",
+              "defaultValue": ""
+            },
+            {
+              "name": "patch",
+              "description": "Maps to HTTP PATCH. Used for updating a resource.",
+              "label": "",
+              "type": "string",
+              "longType": "string",
+              "fullType": "string",
+              "ismap": false,
+              "isoneof": true,
+              "oneofdecl": "pattern",
+              "defaultValue": ""
+            },
+            {
+              "name": "custom",
+              "description": "The custom pattern is used for specifying an HTTP method that is not\nincluded in the `pattern` field, such as HEAD, or \"*\" to leave the\nHTTP method unspecified for this rule. The wild-card rule is useful\nfor services that provide content to Web (HTML) clients.",
+              "label": "",
+              "type": "CustomHttpPattern",
+              "longType": "CustomHttpPattern",
+              "fullType": "google.api.CustomHttpPattern",
+              "ismap": false,
+              "isoneof": true,
+              "oneofdecl": "pattern",
+              "defaultValue": ""
+            },
+            {
+              "name": "body",
+              "description": "The name of the request field whose value is mapped to the HTTP request\nbody, or `*` for mapping all request fields not captured by the path\npattern to the HTTP body, or omitted for not having any HTTP request body.\n\nNOTE: the referred field must be present at the top-level of the request\nmessage type.",
+              "label": "",
+              "type": "string",
+              "longType": "string",
+              "fullType": "string",
+              "ismap": false,
+              "isoneof": false,
+              "oneofdecl": "",
+              "defaultValue": ""
+            },
+            {
+              "name": "response_body",
+              "description": "Optional. The name of the response field whose value is mapped to the HTTP\nresponse body. When omitted, the entire response message will be used\nas the HTTP response body.\n\nNOTE: The referred field must be present at the top-level of the response\nmessage type.",
+              "label": "",
+              "type": "string",
+              "longType": "string",
+              "fullType": "string",
+              "ismap": false,
+              "isoneof": false,
+              "oneofdecl": "",
+              "defaultValue": ""
+            },
+            {
+              "name": "additional_bindings",
+              "description": "Additional HTTP bindings for the selector. Nested bindings must\nnot contain an `additional_bindings` field themselves (that is,\nthe nesting may only be one level deep).",
+              "label": "repeated",
+              "type": "HttpRule",
+              "longType": "HttpRule",
+              "fullType": "google.api.HttpRule",
+              "ismap": false,
+              "isoneof": false,
+              "oneofdecl": "",
+              "defaultValue": ""
+            }
+          ]
+        }
+      ],
+      "services": []
+    },
+    {
+      "name": "google/api/annotations.proto",
+      "description": "",
+      "package": "google.api",
+      "hasEnums": false,
+      "hasExtensions": true,
+      "hasMessages": false,
+      "hasServices": false,
+      "enums": [],
+      "extensions": [
+        {
+          "name": "http",
+          "longName": ".google.protobuf.MethodOptions.http",
+          "fullName": ".google.protobuf.MethodOptions.http",
+          "description": "See `HttpRule`.",
+          "label": "",
+          "type": "HttpRule",
+          "longType": "HttpRule",
+          "fullType": "google.api.HttpRule",
+          "number": 72295728,
+          "defaultValue": "",
+          "containingType": "MethodOptions",
+          "containingLongType": ".google.protobuf.MethodOptions",
+          "containingFullType": "google.protobuf.MethodOptions"
+        }
+      ],
+      "messages": [],
+      "services": []
+    },
+    {
+      "name": "google/api/client.proto",
+      "description": "",
+      "package": "google.api",
+      "hasEnums": false,
+      "hasExtensions": true,
+      "hasMessages": false,
+      "hasServices": false,
+      "enums": [],
+      "extensions": [
+        {
+          "name": "method_signature",
+          "longName": ".google.protobuf.MethodOptions.method_signature",
+          "fullName": ".google.protobuf.MethodOptions.method_signature",
+          "description": "A definition of a client library method signature.\n\nIn client libraries, each proto RPC corresponds to one or more methods\nwhich the end user is able to call, and calls the underlying RPC.\nNormally, this method receives a single argument (a struct or instance\ncorresponding to the RPC request object). Defining this field will\nadd one or more overloads providing flattened or simpler method signatures\nin some languages.\n\nThe fields on the method signature are provided as a comma-separated\nstring.\n\nFor example, the proto RPC and annotation:\n\n  rpc CreateSubscription(CreateSubscriptionRequest)\n      returns (Subscription) {\n    option (google.api.method_signature) = \"name,topic\";\n  }\n\nWould add the following Java overload (in addition to the method accepting\nthe request object):\n\n  public final Subscription createSubscription(String name, String topic)\n\nThe following backwards-compatibility guidelines apply:\n\n  * Adding this annotation to an unannotated method is backwards\n    compatible.\n  * Adding this annotation to a method which already has existing\n    method signature annotations is backwards compatible if and only if\n    the new method signature annotation is last in the sequence.\n  * Modifying or removing an existing method signature annotation is\n    a breaking change.\n  * Re-ordering existing method signature annotations is a breaking\n    change.",
+          "label": "repeated",
+          "type": "string",
+          "longType": "string",
+          "fullType": "string",
+          "number": 1051,
+          "defaultValue": "",
+          "containingType": "MethodOptions",
+          "containingLongType": ".google.protobuf.MethodOptions",
+          "containingFullType": "google.protobuf.MethodOptions"
+        },
+        {
+          "name": "default_host",
+          "longName": ".google.protobuf.ServiceOptions.default_host",
+          "fullName": ".google.protobuf.ServiceOptions.default_host",
+          "description": "The hostname for this service.\nThis should be specified with no prefix or protocol.\n\nExample:\n\n  service Foo {\n    option (google.api.default_host) = \"foo.googleapi.com\";\n    ...\n  }",
+          "label": "",
+          "type": "string",
+          "longType": "string",
+          "fullType": "string",
+          "number": 1049,
+          "defaultValue": "",
+          "containingType": "ServiceOptions",
+          "containingLongType": ".google.protobuf.ServiceOptions",
+          "containingFullType": "google.protobuf.ServiceOptions"
+        },
+        {
+          "name": "oauth_scopes",
+          "longName": ".google.protobuf.ServiceOptions.oauth_scopes",
+          "fullName": ".google.protobuf.ServiceOptions.oauth_scopes",
+          "description": "OAuth scopes needed for the client.\n\nExample:\n\n  service Foo {\n    option (google.api.oauth_scopes) = \\\n      \"https://www.googleapis.com/auth/cloud-platform\";\n    ...\n  }\n\nIf there is more than one scope, use a comma-separated string:\n\nExample:\n\n  service Foo {\n    option (google.api.oauth_scopes) = \\\n      \"https://www.googleapis.com/auth/cloud-platform,\"\n      \"https://www.googleapis.com/auth/monitoring\";\n    ...\n  }",
+          "label": "",
+          "type": "string",
+          "longType": "string",
+          "fullType": "string",
+          "number": 1050,
+          "defaultValue": "",
+          "containingType": "ServiceOptions",
+          "containingLongType": ".google.protobuf.ServiceOptions",
+          "containingFullType": "google.protobuf.ServiceOptions"
+        }
+      ],
+      "messages": [],
+      "services": []
+    },
+    {
+      "name": "google/api/field_behavior.proto",
+      "description": "",
+      "package": "google.api",
+      "hasEnums": true,
+      "hasExtensions": true,
+      "hasMessages": false,
+      "hasServices": false,
+      "enums": [
+        {
+          "name": "FieldBehavior",
+          "longName": "FieldBehavior",
+          "fullName": "google.api.FieldBehavior",
+          "description": "An indicator of the behavior of a given field (for example, that a field\nis required in requests, or given as output but ignored as input).\nThis **does not** change the behavior in protocol buffers itself; it only\ndenotes the behavior and may affect how API tooling handles the field.\n\nNote: This enum **may** receive new values in the future.",
+          "values": [
+            {
+              "name": "FIELD_BEHAVIOR_UNSPECIFIED",
+              "number": "0",
+              "description": "Conventional default for enums. Do not use this."
+            },
+            {
+              "name": "OPTIONAL",
+              "number": "1",
+              "description": "Specifically denotes a field as optional.\nWhile all fields in protocol buffers are optional, this may be specified\nfor emphasis if appropriate."
+            },
+            {
+              "name": "REQUIRED",
+              "number": "2",
+              "description": "Denotes a field as required.\nThis indicates that the field **must** be provided as part of the request,\nand failure to do so will cause an error (usually `INVALID_ARGUMENT`)."
+            },
+            {
+              "name": "OUTPUT_ONLY",
+              "number": "3",
+              "description": "Denotes a field as output only.\nThis indicates that the field is provided in responses, but including the\nfield in a request does nothing (the server *must* ignore it and\n*must not* throw an error as a result of the field's presence)."
+            },
+            {
+              "name": "INPUT_ONLY",
+              "number": "4",
+              "description": "Denotes a field as input only.\nThis indicates that the field is provided in requests, and the\ncorresponding field is not included in output."
+            },
+            {
+              "name": "IMMUTABLE",
+              "number": "5",
+              "description": "Denotes a field as immutable.\nThis indicates that the field may be set once in a request to create a\nresource, but may not be changed thereafter."
+            }
+          ]
+        }
+      ],
+      "extensions": [
+        {
+          "name": "field_behavior",
+          "longName": ".google.protobuf.FieldOptions.field_behavior",
+          "fullName": ".google.protobuf.FieldOptions.field_behavior",
+          "description": "A designation of a specific field behavior (required, output only, etc.)\nin protobuf messages.\n\nExamples:\n\n  string name = 1 [(google.api.field_behavior) = REQUIRED];\n  State state = 1 [(google.api.field_behavior) = OUTPUT_ONLY];\n  google.protobuf.Duration ttl = 1\n    [(google.api.field_behavior) = INPUT_ONLY];\n  google.protobuf.Timestamp expire_time = 1\n    [(google.api.field_behavior) = OUTPUT_ONLY,\n     (google.api.field_behavior) = IMMUTABLE];",
+          "label": "repeated",
+          "type": "FieldBehavior",
+          "longType": "FieldBehavior",
+          "fullType": "google.api.FieldBehavior",
+          "number": 1052,
+          "defaultValue": "",
+          "containingType": "FieldOptions",
+          "containingLongType": ".google.protobuf.FieldOptions",
+          "containingFullType": "google.protobuf.FieldOptions"
+        }
+      ],
+      "messages": [],
+      "services": []
+    },
+    {
+      "name": "google/api/httpbody.proto",
+      "description": "",
+      "package": "google.api",
+      "hasEnums": false,
+      "hasExtensions": false,
+      "hasMessages": true,
+      "hasServices": false,
+      "enums": [],
+      "extensions": [],
+      "messages": [
+        {
+          "name": "HttpBody",
+          "longName": "HttpBody",
+          "fullName": "google.api.HttpBody",
+          "description": "Message that represents an arbitrary HTTP body. It should only be used for\npayload formats that can't be represented as JSON, such as raw binary or\nan HTML page.\n\n\nThis message can be used both in streaming and non-streaming API methods in\nthe request as well as the response.\n\nIt can be used as a top-level request field, which is convenient if one\nwants to extract parameters from either the URL or HTTP template into the\nrequest fields and also want access to the raw HTTP body.\n\nExample:\n\n    message GetResourceRequest {\n      // A unique request id.\n      string request_id = 1;\n\n      // The raw HTTP body is bound to this field.\n      google.api.HttpBody http_body = 2;\n    }\n\n    service ResourceService {\n      rpc GetResource(GetResourceRequest) returns (google.api.HttpBody);\n      rpc UpdateResource(google.api.HttpBody) returns\n      (google.protobuf.Empty);\n    }\n\nExample with streaming methods:\n\n    service CaldavService {\n      rpc GetCalendar(stream google.api.HttpBody)\n        returns (stream google.api.HttpBody);\n      rpc UpdateCalendar(stream google.api.HttpBody)\n        returns (stream google.api.HttpBody);\n    }\n\nUse of this type only changes how the request and response bodies are\nhandled, all other features will continue to work unchanged.",
+          "hasExtensions": false,
+          "hasFields": true,
+          "hasOneofs": false,
+          "extensions": [],
+          "fields": [
+            {
+              "name": "content_type",
+              "description": "The HTTP Content-Type header value specifying the content type of the body.",
+              "label": "",
+              "type": "string",
+              "longType": "string",
+              "fullType": "string",
+              "ismap": false,
+              "isoneof": false,
+              "oneofdecl": "",
+              "defaultValue": ""
+            },
+            {
+              "name": "data",
+              "description": "The HTTP request/response body as raw binary.",
+              "label": "",
+              "type": "bytes",
+              "longType": "bytes",
+              "fullType": "bytes",
+              "ismap": false,
+              "isoneof": false,
+              "oneofdecl": "",
+              "defaultValue": ""
+            },
+            {
+              "name": "extensions",
+              "description": "Application specific response metadata. Must be set in the first response\nfor streaming APIs.",
+              "label": "repeated",
+              "type": "Any",
+              "longType": "google.protobuf.Any",
+              "fullType": "google.protobuf.Any",
+              "ismap": false,
+              "isoneof": false,
+              "oneofdecl": "",
+              "defaultValue": ""
+            }
+          ]
+        }
+      ],
+      "services": []
+    }
+  ],
+  "scalarValueTypes": [
+    {
+      "protoType": "double",
+      "notes": "",
+      "cppType": "double",
+      "csType": "double",
+      "goType": "float64",
+      "javaType": "double",
+      "phpType": "float",
+      "pythonType": "float",
+      "rubyType": "Float"
+    },
+    {
+      "protoType": "float",
+      "notes": "",
+      "cppType": "float",
+      "csType": "float",
+      "goType": "float32",
+      "javaType": "float",
+      "phpType": "float",
+      "pythonType": "float",
+      "rubyType": "Float"
+    },
+    {
+      "protoType": "int32",
+      "notes": "Uses variable-length encoding. Inefficient for encoding negative numbers – if your field is likely to have negative values, use sint32 instead.",
+      "cppType": "int32",
+      "csType": "int",
+      "goType": "int32",
+      "javaType": "int",
+      "phpType": "integer",
+      "pythonType": "int",
+      "rubyType": "Bignum or Fixnum (as required)"
+    },
+    {
+      "protoType": "int64",
+      "notes": "Uses variable-length encoding. Inefficient for encoding negative numbers – if your field is likely to have negative values, use sint64 instead.",
+      "cppType": "int64",
+      "csType": "long",
+      "goType": "int64",
+      "javaType": "long",
+      "phpType": "integer/string",
+      "pythonType": "int/long",
+      "rubyType": "Bignum"
+    },
+    {
+      "protoType": "uint32",
+      "notes": "Uses variable-length encoding.",
+      "cppType": "uint32",
+      "csType": "uint",
+      "goType": "uint32",
+      "javaType": "int",
+      "phpType": "integer",
+      "pythonType": "int/long",
+      "rubyType": "Bignum or Fixnum (as required)"
+    },
+    {
+      "protoType": "uint64",
+      "notes": "Uses variable-length encoding.",
+      "cppType": "uint64",
+      "csType": "ulong",
+      "goType": "uint64",
+      "javaType": "long",
+      "phpType": "integer/string",
+      "pythonType": "int/long",
+      "rubyType": "Bignum or Fixnum (as required)"
+    },
+    {
+      "protoType": "sint32",
+      "notes": "Uses variable-length encoding. Signed int value. These more efficiently encode negative numbers than regular int32s.",
+      "cppType": "int32",
+      "csType": "int",
+      "goType": "int32",
+      "javaType": "int",
+      "phpType": "integer",
+      "pythonType": "int",
+      "rubyType": "Bignum or Fixnum (as required)"
+    },
+    {
+      "protoType": "sint64",
+      "notes": "Uses variable-length encoding. Signed int value. These more efficiently encode negative numbers than regular int64s.",
+      "cppType": "int64",
+      "csType": "long",
+      "goType": "int64",
+      "javaType": "long",
+      "phpType": "integer/string",
+      "pythonType": "int/long",
+      "rubyType": "Bignum"
+    },
+    {
+      "protoType": "fixed32",
+      "notes": "Always four bytes. More efficient than uint32 if values are often greater than 2^28.",
+      "cppType": "uint32",
+      "csType": "uint",
+      "goType": "uint32",
+      "javaType": "int",
+      "phpType": "integer",
+      "pythonType": "int",
+      "rubyType": "Bignum or Fixnum (as required)"
+    },
+    {
+      "protoType": "fixed64",
+      "notes": "Always eight bytes. More efficient than uint64 if values are often greater than 2^56.",
+      "cppType": "uint64",
+      "csType": "ulong",
+      "goType": "uint64",
+      "javaType": "long",
+      "phpType": "integer/string",
+      "pythonType": "int/long",
+      "rubyType": "Bignum"
+    },
+    {
+      "protoType": "sfixed32",
+      "notes": "Always four bytes.",
+      "cppType": "int32",
+      "csType": "int",
+      "goType": "int32",
+      "javaType": "int",
+      "phpType": "integer",
+      "pythonType": "int",
+      "rubyType": "Bignum or Fixnum (as required)"
+    },
+    {
+      "protoType": "sfixed64",
+      "notes": "Always eight bytes.",
+      "cppType": "int64",
+      "csType": "long",
+      "goType": "int64",
+      "javaType": "long",
+      "phpType": "integer/string",
+      "pythonType": "int/long",
+      "rubyType": "Bignum"
+    },
+    {
+      "protoType": "bool",
+      "notes": "",
+      "cppType": "bool",
+      "csType": "bool",
+      "goType": "bool",
+      "javaType": "boolean",
+      "phpType": "boolean",
+      "pythonType": "boolean",
+      "rubyType": "TrueClass/FalseClass"
+    },
+    {
+      "protoType": "string",
+      "notes": "A string must always contain UTF-8 encoded or 7-bit ASCII text.",
+      "cppType": "string",
+      "csType": "string",
+      "goType": "string",
+      "javaType": "String",
+      "phpType": "string",
+      "pythonType": "str/unicode",
+      "rubyType": "String (UTF-8)"
+    },
+    {
+      "protoType": "bytes",
+      "notes": "May contain any arbitrary sequence of bytes.",
+      "cppType": "string",
+      "csType": "ByteString",
+      "goType": "[]byte",
+      "javaType": "ByteString",
+      "phpType": "string",
+      "pythonType": "str",
+      "rubyType": "String (ASCII-8BIT)"
+    }
+  ]
+}
