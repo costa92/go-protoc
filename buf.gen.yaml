@@ -25,3 +25,12 @@ plugins:
   - local: protoc-gen-go-http
     out: pkg/api
     opt: paths=source_relative
+  - local: protoc-gen-go-errors-code
+    out: pkg/api
+    opt: paths=source_relative
+inputs:
+  - directory: pkg/api
+    exclude_paths:  # 排除生成目录
+      - "errors"
+      - "google"
+      - "validate"

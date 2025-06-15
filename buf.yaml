@@ -6,11 +6,11 @@ modules:
     name: buf.build/costa92/go-protoc
 
   - path: third_party/protobuf
-    excludes: []
-      # - "validate/validate.proto"
+    excludes:  []
     name: buf.build/costa92/protobuf
-# deps:
-  # - buf.build/envoyproxy/protoc-gen-validate
+deps:
+  - buf.build/envoyproxy/protoc-gen-validate
+  - buf.build/costa92/protoc-gen-go-errors-code
 breaking:
   use:
     - FILE
