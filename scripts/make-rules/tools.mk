@@ -90,3 +90,8 @@ install-code-generator:
 
 .PHONY: install-tools
 install-tools: _install.ci ## Install all tools used by CI/CD workflow.
+
+
+.PHONY: _install.buf
+_install.buf: ## Install buf command line tool.
+	@$(GO) install github.com/bufbuild/buf/cmd/buf@$(BUF_VERSION)
