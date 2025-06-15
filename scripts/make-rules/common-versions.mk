@@ -19,3 +19,6 @@ GRPCURL_VERSION ?= v1.8.9
 
 # 安装 code-generator 工具
 CODE_GENERATOR_VERSION ?= $(call get_go_version,k8s.io/code-generator)
+
+# 安装 buf 工具
+BUF_VERSION ?= 1.54.0
