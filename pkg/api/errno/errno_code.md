@@ -34,5 +34,5 @@
 
 ## 参考
 
-- [错误规范](https://github.com/onexstack/onex/blob/master/docs/devel/zh-CN/conversions/errors.md)
+- [错误规范](https://github.com/costa92/micros-service/blob/master/docs/devel/zh-CN/conversions/errors.md)
 
