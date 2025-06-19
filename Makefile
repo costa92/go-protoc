@@ -14,6 +14,10 @@ wire:
 	cd internal/apiserver && wire
 
 
+.PHONY: fmt
+fmt:
+	go fmt ./...
+
 .PHONY: run-api
 run-api:
 	cd cmd/apiserver && go run main.go

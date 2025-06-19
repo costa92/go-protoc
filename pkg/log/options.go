@@ -5,10 +5,8 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-
-
 type Options struct {
-		// DisableCaller specifies whether to include caller information in the log.
+	// DisableCaller specifies whether to include caller information in the log.
 	DisableCaller bool `json:"disable-caller,omitempty" mapstructure:"disable-caller"`
 	// DisableStacktrace specifies whether to record a stack trace for all messages at or above panic level.
 	DisableStacktrace bool `json:"disable-stacktrace,omitempty" mapstructure:"disable-stacktrace"`
@@ -21,7 +19,6 @@ type Options struct {
 	// OutputPaths specifies the output paths for the logs.
 	OutputPaths []string `json:"output-paths,omitempty" mapstructure:"output-paths"`
 }
-
 
 // NewOptions creates a new Options object with default values.
 func NewOptions() *Options {

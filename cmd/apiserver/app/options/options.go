@@ -41,6 +41,7 @@ func (o *ServerOptions) Flags() (fss cliflag.NamedFlagSets) {
 	// client.AddFlags(fs)
 
 	return fss
+
 }
 
 func (o *ServerOptions) Validate() error {
