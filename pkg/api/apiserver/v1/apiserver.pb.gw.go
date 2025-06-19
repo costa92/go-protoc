@@ -41,7 +41,9 @@ func request_ApiServer_GetUser_0(ctx context.Context, marshaler runtime.Marshale
 		metadata runtime.ServerMetadata
 		err      error
 	)
-	io.Copy(io.Discard, req.Body)
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	val, ok := pathParams["id"]
 	if !ok {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "id")
