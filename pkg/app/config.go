@@ -22,8 +22,11 @@ var cfgFile string
 // It also sets a passed functions to read values from configuration file into viper
 // when each cobra command's Execute method is called.
 func AddConfigFlag(fs *pflag.FlagSet, name string, watch bool) {
-	fs.AddFlag(pflag.Lookup(configFlagName))
+	// 直接添加 config 和 -c 标志到指定的 FlagSet
+	fs.StringVarP(&cfgFile, configFlagName, "c", cfgFile, "Read configuration from specified `FILE`, "+
+		"support JSON, TOML, YAML, HCL, or Java properties formats.")
 
+	log.Infow("Adding configuration flag", "name", name)
 	// Enable viper's automatic environment variable parsing. This means
 	// that viper will automatically read values corresponding to viper
 	// variables from environment variables.
@@ -37,10 +40,12 @@ func AddConfigFlag(fs *pflag.FlagSet, name string, watch bool) {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 
 	cobra.OnInitialize(func() {
+		log.Infow("Reading configuration file", "name", name, "cfgFile", cfgFile)
 		if cfgFile != "" {
 			viper.SetConfigFile(cfgFile)
 		} else {
 			viper.AddConfigPath(".")
+			viper.AddConfigPath("configs")
 
 			if names := strings.Split(name, "-"); len(names) > 1 {
 				viper.AddConfigPath(filepath.Join(homedir.HomeDir(), "."+names[0]))
@@ -50,10 +55,12 @@ func AddConfigFlag(fs *pflag.FlagSet, name string, watch bool) {
 			viper.SetConfigName(name)
 		}
 
+		log.Debugw("Reading configuration file", "file", cfgFile)
+
 		if err := viper.ReadInConfig(); err != nil {
-			log.Debugw("Failed to read configuration file", "file", cfgFile, "err", err)
+			log.Errorw(err, "Failed to read configuration file", "file", cfgFile)
 		}
-		log.Debugw("Success to read configuration file", "file", viper.ConfigFileUsed())
+		log.Infow("Success to read configuration file", "file", viper.ConfigFileUsed())
 
 		if watch {
 			viper.WatchConfig()
@@ -71,6 +78,5 @@ func PrintConfig() {
 }
 
 func init() {
-	pflag.StringVarP(&cfgFile, configFlagName, "c", cfgFile, "Read configuration from specified `FILE`, "+
-		"support JSON, TOML, YAML, HCL, or Java properties formats.")
+	// 移除这里的标志注册，因为现在在 AddConfigFlag 函数中直接添加
 }
