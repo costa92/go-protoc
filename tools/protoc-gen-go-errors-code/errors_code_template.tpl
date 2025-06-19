@@ -28,4 +28,4 @@
 
 ## 参考
 
-- [错误规范](https://github.com/onexstack/onex/blob/master/docs/devel/zh-CN/conversions/errors.md)
+- [错误规范](https://github.com/costa92/go-protoc/v2/blob/master/docs/devel/zh-CN/conversions/errors.md)
