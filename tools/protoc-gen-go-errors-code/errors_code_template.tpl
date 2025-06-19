@@ -28,4 +28,8 @@
 
 ## 参考
 
+<<<<<<< HEAD
 - [错误规范](https://github.com/costa92/go-protoc/blob/master/docs/devel/zh-CN/conversions/errors.md)
+=======
+- [错误规范](https://github.com/costa92/go-protoc/v2/blob/master/docs/devel/zh-CN/conversions/errors.md)
+>>>>>>> fb1d2a0 (docs(errors_code_template): 更新错误规范文档链接)
