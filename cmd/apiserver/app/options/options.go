@@ -6,6 +6,7 @@ import (
 	"github.com/costa92/go-protoc/v2/pkg/log"
 	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apiserver/pkg/util/feature"
 	cliflag "k8s.io/component-base/cli/flag"
 )
 
@@ -37,9 +38,9 @@ func (o *ServerOptions) Flags() (fss cliflag.NamedFlagSets) {
 	o.HTTPOptions.AddFlags(fss.FlagSet("http"))
 	o.Log.AddFlags(fss.FlagSet("log"))
 
-	// fs := fss.FlagSet("misc")
+	fs := fss.FlagSet("misc")
 	// client.AddFlags(fs)
-
+	feature.DefaultMutableFeatureGate.AddFlag(fs)
 	return fss
 
 }

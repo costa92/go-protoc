@@ -14,19 +14,19 @@ import (
 	"github.com/costa92/go-protoc/v2/pkg/log"
 )
 
-const configFlagName = "config"
+const ConfigFlagName = "config"
 
-var cfgFile string
+var CfgFile string
 
 // AddConfigFlag adds flags for a specific server to the specified FlagSet object.
 // It also sets a passed functions to read values from configuration file into viper
 // when each cobra command's Execute method is called.
 func AddConfigFlag(fs *pflag.FlagSet, name string, watch bool) {
-	// 直接添加 config 和 -c 标志到指定的 FlagSet
-	fs.StringVarP(&cfgFile, configFlagName, "c", cfgFile, "Read configuration from specified `FILE`, "+
+	// 添加配置文件标志
+	fs.StringVarP(&CfgFile, ConfigFlagName, "c", CfgFile, "Read configuration from specified `FILE`, "+
 		"support JSON, TOML, YAML, HCL, or Java properties formats.")
 
-	log.Infow("Adding configuration flag", "name", name)
+	log.Infow("Adding configuration flag", "name", name, "watch", watch, "cfgFile", CfgFile)
 	// Enable viper's automatic environment variable parsing. This means
 	// that viper will automatically read values corresponding to viper
 	// variables from environment variables.
@@ -40,9 +40,9 @@ func AddConfigFlag(fs *pflag.FlagSet, name string, watch bool) {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 
 	cobra.OnInitialize(func() {
-		log.Infow("Reading configuration file", "name", name, "cfgFile", cfgFile)
-		if cfgFile != "" {
-			viper.SetConfigFile(cfgFile)
+		log.Infow("Reading configuration file", "name", name, "cfgFile", CfgFile)
+		if CfgFile != "" {
+			viper.SetConfigFile(CfgFile)
 		} else {
 			viper.AddConfigPath(".")
 			viper.AddConfigPath("configs")
@@ -55,10 +55,10 @@ func AddConfigFlag(fs *pflag.FlagSet, name string, watch bool) {
 			viper.SetConfigName(name)
 		}
 
-		log.Debugw("Reading configuration file", "file", cfgFile)
+		log.Debugw("Reading configuration file", "file", CfgFile)
 
 		if err := viper.ReadInConfig(); err != nil {
-			log.Errorw(err, "Failed to read configuration file", "file", cfgFile)
+			log.Errorw(err, "Failed to read configuration file", "file", CfgFile)
 		}
 		log.Infow("Success to read configuration file", "file", viper.ConfigFileUsed())
 
