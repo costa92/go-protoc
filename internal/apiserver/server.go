@@ -7,6 +7,8 @@ import (
 	"github.com/costa92/go-protoc/v2/internal/pkg/middleware/logging"
 	"github.com/costa92/go-protoc/v2/internal/pkg/middleware/tracing"
 	v1 "github.com/costa92/go-protoc/v2/pkg/api/apiserver/v1"
+	"github.com/costa92/go-protoc/v2/pkg/core"
+	"github.com/costa92/go-protoc/v2/pkg/db"
 	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
 	"github.com/costa92/go-protoc/v2/pkg/server"
 	"github.com/costa92/go-protoc/v2/pkg/version"
@@ -27,9 +29,10 @@ var (
 )
 
 type Config struct {
-	GRPCOptions *genericoptions.GRPCOptions
-	HTTPOptions *genericoptions.HTTPOptions
-	TLSOptions  *genericoptions.TLSOptions
+	GRPCOptions  *genericoptions.GRPCOptions
+	HTTPOptions  *genericoptions.HTTPOptions
+	TLSOptions   *genericoptions.TLSOptions
+	MySQLOptions *genericoptions.MySQLOptions
 }
 
 type Server struct {
@@ -44,7 +47,11 @@ type ServerConfig struct {
 }
 
 func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
-	srv, err := InitializeWebServer(ctx.Done(), cfg)
+
+	var mysqlOptions db.MySQLOptions
+	_ = core.Copy(&mysqlOptions, cfg.MySQLOptions)
+
+	srv, err := InitializeWebServer(ctx.Done(), cfg, &mysqlOptions)
 	if err != nil {
 		return nil, err
 	}

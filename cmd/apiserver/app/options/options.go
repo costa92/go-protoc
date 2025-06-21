@@ -15,10 +15,12 @@ const (
 )
 
 type ServerOptions struct {
-	GRPCOptions *genericoptions.GRPCOptions `json:"grpc" mapstructure:"grpc"`
-	HTTPOptions *genericoptions.HTTPOptions `json:"http" mapstructure:"http"`
-	TLSOptions  *genericoptions.TLSOptions  `json:"tls" mapstructure:"tls"`
-	Log         *log.Options                `json:"log" mapstructure:"log"`
+	GRPCOptions  *genericoptions.GRPCOptions  `json:"grpc" mapstructure:"grpc"`
+	HTTPOptions  *genericoptions.HTTPOptions  `json:"http" mapstructure:"http"`
+	MySQLOptions *genericoptions.MySQLOptions `json:"mysql" mapstructure:"mysql"`
+	TLSOptions   *genericoptions.TLSOptions   `json:"tls" mapstructure:"tls"`
+	Log          *log.Options                 `json:"log" mapstructure:"log"`
+	FeatureGates map[string]bool              `json:"feature-gates"`
 }
 
 // Ensure ServerOptions implements the app.NamedFlagSetOptions interface.
@@ -26,16 +28,18 @@ var _ app.NamedFlagSetOptions = (*ServerOptions)(nil)
 
 func NewServerOptions() *ServerOptions {
 	return &ServerOptions{
-		GRPCOptions: genericoptions.NewGRPCOptions(),
-		HTTPOptions: genericoptions.NewHTTPOptions(),
-		TLSOptions:  genericoptions.NewTLSOptions(),
-		Log:         log.NewOptions(),
+		GRPCOptions:  genericoptions.NewGRPCOptions(),
+		HTTPOptions:  genericoptions.NewHTTPOptions(),
+		TLSOptions:   genericoptions.NewTLSOptions(),
+		MySQLOptions: genericoptions.NewMySQLOptions(),
+		Log:          log.NewOptions(),
 	}
 }
 
 func (o *ServerOptions) Flags() (fss cliflag.NamedFlagSets) {
 	o.GRPCOptions.AddFlags(fss.FlagSet("grpc"))
 	o.HTTPOptions.AddFlags(fss.FlagSet("http"))
+	o.MySQLOptions.AddFlags(fss.FlagSet("mysql"))
 	o.Log.AddFlags(fss.FlagSet("log"))
 
 	fs := fss.FlagSet("misc")
@@ -49,19 +53,22 @@ func (o *ServerOptions) Validate() error {
 	errs := []error{}
 	errs = append(errs, o.GRPCOptions.Validate()...)
 	errs = append(errs, o.HTTPOptions.Validate()...)
+	errs = append(errs, o.MySQLOptions.Validate()...)
 	errs = append(errs, o.Log.Validate()...)
 
 	return utilerrors.NewAggregate(errs)
 }
 
 func (o *ServerOptions) Complete() error {
+	_ = feature.DefaultMutableFeatureGate.SetFromMap(o.FeatureGates)
 	return nil
 }
 
 func (o *ServerOptions) Config() (*apiserver.Config, error) {
 	return &apiserver.Config{
-		GRPCOptions: o.GRPCOptions,
-		HTTPOptions: o.HTTPOptions,
-		TLSOptions:  o.TLSOptions,
+		GRPCOptions:  o.GRPCOptions,
+		HTTPOptions:  o.HTTPOptions,
+		TLSOptions:   o.TLSOptions,
+		MySQLOptions: o.MySQLOptions,
 	}, nil
 }

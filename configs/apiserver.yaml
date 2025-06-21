@@ -8,3 +8,9 @@ grpc:
   addr: 0.0.0.0:9090
   timeout: 10s
 
+mysql:
+  host: 127.0.0.1 # 数据库主机地址
+  database: krm # 数据库名称
+  username: root # 数据库用户名
+  password: 123456 # 数据库密码
+  log-level: 1 # 数据库日志级别，1 为最低，4 为最高

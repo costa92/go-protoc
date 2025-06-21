@@ -7,16 +7,25 @@
 package apiserver
 
 import (
+	"github.com/costa92/go-protoc/v2/internal/apiserver/biz"
 	"github.com/costa92/go-protoc/v2/internal/apiserver/handler"
+	"github.com/costa92/go-protoc/v2/internal/apiserver/store"
+	"github.com/costa92/go-protoc/v2/pkg/db"
 	"github.com/costa92/go-protoc/v2/pkg/server"
 )
 
 // Injectors from wire.go:
 
-func InitializeWebServer(arg <-chan struct{}, config *Config) (server.Server, error) {
+func InitializeWebServer(arg <-chan struct{}, config *Config, mySQLOptions *db.MySQLOptions) (server.Server, error) {
 	registrar := ProvideRegistrar()
 	kratosAppConfig := ProvideKratosAppConfig(registrar)
-	handlerHandler := handler.NewHandler()
+	gormDB, err := db.NewMySQL(mySQLOptions)
+	if err != nil {
+		return nil, err
+	}
+	datastore := store.NewStore(gormDB)
+	bizBiz := biz.NewBiz(datastore)
+	handlerHandler := handler.NewHandler(bizBiz)
 	logger := ProvideKratosLogger()
 	v := NewMiddlewares(logger)
 	serverConfig := &ServerConfig{
