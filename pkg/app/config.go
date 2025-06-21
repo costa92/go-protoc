@@ -76,7 +76,3 @@ func PrintConfig() {
 		log.Debugw(fmt.Sprintf("CFG: %s=%v", key, viper.Get(key)))
 	}
 }
-
-func init() {
-	// 移除这里的标志注册，因为现在在 AddConfigFlag 函数中直接添加
-}
