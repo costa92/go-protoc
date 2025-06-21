@@ -226,6 +226,7 @@ func (app *App) buildCommand() {
 
 	version.AddFlags(fs)
 	if !app.noConfig {
+		log.Infow("buildCommand 222", "name", app.name, "watch", app.watch)
 		AddConfigFlag(fs, app.name, app.watch)
 	}
 

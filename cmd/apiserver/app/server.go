@@ -23,6 +23,7 @@ func NewApp() *app.App {
 		app.WithOptions(opts),
 		app.WithDefaultValidArgs(),
 		app.WithRunFunc(run(opts)),
+		// app.WithNoConfig(),
 		app.WithLoggerContextExtractor(map[string]func(context.Context) string{
 			known.XTraceID: contextx.TraceID,
 			known.XUserID:  contextx.UserID,
