@@ -20,7 +20,7 @@ fmt:
 
 .PHONY: run-api
 run-api:
-	cd cmd/apiserver && go run main.go
+	go run cmd/apiserver/main.go
 
 .PHONY: proto
 proto:
