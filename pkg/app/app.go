@@ -210,6 +210,12 @@ func (app *App) buildCommand() {
 			fss = typed.Flags()
 		}
 
+		// 将配置标志添加到 fss 中的 "misc" 标志集中
+		if !app.noConfig {
+			log.Infow("buildCommand: Adding config flag to misc flagset", "name", app.name, "watch", app.watch)
+			AddConfigFlag(fss.FlagSet("misc"), app.name, app.watch)
+		}
+
 		for _, f := range fss.FlagSets {
 			cmd.Flags().AddFlagSet(f)
 		}
@@ -221,14 +227,22 @@ func (app *App) buildCommand() {
 		if app.options != nil {
 			typed.AddFlags(fs)
 		}
+
+		// 在 FlagSetOptions 分支中添加配置标志
+		if !app.noConfig {
+			log.Infow("buildCommand: Adding config flag to persistent flags", "name", app.name, "watch", app.watch)
+			AddConfigFlag(fs, app.name, app.watch)
+		}
 	default:
+		// 在默认分支中添加配置标志
+		if !app.noConfig {
+			log.Infow("buildCommand: Adding config flag to command flags", "name", app.name, "watch", app.watch)
+			AddConfigFlag(cmd.Flags(), app.name, app.watch)
+		}
 	}
 
 	version.AddFlags(fs)
-	if !app.noConfig {
-		log.Infow("buildCommand 222", "name", app.name, "watch", app.watch)
-		AddConfigFlag(fs, app.name, app.watch)
-	}
+	// Config flag has been added at the beginning of this method.
 
 	app.cmd = cmd
 }
