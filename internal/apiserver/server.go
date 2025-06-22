@@ -4,17 +4,22 @@ import (
 	"context"
 	"os"
 
+	"github.com/costa92/go-protoc/v2/internal/apiserver/pkg/locales"
+	i18nmw "github.com/costa92/go-protoc/v2/internal/pkg/middleware/i18n"
 	"github.com/costa92/go-protoc/v2/internal/pkg/middleware/logging"
 	"github.com/costa92/go-protoc/v2/internal/pkg/middleware/tracing"
+	"github.com/costa92/go-protoc/v2/internal/pkg/middleware/validate"
 	v1 "github.com/costa92/go-protoc/v2/pkg/api/apiserver/v1"
 	"github.com/costa92/go-protoc/v2/pkg/core"
 	"github.com/costa92/go-protoc/v2/pkg/db"
+	"github.com/costa92/go-protoc/v2/pkg/i18n"
 	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
 	"github.com/costa92/go-protoc/v2/pkg/server"
 	"github.com/costa92/go-protoc/v2/pkg/version"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/middleware/selector"
 	"github.com/go-kratos/kratos/v2/registry"
+	"golang.org/x/text/language"
 
 	krtlog "github.com/go-kratos/kratos/v2/log"
 )
@@ -88,9 +93,11 @@ func ProvideKratosAppConfig(registrar registry.Registrar) server.KratosAppConfig
 	}
 }
 
-func NewMiddlewares(logger krtlog.Logger) []middleware.Middleware {
+func NewMiddlewares(logger krtlog.Logger, val validate.RequestValidator) []middleware.Middleware {
 	return []middleware.Middleware{
+		i18nmw.Translator(i18n.WithLanguage(language.English), i18n.WithFS(locales.Locales)),
 		tracing.Server(),
+		validate.Validator(val),
 		logging.Server(logger),
 	}
 }
