@@ -2,6 +2,12 @@ package errorsx
 
 import "net/http"
 
+// 预定义的错误码和原因
+const (
+	UnknownCode   = http.StatusInternalServerError
+	UnknownReason = "UnknownError"
+)
+
 // errorsx 预定义标准的错误.
 var (
 	// OK 代表请求成功.
