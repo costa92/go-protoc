@@ -6,24 +6,24 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/onexstack/onexstack/pkg/errorsx"
+	"github.com/costa92/go-protoc/v2/pkg/errorsx"
 )
 
 const (
 	ErrMsgBindFailed = "failed to bind request data"
 )
 
-// Validator 是验证函数的类型，用于对绑定的数据结构进行验证.  
+// Validator 是验证函数的类型，用于对绑定的数据结构进行验证.
 type Validator[T any] func(context.Context, *T) error
 
-// Binder 定义绑定函数的类型，用于绑定请求数据到相应结构体.  
+// Binder 定义绑定函数的类型，用于绑定请求数据到相应结构体.
 type Binder func(any) error
 
-// Handler 是处理函数的类型，用于处理已经绑定和验证的数据.  
+// Handler 是处理函数的类型，用于处理已经绑定和验证的数据.
 type Handler[T any, R any] func(ctx context.Context, req *T) (R, error)
 
-// ErrorResponse 定义了错误响应的结构，  
-// 用于 API 请求中发生错误时返回统一的格式化错误信息.  
+// ErrorResponse 定义了错误响应的结构，
+// 用于 API 请求中发生错误时返回统一的格式化错误信息.
 type ErrorResponse struct {
 	// 错误原因，标识错误类型
 	Reason string `json:"reason,omitempty"`
@@ -121,6 +121,6 @@ func WriteResponse(c *gin.Context, data any, err error) {
 		return
 	}
 
-	// 如果没有错误，返回成功响应  
+	// 如果没有错误，返回成功响应
 	c.JSON(http.StatusOK, data)
 }

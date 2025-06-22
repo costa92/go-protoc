@@ -12,6 +12,7 @@ import (
 	"github.com/costa92/go-protoc/v2/internal/apiserver/store"
 	"github.com/costa92/go-protoc/v2/pkg/db"
 	"github.com/costa92/go-protoc/v2/pkg/server"
+	"github.com/costa92/go-protoc/v2/pkg/validation"
 )
 
 // Injectors from wire.go:
@@ -27,7 +28,8 @@ func InitializeWebServer(arg <-chan struct{}, config *Config, mySQLOptions *db.M
 	bizBiz := biz.NewBiz(datastore)
 	handlerHandler := handler.NewHandler(bizBiz)
 	logger := ProvideKratosLogger()
-	v := NewMiddlewares(logger)
+	validator := validation.ProvideValidator()
+	v := NewMiddlewares(logger, validator)
 	serverConfig := &ServerConfig{
 		cfg:         config,
 		appConfig:   kratosAppConfig,

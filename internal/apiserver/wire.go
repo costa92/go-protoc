@@ -10,6 +10,7 @@ import (
 	"github.com/costa92/go-protoc/v2/internal/apiserver/store"
 	"github.com/costa92/go-protoc/v2/pkg/db"
 	"github.com/costa92/go-protoc/v2/pkg/server"
+	"github.com/costa92/go-protoc/v2/pkg/validation"
 	"github.com/google/wire"
 )
 
@@ -23,6 +24,7 @@ func InitializeWebServer(<-chan struct{}, *Config, *db.MySQLOptions) (server.Ser
 		biz.ProviderSet,
 		db.ProviderSet,
 		handler.ProviderSet,
+		validation.ProviderSet,
 		wire.Struct(new(ServerConfig), "*"), // * 表示注入全部字段
 		NewWebServer,
 	)
