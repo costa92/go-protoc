@@ -27,3 +27,8 @@ func (h *Handler) GetUser(ctx context.Context, req *v1.GetUserRequest) (*v1.GetU
 		Email: "test@example.com",
 	}, nil
 }
+
+// CreateUser 创建用户
+func (h *Handler) CreateUser(ctx context.Context, req *v1.CreateUserRequest) (*v1.CreateUserResponse, error) {
+	return nil, nil
+}

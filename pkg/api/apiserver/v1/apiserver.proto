@@ -12,6 +12,12 @@ service ApiServer {
       get: "/v1/users/{id}"
     };
   }
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
+    option(google.api.http) = {
+      post:"/v1/user",
+      body:"*",
+    };
+  }
 }
 
 message GetUserRequest {
@@ -22,4 +28,13 @@ message GetUserResponse {
   string id = 1;
   string name = 2;
   string email = 3;
+}
+
+message CreateUserRequest {
+  string name = 1;
+  string email = 2;
+}
+
+message CreateUserResponse{
+  string id = 1;
 }

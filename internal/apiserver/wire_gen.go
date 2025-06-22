@@ -9,10 +9,11 @@ package apiserver
 import (
 	"github.com/costa92/go-protoc/v2/internal/apiserver/biz"
 	"github.com/costa92/go-protoc/v2/internal/apiserver/handler"
+	"github.com/costa92/go-protoc/v2/internal/apiserver/pkg/validation"
 	"github.com/costa92/go-protoc/v2/internal/apiserver/store"
 	"github.com/costa92/go-protoc/v2/pkg/db"
 	"github.com/costa92/go-protoc/v2/pkg/server"
-	"github.com/costa92/go-protoc/v2/pkg/validation"
+	validation2 "github.com/costa92/go-protoc/v2/pkg/validation"
 )
 
 // Injectors from wire.go:
@@ -28,8 +29,9 @@ func InitializeWebServer(arg <-chan struct{}, config *Config, mySQLOptions *db.M
 	bizBiz := biz.NewBiz(datastore)
 	handlerHandler := handler.NewHandler(bizBiz)
 	logger := ProvideKratosLogger()
-	validator := validation.ProvideValidator()
-	v := NewMiddlewares(logger, validator)
+	validator := validation.New(datastore)
+	validationValidator := validation2.NewValidator(validator)
+	v := NewMiddlewares(logger, validationValidator)
 	serverConfig := &ServerConfig{
 		cfg:         config,
 		appConfig:   kratosAppConfig,

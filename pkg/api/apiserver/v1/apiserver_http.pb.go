@@ -19,15 +19,18 @@ var _ = binding.EncodeURL
 
 const _ = http.SupportPackageIsVersion1
 
+const OperationApiServerCreateUser = "/apiserver.v1.ApiServer/CreateUser"
 const OperationApiServerGetUser = "/apiserver.v1.ApiServer/GetUser"
 
 type ApiServerHTTPServer interface {
+	CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 }
 
 func RegisterApiServerHTTPServer(s *http.Server, srv ApiServerHTTPServer) {
 	r := s.Route("/")
 	r.GET("/v1/users/{id}", _ApiServer_GetUser0_HTTP_Handler(srv))
+	r.POST("/v1/user", _ApiServer_CreateUser0_HTTP_Handler(srv))
 }
 
 func _ApiServer_GetUser0_HTTP_Handler(srv ApiServerHTTPServer) func(ctx http.Context) error {
@@ -52,7 +55,30 @@ func _ApiServer_GetUser0_HTTP_Handler(srv ApiServerHTTPServer) func(ctx http.Con
 	}
 }
 
+func _ApiServer_CreateUser0_HTTP_Handler(srv ApiServerHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateUserRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationApiServerCreateUser)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateUser(ctx, req.(*CreateUserRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CreateUserResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 type ApiServerHTTPClient interface {
+	CreateUser(ctx context.Context, req *CreateUserRequest, opts ...http.CallOption) (rsp *CreateUserResponse, err error)
 	GetUser(ctx context.Context, req *GetUserRequest, opts ...http.CallOption) (rsp *GetUserResponse, err error)
 }
 
@@ -62,6 +88,19 @@ type ApiServerHTTPClientImpl struct {
 
 func NewApiServerHTTPClient(client *http.Client) ApiServerHTTPClient {
 	return &ApiServerHTTPClientImpl{client}
+}
+
+func (c *ApiServerHTTPClientImpl) CreateUser(ctx context.Context, in *CreateUserRequest, opts ...http.CallOption) (*CreateUserResponse, error) {
+	var out CreateUserResponse
+	pattern := "/v1/user"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationApiServerCreateUser))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 func (c *ApiServerHTTPClientImpl) GetUser(ctx context.Context, in *GetUserRequest, opts ...http.CallOption) (*GetUserResponse, error) {
