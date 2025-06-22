@@ -24,7 +24,7 @@ func Validator(validator RequestValidator) middleware.Middleware {
 					return nil, se
 				}
 
-				return nil, errno.ErrorInvalidParameter(err.Error()).WithCause(err)
+				return nil, errno.ErrorInvalidParameter("validation failed").WithCause(err)
 			}
 
 			return handler(ctx, rq)

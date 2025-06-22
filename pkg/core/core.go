@@ -9,6 +9,10 @@ import (
 	"github.com/onexstack/onexstack/pkg/errorsx"
 )
 
+const (
+	ErrMsgBindFailed = "failed to bind request data"
+)
+
 // Validator 是验证函数的类型，用于对绑定的数据结构进行验证.  
 type Validator[T any] func(context.Context, *T) error
 
@@ -82,7 +86,7 @@ func ShouldBindUri[T any](c *gin.Context, rq *T, validators ...Validator[T]) err
 func ReadRequest[T any](c *gin.Context, rq *T, binder Binder, validators ...Validator[T]) error {
 	// 调用绑定函数绑定请求数据
 	if err := binder(rq); err != nil {
-		return errorsx.ErrBind.WithMessage(err.Error())
+		return errorsx.ErrBind.WithMessage(ErrMsgBindFailed)
 	}
 
 	// 如果数据结构实现了 Default 接口，则调用它的 Default 方法
