@@ -126,6 +126,102 @@ func (x *GetUserResponse) GetEmail() string {
 	return ""
 }
 
+type CreateUserRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateUserRequest) Reset() {
+	*x = CreateUserRequest{}
+	mi := &file_apiserver_v1_apiserver_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateUserRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateUserRequest) ProtoMessage() {}
+
+func (x *CreateUserRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_apiserver_v1_apiserver_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateUserRequest.ProtoReflect.Descriptor instead.
+func (*CreateUserRequest) Descriptor() ([]byte, []int) {
+	return file_apiserver_v1_apiserver_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *CreateUserRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateUserRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+type CreateUserResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateUserResponse) Reset() {
+	*x = CreateUserResponse{}
+	mi := &file_apiserver_v1_apiserver_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateUserResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateUserResponse) ProtoMessage() {}
+
+func (x *CreateUserResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_apiserver_v1_apiserver_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateUserResponse.ProtoReflect.Descriptor instead.
+func (*CreateUserResponse) Descriptor() ([]byte, []int) {
+	return file_apiserver_v1_apiserver_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *CreateUserResponse) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
 var File_apiserver_v1_apiserver_proto protoreflect.FileDescriptor
 
 const file_apiserver_v1_apiserver_proto_rawDesc = "" +
@@ -136,9 +232,16 @@ const file_apiserver_v1_apiserver_proto_rawDesc = "" +
 	"\x0fGetUserResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
-	"\x05email\x18\x03 \x01(\tR\x05email2k\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\"=\n" +
+	"\x11CreateUserRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\"$\n" +
+	"\x12CreateUserResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id2\xd1\x01\n" +
 	"\tApiServer\x12^\n" +
-	"\aGetUser\x12\x1c.apiserver.v1.GetUserRequest\x1a\x1d.apiserver.v1.GetUserResponse\"\x16\x82\xd3\xe4\x93\x02\x10\x12\x0e/v1/users/{id}B\xac\x01\n" +
+	"\aGetUser\x12\x1c.apiserver.v1.GetUserRequest\x1a\x1d.apiserver.v1.GetUserResponse\"\x16\x82\xd3\xe4\x93\x02\x10\x12\x0e/v1/users/{id}\x12d\n" +
+	"\n" +
+	"CreateUser\x12\x1f.apiserver.v1.CreateUserRequest\x1a .apiserver.v1.CreateUserResponse\"\x13\x82\xd3\xe4\x93\x02\r:\x01*\"\b/v1/userB\xac\x01\n" +
 	"\x10com.apiserver.v1B\x0eApiserverProtoP\x01Z7github.com/costa92/go-protoc/v2/pkg/api/apiserver/v1;v1\xa2\x02\x03AXX\xaa\x02\fApiserver.V1\xca\x02\fApiserver\\V1\xe2\x02\x18Apiserver\\V1\\GPBMetadata\xea\x02\rApiserver::V1b\x06proto3"
 
 var (
@@ -153,16 +256,20 @@ func file_apiserver_v1_apiserver_proto_rawDescGZIP() []byte {
 	return file_apiserver_v1_apiserver_proto_rawDescData
 }
 
-var file_apiserver_v1_apiserver_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_apiserver_v1_apiserver_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_apiserver_v1_apiserver_proto_goTypes = []any{
-	(*GetUserRequest)(nil),  // 0: apiserver.v1.GetUserRequest
-	(*GetUserResponse)(nil), // 1: apiserver.v1.GetUserResponse
+	(*GetUserRequest)(nil),     // 0: apiserver.v1.GetUserRequest
+	(*GetUserResponse)(nil),    // 1: apiserver.v1.GetUserResponse
+	(*CreateUserRequest)(nil),  // 2: apiserver.v1.CreateUserRequest
+	(*CreateUserResponse)(nil), // 3: apiserver.v1.CreateUserResponse
 }
 var file_apiserver_v1_apiserver_proto_depIdxs = []int32{
 	0, // 0: apiserver.v1.ApiServer.GetUser:input_type -> apiserver.v1.GetUserRequest
-	1, // 1: apiserver.v1.ApiServer.GetUser:output_type -> apiserver.v1.GetUserResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: apiserver.v1.ApiServer.CreateUser:input_type -> apiserver.v1.CreateUserRequest
+	1, // 2: apiserver.v1.ApiServer.GetUser:output_type -> apiserver.v1.GetUserResponse
+	3, // 3: apiserver.v1.ApiServer.CreateUser:output_type -> apiserver.v1.CreateUserResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -179,7 +286,7 @@ func file_apiserver_v1_apiserver_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_apiserver_v1_apiserver_proto_rawDesc), len(file_apiserver_v1_apiserver_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

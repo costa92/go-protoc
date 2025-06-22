@@ -6,8 +6,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/costa92/go-protoc/v2/internal/pkg/middleware/validate"
-	"github.com/google/wire"
 	"k8s.io/klog/v2"
 )
 
@@ -17,13 +15,13 @@ type Validator struct {
 }
 
 // ProviderSet is the validator providers.
-var ProviderSet = wire.NewSet(ProvideValidator, wire.Bind(new(validate.RequestValidator), new(*Validator)))
+// var ProviderSet = wire.NewSet(ProvideValidator, wire.Bind(new(validate.RequestValidator), new(*Validator)))
 
-// ProvideValidator provides a default validator instance.
-func ProvideValidator() *Validator {
-	// 创建一个空的验证器，可以根据需要添加自定义验证逻辑
-	return NewValidator(struct{}{})
-}
+// // ProvideValidator provides a default validator instance.
+// func ProvideValidator() *Validator {
+// 	// 创建一个空的验证器，可以根据需要添加自定义验证逻辑
+// 	return NewValidator(struct{}{})
+// }
 
 // NewValidator creates and initializes a custom validator.
 func NewValidator(customValidator any) *Validator {
