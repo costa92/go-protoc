@@ -1,5 +1,13 @@
 package server
 
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/costa92/go-protoc/v2/pkg/api/errno"
+	kratoserrors "github.com/go-kratos/kratos/v2/errors"
+)
+
 // UnifiedResponse defines the standard JSON response structure for HTTP APIs.
 type UnifiedResponse struct {
 	Code    int         `json:"code"`
@@ -21,23 +29,8 @@ func EncodeResponseFunc(w http.ResponseWriter, r *http.Request, v interface{}) e
 		Message: DefaultSuccessMessage,
 		Data:    v,
 	}
-
-	// Kratos HTTP transport by default writes HTTP status 200 for non-error responses.
-	// If a handler explicitly sets a different 2xx status code, that should be respected.
-	// However, EncodeResponseFunc is typically called after the handler has returned,
-	// and Kratos would have set 200 OK. We don't need to call w.WriteHeader(http.StatusOK)
-	// here unless we want to force it, which might override a specific 2xx code set by a handler.
-	// For now, let Kratos's default behavior for status codes on success persist.
-
 	return json.NewEncoder(w).Encode(resp)
 }
-
-	"encoding/json"
-	"net/http"
-
-	"github.com/costa92/go-protoc/v2/pkg/api/errno"
-	kratoserrors "github.com/go-kratos/kratos/v2/errors"
-)
 
 // EncodeErrorFunc is a function that encodes errors to the ResponseWriter.
 // It formats errors into the UnifiedResponse structure, ensuring non-zero error codes.
@@ -107,13 +100,3 @@ const (
 	// DefaultErrorMessageInternal is a generic message for internal or unclassified errors.
 	DefaultErrorMessageInternal = "Internal server error"
 )
-
-// Helper function to import necessary packages if they are not automatically added.
-// This is a comment and won't be part of the actual code.
-// import (
-// 	"encoding/json"
-// 	"net/http"
-//
-// 	"github.com/costa92/go-protoc/v2/pkg/api/errno"
-// 	kratoserrors "github.com/go-kratos/kratos/v2/errors"
-// )
