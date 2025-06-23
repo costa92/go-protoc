@@ -18,6 +18,61 @@ type UnifiedResponse struct {
 // DefaultSuccessMessage is the default message for successful responses.
 const DefaultSuccessMessage = "success"
 
+// ErrorCodeMapper defines the interface for mapping error reasons to response codes.
+type ErrorCodeMapper interface {
+	// MapErrorCode maps a Kratos error reason to a response code.
+	// Returns the mapped code and true if mapping exists, otherwise returns 0 and false.
+	MapErrorCode(reason string, httpCode int32) (int, bool)
+}
+
+// DefaultErrorCodeMapper implements ErrorCodeMapper using errno.ErrorReason_value.
+type DefaultErrorCodeMapper struct{}
+
+// MapErrorCode maps error reasons using errno.ErrorReason_value.
+func (m *DefaultErrorCodeMapper) MapErrorCode(reason string, httpCode int32) (int, bool) {
+	if businessCodeInt32, ok := errno.ErrorReason_value[reason]; ok {
+		if businessCodeInt32 != 0 {
+			return int(businessCodeInt32), true
+		}
+	}
+	return 0, false
+}
+
+// HTTPStatusCodeMapper implements ErrorCodeMapper by using HTTP status codes directly.
+type HTTPStatusCodeMapper struct {
+	errorReasons map[string]bool // Set of supported error reasons
+}
+
+// NewHTTPStatusCodeMapper creates a new HTTPStatusCodeMapper with given error reasons.
+func NewHTTPStatusCodeMapper(errorReasons map[string]int32) *HTTPStatusCodeMapper {
+	reasons := make(map[string]bool)
+	for reason := range errorReasons {
+		reasons[reason] = true
+	}
+	return &HTTPStatusCodeMapper{errorReasons: reasons}
+}
+
+// MapErrorCode maps error reasons by using HTTP status codes directly.
+func (m *HTTPStatusCodeMapper) MapErrorCode(reason string, httpCode int32) (int, bool) {
+	if m.errorReasons[reason] {
+		return int(httpCode), true
+	}
+	return 0, false
+}
+
+// Global error code mappers registry
+var errorCodeMappers []ErrorCodeMapper
+
+// RegisterErrorCodeMapper registers an error code mapper.
+func RegisterErrorCodeMapper(mapper ErrorCodeMapper) {
+	errorCodeMappers = append(errorCodeMappers, mapper)
+}
+
+// init registers the default error code mapper.
+func init() {
+	RegisterErrorCodeMapper(&DefaultErrorCodeMapper{})
+}
+
 // EncodeResponseFunc is a function that encodes the object v to the ResponseWriter.
 // It wraps the original data `v` in a UnifiedResponse structure.
 func EncodeResponseFunc(w http.ResponseWriter, r *http.Request, v interface{}) error {
@@ -41,25 +96,25 @@ func EncodeErrorFunc(w http.ResponseWriter, r *http.Request, err error) {
 	responseCode := DefaultErrorCodeForMismatch // Start with a non-zero default for UnifiedResponse.Code
 	responseMessage := kErr.Message
 
-	// Try to map the Kratos error reason to a specific business code from errno.ErrorReason
-	if businessCodeInt32, ok := errno.ErrorReason_value[kErr.Reason]; ok {
-		// Reason is found in our enum map.
-		if businessCodeInt32 != 0 { // If the mapped enum value is not 0 (which is success code)
-			responseCode = int(businessCodeInt32)
-		} else {
-			// The Kratos reason (e.g., "Unknown") maps to enum value 0.
-			// Since 0 is reserved for success in UnifiedResponse.Code,
-			// we keep responseCode as DefaultErrorCodeForMismatch.
-			// The kErr.Message should still be specific if available.
-			if responseMessage == "" && kErr.Reason == errno.ErrorReason_Unknown.String() {
-				responseMessage = DefaultErrorMessageInternal // Provide a clearer message for "Unknown" reason mapping to 0
-			}
+	// Try to map the Kratos error reason using registered mappers
+	mapped := false
+	for _, mapper := range errorCodeMappers {
+		if code, ok := mapper.MapErrorCode(kErr.Reason, kErr.Code); ok {
+			responseCode = code
+			mapped = true
+			break
 		}
-	} else {
-		// The Kratos error reason is not in our errno.ErrorReason_value map (e.g. a raw error).
+	}
+
+	// Handle special case for errno.Unknown mapping to 0
+	if !mapped && kErr.Reason == errno.ErrorReason_Unknown.String() {
+		if responseMessage == "" {
+			responseMessage = DefaultErrorMessageInternal
+		}
+	} else if !mapped {
+		// The Kratos error reason is not in any mapper (e.g. a raw error).
 		// UnifiedResponse.Code remains DefaultErrorCodeForMismatch.
-		// Use kErr.Message.
-		if responseMessage == "" { // If Kratos somehow cleared the message for a raw error
+		if responseMessage == "" {
 			responseMessage = DefaultErrorMessageInternal
 		}
 	}

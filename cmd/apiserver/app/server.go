@@ -6,6 +6,7 @@ import (
 
 	"github.com/costa92/go-protoc/v2/cmd/apiserver/app/options"
 	"github.com/costa92/go-protoc/v2/internal/apiserver"
+	_ "github.com/costa92/go-protoc/v2/internal/apiserver" // Import for error mapper registration
 	"github.com/costa92/go-protoc/v2/internal/pkg/contextx"
 	"github.com/costa92/go-protoc/v2/internal/pkg/known"
 	"github.com/costa92/go-protoc/v2/pkg/app"
