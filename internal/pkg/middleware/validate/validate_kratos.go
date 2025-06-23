@@ -23,8 +23,16 @@ func Validator(validator RequestValidator) middleware.Middleware {
 				if se := new(errors.Error); errors.As(err, &se) {
 					return nil, se
 				}
-
-				return nil, errno.ErrorInvalidParameter("validation failed").WithCause(err)
+				// If err is not a Kratos error, it's likely a validation error from
+				// business logic (e.g., an i18n error).
+				// We use its message as the primary message for the Kratos error.
+				errMsg := err.Error()
+				if errMsg == "" {
+					errMsg = "validation failed" // Default message if original error message is empty
+				}
+				kratosValidationErr := errno.ErrorInvalidParameter(errMsg)
+				// Attach the original error as the cause for richer debugging information.
+				return nil, kratosValidationErr.WithCause(err)
 			}
 
 			return handler(ctx, rq)
