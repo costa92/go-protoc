@@ -24,6 +24,7 @@ func NewMetricsOptions() *MetricsOptions {
 	return &o
 }
 
+// Native
 func (o *MetricsOptions) Native() *metrics.Options {
 	var opts metrics.Options
 	_ = copier.Copy(&opts, &o)
