@@ -30,6 +30,13 @@
 | SecretReachMaxCount | 400 |  密钥达到最大数量限制，无法继续创建新密钥 |
 | SecretNotFound | 404 |  密钥未找到，可能是由于密钥不存在或输入的密钥标识有误 |
 | SecretCreateFailed | 541 |  创建密钥失败，可能是由于服务器或其他问题导致的创建过程中的错误 |
+| JWTTokenInvalid | 401 |  JWT令牌无效，可能是签名错误、格式错误或已被篡改 |
+| JWTTokenExpired | 401 |  JWT令牌已过期，需要重新获取令牌 |
+| JWTTokenMalformed | 401 |  JWT令牌格式错误，无法解析 |
+| JWTTokenNotValidYet | 401 |  JWT令牌尚未生效，当前时间早于令牌的生效时间 |
+| JWTTokenMissing | 401 |  JWT令牌缺失，请求头中未包含Authorization字段 |
+| JWTTokenFormatInvalid | 401 |  JWT令牌格式不正确，应为Bearer {token}格式 |
+| JWTSigningMethodMismatch | 401 |  JWT签名方法不匹配，令牌使用了不支持的签名算法 |
 
 ## 参考
 
