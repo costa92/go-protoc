@@ -1,3 +1,19 @@
+# API 文档
+
+本目录包含项目的 API 文档，使用 protoc-gen-doc 插件从 protobuf 文件自动生成。
+
+## 文档导航
+
+### API 参考文档
+- [API 接口文档](./index.html) - 完整的 API 接口说明
+- [错误码列表](./guide/zh-CN/api/errors-code/apiserver/v1/errors_code.md) - 所有可用的错误码
+
+### 开发指南
+- [错误处理快速开始](./guide/zh-CN/errors-quickstart.md) - 5分钟快速上手错误处理
+- [错误处理使用指南](./guide/zh-CN/errors-usage.md) - 完整的错误处理机制说明
+- [错误处理最佳实践](./guide/zh-CN/errors-best-practices.md) - 错误处理的最佳实践和规范
+- [验证使用指南](./validation-usage.md) - 请求验证机制说明
+
 # Protocol Documentation
 <a name="top"></a>
 
