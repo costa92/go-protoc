@@ -66,3 +66,19 @@ help: Makefile ## Display this help info.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<TARGETS> <OPTIONS>\033[0m\n\n\033[35mTargets:\033[0m\n"} /^[0-9A-Za-z._-]+:.*?##/ { printf "  \033[36m%-45s\033[0m %s\n", $$1, $$2 } /^\$$\([0-9A-Za-z_-]+\):.*?##/ { gsub("_","-", $$1); printf "  \033[36m%-45s\033[0m %s\n", tolower(substr($$1, 3, length($$1)-7)), $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' Makefile #$(MAKEFILE_LIST)
 	@echo -e "$$USAGE_OPTIONS"
 
+
+.PHONY: rename-project
+rename-project: ## Rename the project module path. Usage: make rename-project OLD_PATH=... NEW_PATH=...
+	@echo "Renaming project from $(OLD_PATH) to $(NEW_PATH)..."
+	@# MacOS sed requires a backup extension, Linux sed does not.
+	@# The `sed -i.bak` command works on both, creating a .bak file on MacOS
+	@# and a file with literal '.bak' extension on Linux. We remove these backups.
+	@find . -type f \( -name "*.go" -o -name "go.mod" -o -name "go.sum" -o -name "*.sh" -o -name "*.yaml" -o -name "*.md" \) \
+		-not -path "./.git/*" \
+		-not -path "./.cursor/*" \
+		-not -path "./.serena/*" \
+		-not -path "./vendor/*" \
+		-print0 | xargs -0 sed -i.bak 's|$(OLD_PATH)|$(NEW_PATH)|g'
+	@find . -type f -name "*.bak" -delete
+	@echo "Project renaming complete. Please review the changes."
+	@echo "You might need to run 'go mod tidy' or similar commands."
