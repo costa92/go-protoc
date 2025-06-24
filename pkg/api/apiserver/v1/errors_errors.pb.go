@@ -122,3 +122,101 @@ func IsSecretCreateFailed(err error) bool {
 func ErrorSecretCreateFailed(format string, args ...interface{}) *errors.Error {
 	return errors.New(541, ErrorReason_SecretCreateFailed.String(), fmt.Sprintf(format, args...))
 }
+
+// JWT令牌无效，可能是签名错误、格式错误或已被篡改
+func IsJWTTokenInvalid(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == ErrorReason_JWTTokenInvalid.String() && e.Code == 401
+}
+
+// JWT令牌无效，可能是签名错误、格式错误或已被篡改
+func ErrorJWTTokenInvalid(format string, args ...interface{}) *errors.Error {
+	return errors.New(401, ErrorReason_JWTTokenInvalid.String(), fmt.Sprintf(format, args...))
+}
+
+// JWT令牌已过期，需要重新获取令牌
+func IsJWTTokenExpired(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == ErrorReason_JWTTokenExpired.String() && e.Code == 401
+}
+
+// JWT令牌已过期，需要重新获取令牌
+func ErrorJWTTokenExpired(format string, args ...interface{}) *errors.Error {
+	return errors.New(401, ErrorReason_JWTTokenExpired.String(), fmt.Sprintf(format, args...))
+}
+
+// JWT令牌格式错误，无法解析
+func IsJWTTokenMalformed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == ErrorReason_JWTTokenMalformed.String() && e.Code == 401
+}
+
+// JWT令牌格式错误，无法解析
+func ErrorJWTTokenMalformed(format string, args ...interface{}) *errors.Error {
+	return errors.New(401, ErrorReason_JWTTokenMalformed.String(), fmt.Sprintf(format, args...))
+}
+
+// JWT令牌尚未生效，当前时间早于令牌的生效时间
+func IsJWTTokenNotValidYet(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == ErrorReason_JWTTokenNotValidYet.String() && e.Code == 401
+}
+
+// JWT令牌尚未生效，当前时间早于令牌的生效时间
+func ErrorJWTTokenNotValidYet(format string, args ...interface{}) *errors.Error {
+	return errors.New(401, ErrorReason_JWTTokenNotValidYet.String(), fmt.Sprintf(format, args...))
+}
+
+// JWT令牌缺失，请求头中未包含Authorization字段
+func IsJWTTokenMissing(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == ErrorReason_JWTTokenMissing.String() && e.Code == 401
+}
+
+// JWT令牌缺失，请求头中未包含Authorization字段
+func ErrorJWTTokenMissing(format string, args ...interface{}) *errors.Error {
+	return errors.New(401, ErrorReason_JWTTokenMissing.String(), fmt.Sprintf(format, args...))
+}
+
+// JWT令牌格式不正确，应为Bearer {token}格式
+func IsJWTTokenFormatInvalid(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == ErrorReason_JWTTokenFormatInvalid.String() && e.Code == 401
+}
+
+// JWT令牌格式不正确，应为Bearer {token}格式
+func ErrorJWTTokenFormatInvalid(format string, args ...interface{}) *errors.Error {
+	return errors.New(401, ErrorReason_JWTTokenFormatInvalid.String(), fmt.Sprintf(format, args...))
+}
+
+// JWT签名方法不匹配，令牌使用了不支持的签名算法
+func IsJWTSigningMethodMismatch(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == ErrorReason_JWTSigningMethodMismatch.String() && e.Code == 401
+}
+
+// JWT签名方法不匹配，令牌使用了不支持的签名算法
+func ErrorJWTSigningMethodMismatch(format string, args ...interface{}) *errors.Error {
+	return errors.New(401, ErrorReason_JWTSigningMethodMismatch.String(), fmt.Sprintf(format, args...))
+}

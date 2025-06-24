@@ -22,8 +22,8 @@ fmt:
 run-api:
 	go run cmd/apiserver/main.go
 
-.PHONY: proto
-proto:
+.PHONY: generate
+generate:
 	buf generate
 
 .PHONY: build

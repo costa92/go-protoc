@@ -32,8 +32,8 @@ func (v *Validator) ValidateCreateUserRequest(ctx context.Context, rq *v1.Create
 	// 这里可以添加实际的数据库查询逻辑
 	if rq.Name == "existing_user" {
 		// 使用 i18n 进行国际化消息处理，并使用 errors_errors.pb.go 中定义的错误方法
-		message := i18n.FromContext(ctx).T(locales.UserAlreadyExists)
-		return v1.ErrorUserAlreadyExists(message)
+		message := i18n.FromContext(ctx).E(locales.UserAlreadyExists)
+		return v1.ErrorUserAlreadyExists(message.Error())
 	}
 
 	return nil

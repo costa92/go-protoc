@@ -47,29 +47,57 @@ const (
 	ErrorReason_SecretNotFound ErrorReason = 6
 	// 创建密钥失败，可能是由于服务器或其他问题导致的创建过程中的错误
 	ErrorReason_SecretCreateFailed ErrorReason = 7
+	// JWT令牌无效，可能是签名错误、格式错误或已被篡改
+	ErrorReason_JWTTokenInvalid ErrorReason = 8
+	// JWT令牌已过期，需要重新获取令牌
+	ErrorReason_JWTTokenExpired ErrorReason = 9
+	// JWT令牌格式错误，无法解析
+	ErrorReason_JWTTokenMalformed ErrorReason = 10
+	// JWT令牌尚未生效，当前时间早于令牌的生效时间
+	ErrorReason_JWTTokenNotValidYet ErrorReason = 11
+	// JWT令牌缺失，请求头中未包含Authorization字段
+	ErrorReason_JWTTokenMissing ErrorReason = 12
+	// JWT令牌格式不正确，应为Bearer {token}格式
+	ErrorReason_JWTTokenFormatInvalid ErrorReason = 13
+	// JWT签名方法不匹配，令牌使用了不支持的签名算法
+	ErrorReason_JWTSigningMethodMismatch ErrorReason = 14
 )
 
 // Enum value maps for ErrorReason.
 var (
 	ErrorReason_name = map[int32]string{
-		0: "UserLoginFailed",
-		1: "UserAlreadyExists",
-		2: "UserNotFound",
-		3: "UserCreateFailed",
-		4: "UserOperationForbidden",
-		5: "SecretReachMaxCount",
-		6: "SecretNotFound",
-		7: "SecretCreateFailed",
+		0:  "UserLoginFailed",
+		1:  "UserAlreadyExists",
+		2:  "UserNotFound",
+		3:  "UserCreateFailed",
+		4:  "UserOperationForbidden",
+		5:  "SecretReachMaxCount",
+		6:  "SecretNotFound",
+		7:  "SecretCreateFailed",
+		8:  "JWTTokenInvalid",
+		9:  "JWTTokenExpired",
+		10: "JWTTokenMalformed",
+		11: "JWTTokenNotValidYet",
+		12: "JWTTokenMissing",
+		13: "JWTTokenFormatInvalid",
+		14: "JWTSigningMethodMismatch",
 	}
 	ErrorReason_value = map[string]int32{
-		"UserLoginFailed":        0,
-		"UserAlreadyExists":      1,
-		"UserNotFound":           2,
-		"UserCreateFailed":       3,
-		"UserOperationForbidden": 4,
-		"SecretReachMaxCount":    5,
-		"SecretNotFound":         6,
-		"SecretCreateFailed":     7,
+		"UserLoginFailed":          0,
+		"UserAlreadyExists":        1,
+		"UserNotFound":             2,
+		"UserCreateFailed":         3,
+		"UserOperationForbidden":   4,
+		"SecretReachMaxCount":      5,
+		"SecretNotFound":           6,
+		"SecretCreateFailed":       7,
+		"JWTTokenInvalid":          8,
+		"JWTTokenExpired":          9,
+		"JWTTokenMalformed":        10,
+		"JWTTokenNotValidYet":      11,
+		"JWTTokenMissing":          12,
+		"JWTTokenFormatInvalid":    13,
+		"JWTSigningMethodMismatch": 14,
 	}
 )
 
@@ -104,7 +132,7 @@ var File_apiserver_v1_errors_proto protoreflect.FileDescriptor
 
 const file_apiserver_v1_errors_proto_rawDesc = "" +
 	"\n" +
-	"\x19apiserver/v1/errors.proto\x12\rusercenter.v1\x1a\x13errors/errors.proto*\xf8\x01\n" +
+	"\x19apiserver/v1/errors.proto\x12\rusercenter.v1\x1a\x13errors/errors.proto*\xca\x03\n" +
 	"\vErrorReason\x12\x19\n" +
 	"\x0fUserLoginFailed\x10\x00\x1a\x04\xa8E\x91\x03\x12\x1b\n" +
 	"\x11UserAlreadyExists\x10\x01\x1a\x04\xa8E\x99\x03\x12\x16\n" +
@@ -113,7 +141,15 @@ const file_apiserver_v1_errors_proto_rawDesc = "" +
 	"\x16UserOperationForbidden\x10\x04\x1a\x04\xa8E\x93\x03\x12\x1d\n" +
 	"\x13SecretReachMaxCount\x10\x05\x1a\x04\xa8E\x90\x03\x12\x18\n" +
 	"\x0eSecretNotFound\x10\x06\x1a\x04\xa8E\x94\x03\x12\x1c\n" +
-	"\x12SecretCreateFailed\x10\a\x1a\x04\xa8E\x9d\x04\x1a\x04\xa0E\xf4\x03B\xae\x01\n" +
+	"\x12SecretCreateFailed\x10\a\x1a\x04\xa8E\x9d\x04\x12\x19\n" +
+	"\x0fJWTTokenInvalid\x10\b\x1a\x04\xa8E\x91\x03\x12\x19\n" +
+	"\x0fJWTTokenExpired\x10\t\x1a\x04\xa8E\x91\x03\x12\x1b\n" +
+	"\x11JWTTokenMalformed\x10\n" +
+	"\x1a\x04\xa8E\x91\x03\x12\x1d\n" +
+	"\x13JWTTokenNotValidYet\x10\v\x1a\x04\xa8E\x91\x03\x12\x19\n" +
+	"\x0fJWTTokenMissing\x10\f\x1a\x04\xa8E\x91\x03\x12\x1f\n" +
+	"\x15JWTTokenFormatInvalid\x10\r\x1a\x04\xa8E\x91\x03\x12\"\n" +
+	"\x18JWTSigningMethodMismatch\x10\x0e\x1a\x04\xa8E\x91\x03\x1a\x04\xa0E\xf4\x03B\xae\x01\n" +
 	"\x11com.usercenter.v1B\vErrorsProtoP\x01Z7github.com/costa92/go-protoc/v2/pkg/api/apiserver/v1;v1\xa2\x02\x03UXX\xaa\x02\rUsercenter.V1\xca\x02\rUsercenter\\V1\xe2\x02\x19Usercenter\\V1\\GPBMetadata\xea\x02\x0eUsercenter::V1b\x06proto3"
 
 var (
