@@ -17,12 +17,12 @@ import (
 // PublicPaths is a list of paths that do not require JWT authentication.
 // This should ideally be configurable.
 var PublicPaths = map[string]bool{
-	"/login":          true, // Example: Login path
-	"/healthz":        true, // Example: Health check
-	"/metrics":        true, // Prometheus metrics
-	"/debug/pprof":    true, // Base pprof path
-	"/debug/pprof/":   true, // Also handle trailing slash for prefixes
-	"/openapi/":       true, // OpenAPI docs
+	"/login":        true, // Example: Login path
+	"/healthz":      true, // Example: Health check
+	"/metrics":      true, // Prometheus metrics
+	"/debug/pprof":  true, // Base pprof path
+	"/debug/pprof/": true, // Also handle trailing slash for prefixes
+	"/openapi/":     true, // OpenAPI docs
 	// Add other public paths or path prefixes here
 	// Note: For prefixes, ensure the check handles them correctly (e.g., strings.HasPrefix)
 }
