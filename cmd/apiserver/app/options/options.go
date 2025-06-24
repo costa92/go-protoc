@@ -19,6 +19,7 @@ type ServerOptions struct {
 	HTTPOptions  *genericoptions.HTTPOptions  `json:"http" mapstructure:"http"`
 	MySQLOptions *genericoptions.MySQLOptions `json:"mysql" mapstructure:"mysql"`
 	TLSOptions   *genericoptions.TLSOptions   `json:"tls" mapstructure:"tls"`
+	JWTOptions   *genericoptions.JWTOptions   `json:"jwt" mapstructure:"jwt"` // Added JWT Options
 	Log          *log.Options                 `json:"log" mapstructure:"log"`
 	FeatureGates map[string]bool              `json:"feature-gates"`
 }
@@ -32,6 +33,7 @@ func NewServerOptions() *ServerOptions {
 		HTTPOptions:  genericoptions.NewHTTPOptions(),
 		TLSOptions:   genericoptions.NewTLSOptions(),
 		MySQLOptions: genericoptions.NewMySQLOptions(),
+		JWTOptions:   genericoptions.NewJWTOptions(), // Initialize JWT Options
 		Log:          log.NewOptions(),
 	}
 }
@@ -40,6 +42,7 @@ func (o *ServerOptions) Flags() (fss cliflag.NamedFlagSets) {
 	o.GRPCOptions.AddFlags(fss.FlagSet("grpc"))
 	o.HTTPOptions.AddFlags(fss.FlagSet("http"))
 	o.MySQLOptions.AddFlags(fss.FlagSet("mysql"))
+	o.JWTOptions.AddFlags(fss.FlagSet("jwt")) // Add JWT flags
 	o.Log.AddFlags(fss.FlagSet("log"))
 
 	fs := fss.FlagSet("misc")
@@ -54,6 +57,7 @@ func (o *ServerOptions) Validate() error {
 	errs = append(errs, o.GRPCOptions.Validate()...)
 	errs = append(errs, o.HTTPOptions.Validate()...)
 	errs = append(errs, o.MySQLOptions.Validate()...)
+	errs = append(errs, o.JWTOptions.Validate()...) // Validate JWT Options
 	errs = append(errs, o.Log.Validate()...)
 
 	return utilerrors.NewAggregate(errs)
@@ -65,10 +69,14 @@ func (o *ServerOptions) Complete() error {
 }
 
 func (o *ServerOptions) Config() (*apiserver.Config, error) {
+	if err := o.Validate(); err != nil { // It's good practice to validate before returning config
+		return nil, err
+	}
 	return &apiserver.Config{
 		GRPCOptions:  o.GRPCOptions,
 		HTTPOptions:  o.HTTPOptions,
 		TLSOptions:   o.TLSOptions,
 		MySQLOptions: o.MySQLOptions,
+		JWTOptions:   o.JWTOptions, // Pass JWT Options to apiserver.Config
 	}, nil
 }

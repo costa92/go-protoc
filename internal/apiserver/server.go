@@ -16,6 +16,7 @@ import (
 	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
 	"github.com/costa92/go-protoc/v2/pkg/server"
 	"github.com/costa92/go-protoc/v2/pkg/version"
+	"github.com/costa92/go-protoc/v2/pkg/middleware/authn" // JWT Auth Middleware
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/middleware/selector"
 	"github.com/go-kratos/kratos/v2/registry"
@@ -38,6 +39,7 @@ type Config struct {
 	HTTPOptions  *genericoptions.HTTPOptions
 	TLSOptions   *genericoptions.TLSOptions
 	MySQLOptions *genericoptions.MySQLOptions
+	JWTOptions   *genericoptions.JWTOptions // Added JWT Options
 }
 
 type Server struct {
@@ -93,12 +95,13 @@ func ProvideKratosAppConfig(registrar registry.Registrar) server.KratosAppConfig
 	}
 }
 
-func NewMiddlewares(logger krtlog.Logger, val validate.RequestValidator) []middleware.Middleware {
+func NewMiddlewares(logger krtlog.Logger, val validate.RequestValidator, jwtOpts *genericoptions.JWTOptions) []middleware.Middleware {
 	return []middleware.Middleware{
-		i18nmw.Translator(i18n.WithLanguage(language.English), i18n.WithFS(locales.Locales)),
-		tracing.Server(),
-		validate.Validator(val),
-		logging.Server(logger),
+		logging.Server(logger), // Logging early
+		tracing.Server(),       // Tracing
+		i18nmw.Translator(i18n.WithLanguage(language.English), i18n.WithFS(locales.Locales)), // i18n
+		authn.ServerJWTAuth(jwtOpts), // JWT Authentication
+		validate.Validator(val),      // Validation after auth
 	}
 }
 
