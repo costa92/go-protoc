@@ -86,21 +86,22 @@ func ServerJWTAuth(jwtOpts *options.JWTOptions) middleware.Middleware {
 			})
 
 			if err != nil {
+				// Use i18n keys directly with the generated error helpers.
+				// The actual translation should be handled by a centralized error handler/middleware
+				// or by the client if it interprets these keys.
 				if errors.Is(err, jwt.ErrTokenExpired) {
-					message := i18n.FromContext(ctx).T(locales.JWTTokenExpired)
-					return nil, v1.ErrorJWTTokenExpired("%s", message)
+					return nil, v1.ErrorJWTTokenExpired(locales.JWTTokenExpired)
 				} else if errors.Is(err, jwt.ErrTokenSignatureInvalid) {
-					message := i18n.FromContext(ctx).T(locales.JWTTokenInvalid)
-					return nil, v1.ErrorJWTTokenInvalid("%s", message)
+					// Note: jwt.ErrTokenSignatureInvalid maps to a general "invalid token" message
+					// as per the original logic.
+					return nil, v1.ErrorJWTTokenInvalid(locales.JWTTokenInvalid)
 				} else if errors.Is(err, jwt.ErrTokenMalformed) {
-					message := i18n.FromContext(ctx).T(locales.JWTTokenMalformed)
-					return nil, v1.ErrorJWTTokenMalformed("%s", message)
+					return nil, v1.ErrorJWTTokenMalformed(locales.JWTTokenMalformed)
 				} else if errors.Is(err, jwt.ErrTokenNotValidYet) {
-					message := i18n.FromContext(ctx).T(locales.JWTTokenNotValidYet)
-					return nil, v1.ErrorJWTTokenNotValidYet("%s", message)
+					return nil, v1.ErrorJWTTokenNotValidYet(locales.JWTTokenNotValidYet)
 				} else {
-					message := i18n.FromContext(ctx).T(locales.JWTTokenInvalid)
-					return nil, v1.ErrorJWTTokenInvalid("%s", message)
+					// Default case for other JWT parsing errors
+					return nil, v1.ErrorJWTTokenInvalid(locales.JWTTokenInvalid)
 				}
 			}
 
