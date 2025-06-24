@@ -12,16 +12,17 @@ import (
 	"github.com/costa92/go-protoc/v2/internal/apiserver/pkg/validation"
 	"github.com/costa92/go-protoc/v2/internal/apiserver/store"
 	"github.com/costa92/go-protoc/v2/pkg/db"
+	"github.com/costa92/go-protoc/v2/pkg/options"
 	"github.com/costa92/go-protoc/v2/pkg/server"
 	validation2 "github.com/costa92/go-protoc/v2/pkg/validation"
 )
 
 // Injectors from wire.go:
 
-func InitializeWebServer(arg <-chan struct{}, config *Config, mySQLOptions *db.MySQLOptions) (server.Server, error) {
+func InitializeWebServer(done <-chan struct{}, cfg *Config, mysqlOpts *db.MySQLOptions, jwtOpts *options.JWTOptions) (server.Server, error) {
 	registrar := ProvideRegistrar()
 	kratosAppConfig := ProvideKratosAppConfig(registrar)
-	gormDB, err := db.NewMySQL(mySQLOptions)
+	gormDB, err := db.NewMySQL(mysqlOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -31,9 +32,9 @@ func InitializeWebServer(arg <-chan struct{}, config *Config, mySQLOptions *db.M
 	logger := ProvideKratosLogger()
 	validator := validation.New(datastore)
 	validationValidator := validation2.NewValidator(validator)
-	v := NewMiddlewares(logger, validationValidator)
+	v := NewMiddlewares(logger, validationValidator, jwtOpts)
 	serverConfig := &ServerConfig{
-		cfg:         config,
+		cfg:         cfg,
 		appConfig:   kratosAppConfig,
 		handler:     handlerHandler,
 		middlewares: v,

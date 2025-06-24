@@ -13,6 +13,7 @@ import (
 	"github.com/costa92/go-protoc/v2/pkg/core"
 	"github.com/costa92/go-protoc/v2/pkg/db"
 	"github.com/costa92/go-protoc/v2/pkg/i18n"
+	"github.com/costa92/go-protoc/v2/pkg/middleware/authn" // JWT Auth Middleware
 	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
 	"github.com/costa92/go-protoc/v2/pkg/server"
 	"github.com/costa92/go-protoc/v2/pkg/version"
@@ -38,6 +39,7 @@ type Config struct {
 	HTTPOptions  *genericoptions.HTTPOptions
 	TLSOptions   *genericoptions.TLSOptions
 	MySQLOptions *genericoptions.MySQLOptions
+	JWTOptions   *genericoptions.JWTOptions // Added JWT Options
 }
 
 type Server struct {
@@ -56,7 +58,8 @@ func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
 	var mysqlOptions db.MySQLOptions
 	_ = core.Copy(&mysqlOptions, cfg.MySQLOptions)
 
-	srv, err := InitializeWebServer(ctx.Done(), cfg, &mysqlOptions)
+	// Pass cfg.JWTOptions as the fourth argument
+	srv, err := InitializeWebServer(ctx.Done(), cfg, &mysqlOptions, cfg.JWTOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -93,12 +96,13 @@ func ProvideKratosAppConfig(registrar registry.Registrar) server.KratosAppConfig
 	}
 }
 
-func NewMiddlewares(logger krtlog.Logger, val validate.RequestValidator) []middleware.Middleware {
+func NewMiddlewares(logger krtlog.Logger, val validate.RequestValidator, jwtOpts *genericoptions.JWTOptions) []middleware.Middleware {
 	return []middleware.Middleware{
-		i18nmw.Translator(i18n.WithLanguage(language.English), i18n.WithFS(locales.Locales)),
-		tracing.Server(),
-		validate.Validator(val),
-		logging.Server(logger),
+		logging.Server(logger), // Logging early
+		tracing.Server(),       // Tracing
+		i18nmw.Translator(i18n.WithLanguage(language.English), i18n.WithFS(locales.Locales)), // i18n
+		authn.ServerJWTAuth(jwtOpts), // JWT Authentication
+		validate.Validator(val),      // Validation after auth
 	}
 }
 
