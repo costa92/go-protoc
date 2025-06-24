@@ -5,13 +5,13 @@ import (
 	"strings"
 
 	"github.com/costa92/go-protoc/v2/pkg/api/errno" // For creating standard Kratos errors
-	"github.com/costa92/go-protoc/v2/pkg/authn"    // For AppClaims and context operations
-	"github.com/costa92/go-protoc/v2/pkg/options" // For JWTOptions
-	"github.com/go-kratos/kratos/v2/errors"       // Kratos errors
+	"github.com/costa92/go-protoc/v2/pkg/authn"     // For AppClaims and context operations
+	"github.com/costa92/go-protoc/v2/pkg/options"   // For JWTOptions
+	"github.com/go-kratos/kratos/v2/errors"         // Kratos errors
 	"github.com/go-kratos/kratos/v2/middleware"
-	"github.com/go-kratos/kratos/v2/transport" // For HeaderCarrier
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/go-kratos/kratos/v2/transport"      // For HeaderCarrier
 	"github.com/go-kratos/kratos/v2/transport/http" // For http.RequestFromServerContext
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // PublicPaths is a list of paths that do not require JWT authentication.
