@@ -78,24 +78,33 @@ func ServerJWTAuth(jwtOpts *options.JWTOptions) middleware.Middleware {
 				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 					// This check is for HMAC. If using RSA/ECDSA, check for *jwt.SigningMethodRSA/*jwt.SigningMethodECDSA
 					// And ensure jwtOpts.SigningMethod matches token.Header["alg"]
-					return nil, errors.BadRequest("JWT_VALIDATION", "Unexpected signing method: %v", token.Header["alg"])
+					// Also ensure token.Header["alg"] string matches jwtOpts.SigningMethod
+					if token.Header["alg"] == nil || token.Header["alg"].(string) != jwtOpts.SigningMethod {
+						return nil, errno.ErrorInvalidParameter("jwt_alg_mismatch: Unexpected signing method or method mismatch: %v (expected %s)", token.Header["alg"], jwtOpts.SigningMethod)
+					}
+					// If it's not HMAC and alg matches, it implies a config error (e.g. RSA configured but HMAC key provided)
+					// or a more complex key setup is needed. For now, this error covers it.
+					return nil, errno.ErrorInvalidParameter("jwt_unexpected_signing_method: Non-HMAC method %v found with HMAC key setup", token.Header["alg"])
 				}
 				// jwtOpts.Key is the secret key for HS256/HS512 etc.
 				return []byte(jwtOpts.Key), nil
-			}, jwt.WithIssuer(jwtOpts.Issuer)) // Add WithIssuer if Issuer is configured in JWTOptions and needs validation.
-			// Note: JWTOptions currently doesn't have an Issuer field. If added, uncomment and use it.
+			}) // Removed jwt.WithIssuer for now
+			// Note: JWTOptions currently doesn't have an Issuer field. If added, jwt.WithIssuer(jwtOpts.Issuer) can be used.
 			// jwt.WithAudience(audience), jwt.WithSubject(subject) can also be added if needed.
 
 			if err != nil {
-				if errors.Is(err, jwt.ErrTokenMalformed) {
-					return nil, errno.ErrorUnauthorized("token_malformed: %s", err.Error())
-				} else if errors.Is(err, jwt.ErrTokenExpired) {
+				// Order of checks can be important. ErrTokenExpired, ErrTokenNotValidYet are specific types of ValidationError.
+				// ErrTokenSignatureInvalid is also a specific error.
+				if errors.Is(err, jwt.ErrTokenExpired) {
 					return nil, errno.ErrorUnauthorized("token_expired: %s", err.Error())
 				} else if errors.Is(err, jwt.ErrTokenNotValidYet) {
 					return nil, errno.ErrorUnauthorized("token_not_yet_valid: %s", err.Error())
-				} else if verr, ok := err.(*jwt.ValidationError); ok && errors.Is(verr.Inner, jwt.ErrSignatureInvalid) {
+				} else if errors.Is(err, jwt.ErrTokenSignatureInvalid) { // This is a specific error type from the library
 					return nil, errno.ErrorUnauthorized("token_signature_invalid: %s", err.Error())
+				} else if errors.Is(err, jwt.ErrTokenMalformed) {
+					return nil, errno.ErrorUnauthorized("token_malformed: %s", err.Error())
 				}
+				// For other jwt.ValidationError types or general parsing issues
 				return nil, errno.ErrorUnauthorized("token_invalid: %s", err.Error())
 			}
 
