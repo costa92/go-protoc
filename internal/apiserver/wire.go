@@ -11,15 +11,16 @@ import (
 	"github.com/costa92/go-protoc/v2/internal/apiserver/store"
 	"github.com/costa92/go-protoc/v2/internal/pkg/middleware/validate"
 	"github.com/costa92/go-protoc/v2/pkg/db"
-	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
+	"github.com/costa92/go-protoc/v2/pkg/options" // For genericoptions.JWTOptions
 	"github.com/costa92/go-protoc/v2/pkg/server"
 	genericvalidation "github.com/costa92/go-protoc/v2/pkg/validation"
 	"github.com/google/wire"
 )
 
-func InitializeWebServer(<-chan struct{}, *Config, *db.MySQLOptions,*genericoptions.JWTOptions) (server.Server, error) {
+func InitializeWebServer(done <-chan struct{}, cfg *Config, mysqlOpts *db.MySQLOptions, jwtOpts *options.JWTOptions) (server.Server, error) {
 	wire.Build(
-		NewMiddlewares,
+		// provideJWTOptions is no longer needed as jwtOpts is a direct parameter
+		NewMiddlewares, // NewMiddlewares now expects jwtOpts, which Wire will pass from InitializeWebServer's params
 		ProvideKratosAppConfig,
 		ProvideKratosLogger,
 		ProvideRegistrar,
