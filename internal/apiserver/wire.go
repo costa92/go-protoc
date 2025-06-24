@@ -11,20 +11,14 @@ import (
 	"github.com/costa92/go-protoc/v2/internal/apiserver/store"
 	"github.com/costa92/go-protoc/v2/internal/pkg/middleware/validate"
 	"github.com/costa92/go-protoc/v2/pkg/db"
-	"github.com/costa92/go-protoc/v2/pkg/options" // For genericoptions.JWTOptions
+	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
 	"github.com/costa92/go-protoc/v2/pkg/server"
 	genericvalidation "github.com/costa92/go-protoc/v2/pkg/validation"
 	"github.com/google/wire"
 )
 
-// provideJWTOptions extracts JWTOptions from the main Config.
-func provideJWTOptions(cfg *Config) *options.JWTOptions {
-	return cfg.JWTOptions
-}
-
-func InitializeWebServer(<-chan struct{}, *Config, *db.MySQLOptions) (server.Server, error) {
+func InitializeWebServer(<-chan struct{}, *Config, *db.MySQLOptions,*genericoptions.JWTOptions) (server.Server, error) {
 	wire.Build(
-		provideJWTOptions, // Provide JWTOptions
 		NewMiddlewares,
 		ProvideKratosAppConfig,
 		ProvideKratosLogger,

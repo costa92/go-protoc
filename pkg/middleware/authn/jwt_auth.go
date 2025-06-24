@@ -5,24 +5,24 @@ import (
 	"strings"
 
 	"github.com/costa92/go-protoc/v2/pkg/api/errno" // For creating standard Kratos errors
-	"github.com/costa92/go-protoc/v2/pkg/authn"    // For AppClaims and context operations
-	"github.com/costa92/go-protoc/v2/pkg/options" // For JWTOptions
-	"github.com/go-kratos/kratos/v2/errors"       // Kratos errors
+	"github.com/costa92/go-protoc/v2/pkg/authn"     // For AppClaims and context operations
+	"github.com/costa92/go-protoc/v2/pkg/options"   // For JWTOptions
+	"github.com/go-kratos/kratos/v2/errors"         // Kratos errors
 	"github.com/go-kratos/kratos/v2/middleware"
-	"github.com/go-kratos/kratos/v2/transport" // For HeaderCarrier
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/go-kratos/kratos/v2/transport"      // For HeaderCarrier
 	"github.com/go-kratos/kratos/v2/transport/http" // For http.RequestFromServerContext
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // PublicPaths is a list of paths that do not require JWT authentication.
 // This should ideally be configurable.
 var PublicPaths = map[string]bool{
-	"/login":          true, // Example: Login path
-	"/healthz":        true, // Example: Health check
-	"/metrics":        true, // Prometheus metrics
-	"/debug/pprof":    true, // Base pprof path
-	"/debug/pprof/":   true, // Also handle trailing slash for prefixes
-	"/openapi/":       true, // OpenAPI docs
+	"/login":        true, // Example: Login path
+	"/healthz":      true, // Example: Health check
+	"/metrics":      true, // Prometheus metrics
+	"/debug/pprof":  true, // Base pprof path
+	"/debug/pprof/": true, // Also handle trailing slash for prefixes
+	"/openapi/":     true, // OpenAPI docs
 	// Add other public paths or path prefixes here
 	// Note: For prefixes, ensure the check handles them correctly (e.g., strings.HasPrefix)
 }
