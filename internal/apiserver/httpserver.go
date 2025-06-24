@@ -26,7 +26,7 @@ func (c *ServerConfig) NewHTTPServer() *http.Server {
 		)),
 		// Apply custom response and error encoders
 		http.ResponseEncoder(server.EncodeResponseFunc),
-		// http.ErrorEncoder(server.EncodeErrorFunc),
+		http.ErrorEncoder(server.EncodeErrorFunc), // Activated custom error encoder
 	}
 	if c.cfg.HTTPOptions.Network != "" {
 		opts = append(opts, http.Network(c.cfg.HTTPOptions.Network))

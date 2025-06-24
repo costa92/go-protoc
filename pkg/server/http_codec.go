@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/costa92/go-protoc/v2/pkg/api/errno"
+	"github.com/costa92/go-protoc/v2/pkg/i18n" // Added for i18n support
 	kratoserrors "github.com/go-kratos/kratos/v2/errors"
 )
 
@@ -95,6 +96,16 @@ func EncodeErrorFunc(w http.ResponseWriter, r *http.Request, err error) {
 
 	responseCode := DefaultErrorCodeForMismatch // Start with a non-zero default for UnifiedResponse.Code
 	responseMessage := kErr.Message
+
+	// Attempt to translate the message if it's an i18n key
+	// The i18n middleware should have placed the localizer in the context.
+	if localizer := i18n.FromContext(r.Context()); localizer != nil && kErr.Message != "" {
+		translatedMessage := localizer.T(kErr.Message)
+		// Ensure that if T returns the key itself due to missing translation,
+		// we don't override a more specific message that might have been set by other logic (though unlikely here).
+		// However, in our case, kErr.Message IS the key, so this translatedMessage is what we want.
+		responseMessage = translatedMessage
+	}
 
 	// Try to map the Kratos error reason using registered mappers
 	mapped := false
