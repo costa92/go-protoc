@@ -13,10 +13,10 @@ import (
 	"github.com/costa92/go-protoc/v2/pkg/core"
 	"github.com/costa92/go-protoc/v2/pkg/db"
 	"github.com/costa92/go-protoc/v2/pkg/i18n"
-	"github.com/costa92/go-protoc/v2/pkg/middleware/authn" // JWT Auth Middleware
 	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
 	"github.com/costa92/go-protoc/v2/pkg/server"
 	"github.com/costa92/go-protoc/v2/pkg/version"
+	"github.com/costa92/go-protoc/v2/pkg/middleware/authn" // JWT Auth Middleware
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/middleware/selector"
 	"github.com/go-kratos/kratos/v2/registry"
@@ -58,7 +58,8 @@ func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
 	var mysqlOptions db.MySQLOptions
 	_ = core.Copy(&mysqlOptions, cfg.MySQLOptions)
 
-	srv, err := InitializeWebServer(ctx.Done(), cfg, &mysqlOptions)
+	// Pass cfg.JWTOptions as the fourth argument
+	srv, err := InitializeWebServer(ctx.Done(), cfg, &mysqlOptions, cfg.JWTOptions)
 	if err != nil {
 		return nil, err
 	}
