@@ -13,6 +13,7 @@ type UnifiedResponse struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
+	Reason  string      `json:"reason,omitempty"`
 }
 
 // DefaultSuccessMessage is the default message for successful responses.
@@ -83,6 +84,7 @@ func EncodeResponseFunc(w http.ResponseWriter, r *http.Request, v interface{}) e
 		Code:    0, // 0 for success as per user requirement
 		Message: DefaultSuccessMessage,
 		Data:    v,
+		Reason:  "",
 	}
 	return json.NewEncoder(w).Encode(resp)
 }
@@ -128,6 +130,7 @@ func EncodeErrorFunc(w http.ResponseWriter, r *http.Request, err error) {
 		Code:    responseCode,
 		Message: responseMessage,
 		Data:    nil, // Or consider kErr.Metadata if useful
+		Reason:  kErr.Reason,
 	}
 
 	// Set HTTP status code based on Kratos error's Code field (which is the HTTP status)
