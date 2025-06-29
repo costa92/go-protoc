@@ -13,7 +13,7 @@ import (
 // ErrorX 定义了 OneX 项目体系中使用的错误类型，用于描述错误的详细信息.
 type ErrorX struct {
 	// Code 表示错误的 HTTP 状态码，用于与客户端进行交互时标识错误的类型.
-	Code int `json:"code,omitempty"`
+	Code int32 `json:"code,omitempty"`
 
 	// Reason 表示错误发生的原因，通常为业务错误码，用于精准定位问题.
 	Reason string `json:"reason,omitempty"`
@@ -22,11 +22,15 @@ type ErrorX struct {
 	Message string `json:"message,omitempty"`
 
 	// Metadata 用于存储与该错误相关的额外元信息，可以包含上下文或调试信息.
-	Metadata map[string]string `json:"metadata,omitempty"`
+	Metadata map[string]any `json:"metadata,omitempty"`
+	
+	// 内部字段
+	i18nKey string // 国际化键
+	cause   error  // 原始错误
 }
 
 // New 创建一个新的错误.
-func New(code int, reason string, format string, args ...any) *ErrorX {
+func New(code int32, reason string, format string, args ...any) *ErrorX {
 	return &ErrorX{
 		Code:    code,
 		Reason:  reason,
@@ -46,15 +50,24 @@ func (err *ErrorX) WithMessage(format string, args ...any) *ErrorX {
 }
 
 // WithMetadata 设置元数据.
-func (err *ErrorX) WithMetadata(md map[string]string) *ErrorX {
+func (err *ErrorX) WithMetadata(md map[string]any) *ErrorX {
 	err.Metadata = md
+	return err
+}
+
+// AddMetadata 添加单个元数据项.
+func (err *ErrorX) AddMetadata(key string, value any) *ErrorX {
+	if err.Metadata == nil {
+		err.Metadata = make(map[string]any)
+	}
+	err.Metadata[key] = value
 	return err
 }
 
 // KV 使用 key-value 对设置元数据.
 func (err *ErrorX) KV(kvs ...string) *ErrorX {
 	if err.Metadata == nil {
-		err.Metadata = make(map[string]string) // 初始化元数据映射
+		err.Metadata = make(map[string]any) // 初始化元数据映射
 	}
 
 	for i := 0; i < len(kvs); i += 2 {
@@ -68,14 +81,51 @@ func (err *ErrorX) KV(kvs ...string) *ErrorX {
 
 // GRPCStatus 返回 gRPC 状态表示.
 func (err *ErrorX) GRPCStatus() *status.Status {
-	details := errdetails.ErrorInfo{Reason: err.Reason, Metadata: err.Metadata}
-	s, _ := status.New(httpstatus.ToGRPCCode(err.Code), err.Message).WithDetails(&details)
+	// 转换 metadata 为 string map
+	strMetadata := make(map[string]string)
+	for k, v := range err.Metadata {
+		if str, ok := v.(string); ok {
+			strMetadata[k] = str
+		} else {
+			strMetadata[k] = fmt.Sprintf("%v", v)
+		}
+	}
+	
+	details := errdetails.ErrorInfo{Reason: err.Reason, Metadata: strMetadata}
+	s, _ := status.New(httpstatus.ToGRPCCode(int(err.Code)), err.Message).WithDetails(&details)
 	return s
 }
 
 // WithRequestID 设置请求 ID.
 func (err *ErrorX) WithRequestID(requestID string) *ErrorX {
-	return err.KV("X-Request-ID", requestID) // 设置请求 ID
+	return err.KV("request_id", requestID)
+}
+
+// WithI18nKey 设置国际化键.
+func (err *ErrorX) WithI18nKey(key string) *ErrorX {
+	err.i18nKey = key
+	return err
+}
+
+// WithCause 设置原始错误.
+func (err *ErrorX) WithCause(cause error) *ErrorX {
+	err.cause = cause
+	return err
+}
+
+// GetI18nKey 获取国际化键.
+func (err *ErrorX) GetI18nKey() string {
+	return err.i18nKey
+}
+
+// GetCause 获取原始错误.
+func (err *ErrorX) GetCause() error {
+	return err.cause
+}
+
+// Unwrap 实现 errors.Unwrap 接口.
+func (err *ErrorX) Unwrap() error {
+	return err.cause
 }
 
 // Is 判断当前错误是否与目标错误匹配.
@@ -89,7 +139,7 @@ func (err *ErrorX) Is(target error) bool {
 }
 
 // Code 返回错误的 HTTP 代码.
-func Code(err error) int {
+func Code(err error) int32 {
 	if err == nil {
 		return http.StatusOK //nolint:mnd
 	}
@@ -122,13 +172,13 @@ func FromError(err error) *ErrorX {
 	// 则返回一个带有默认值的 ErrorX，表示是一个未知类型的错误.
 	gs, ok := status.FromError(err)
 	if !ok {
-		return New(ErrInternal.Code, ErrInternal.Reason, "internal error")
+		return New(ErrInternal.Code, ErrInternal.Reason, "internal error").WithCause(err)
 	}
 
 	// 如果 err 是 gRPC 的错误类型，会成功返回一个 gRPC status 对象（gs）.
 	// 使用 gRPC 状态中的错误代码和消息创建一个 ErrorX.
 	ret := &ErrorX{
-		Code:    httpstatus.FromGRPCCode(gs.Code()),
+		Code:    int32(httpstatus.FromGRPCCode(gs.Code())),
 		Reason:  ErrInternal.Reason,
 		Message: gs.Message(),
 	}
@@ -137,9 +187,42 @@ func FromError(err error) *ErrorX {
 	for _, detail := range gs.Details() {
 		if typed, ok := detail.(*errdetails.ErrorInfo); ok {
 			ret.Reason = typed.Reason
-			return ret.WithMetadata(typed.Metadata)
+			// 转换 map[string]string 为 map[string]any
+			metadata := make(map[string]any)
+			for k, v := range typed.Metadata {
+				metadata[k] = v
+			}
+			return ret.WithMetadata(metadata)
 		}
 	}
 
 	return ret
+}
+
+// Wrap 包装错误并添加上下文信息.
+func Wrap(err error, code int32, reason, message string) *ErrorX {
+	if err == nil {
+		return nil
+	}
+	
+	return &ErrorX{
+		Code:    code,
+		Reason:  reason,
+		Message: message,
+		cause:   err,
+	}
+}
+
+// Wrapf 包装错误并添加格式化的上下文信息.
+func Wrapf(err error, code int32, reason, format string, args ...any) *ErrorX {
+	if err == nil {
+		return nil
+	}
+	
+	return &ErrorX{
+		Code:    code,
+		Reason:  reason,
+		Message: fmt.Sprintf(format, args...),
+		cause:   err,
+	}
 }

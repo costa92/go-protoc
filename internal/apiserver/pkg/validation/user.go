@@ -4,9 +4,8 @@ import (
 	"context"
 	"log"
 
-	"github.com/costa92/go-protoc/v2/internal/apiserver/pkg/locales"
 	v1 "github.com/costa92/go-protoc/v2/pkg/api/apiserver/v1"
-	"github.com/costa92/go-protoc/v2/pkg/i18n"
+	"github.com/costa92/go-protoc/v2/pkg/errors"
 	genericvalidation "github.com/costa92/go-protoc/v2/pkg/validation"
 )
 
@@ -31,9 +30,7 @@ func (v *Validator) ValidateCreateUserRequest(ctx context.Context, rq *v1.Create
 	// 模拟检查用户是否已存在的逻辑
 	// 这里可以添加实际的数据库查询逻辑
 	if rq.Name == "existing_user" {
-		// 使用 i18n 进行国际化消息处理，并使用 errors_errors.pb.go 中定义的错误方法
-		message := i18n.FromContext(ctx).E(locales.UserAlreadyExists)
-		return v1.ErrorUserAlreadyExists(message.Error())
+		return errors.NewUserAlreadyExistsError(rq.Name)
 	}
 
 	return nil

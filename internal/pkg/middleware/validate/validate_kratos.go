@@ -30,7 +30,7 @@ func Validator(validator RequestValidator) middleware.Middleware {
 				if errMsg == "" {
 					errMsg = "validation failed" // Default message if original error message is empty
 				}
-				kratosValidationErr := errno.ErrorInvalidParameter(errMsg)
+				kratosValidationErr := errno.ErrorInvalidParameter("%s", errMsg)
 				// Attach the original error as the cause for richer debugging information.
 				return nil, kratosValidationErr.WithCause(err)
 			}
