@@ -113,10 +113,21 @@ func WriteResponse(c *gin.Context, data any, err error) {
 	if err != nil {
 		// 如果发生错误，生成错误响应
 		errx := errorsx.FromError(err) // 提取错误详细信息
-		c.JSON(errx.Code, ErrorResponse{
+		
+		// 转换 metadata 从 map[string]any 到 map[string]string
+		metadata := make(map[string]string)
+		for k, v := range errx.Metadata {
+			if str, ok := v.(string); ok {
+				metadata[k] = str
+			} else {
+				metadata[k] = ""
+			}
+		}
+		
+		c.JSON(int(errx.Code), ErrorResponse{
 			Reason:   errx.Reason,
 			Message:  errx.Message,
-			Metadata: errx.Metadata,
+			Metadata: metadata,
 		})
 		return
 	}

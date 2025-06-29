@@ -1,36 +1,51 @@
 package errorsx
 
-import "net/http"
-
 // 预定义的错误码和原因
 const (
-	UnknownCode   = http.StatusInternalServerError
-	UnknownReason = "UnknownError"
+	// UnknownCode 表示未知的错误代码.
+	UnknownCode int32 = 500
+
+	// UnknownReason 表示未知的错误原因.
+	UnknownReason = "UNKNOWN"
 )
 
-// errorsx 预定义标准的错误.
 var (
-	// OK 代表请求成功.
-	OK = &ErrorX{Code: http.StatusOK, Message: ""}
+	// OK 表示成功状态.
+	OK = New(200, "OK", "Success")
 
-	// ErrInternal 表示所有未知的服务器端错误.
-	ErrInternal = &ErrorX{Code: http.StatusInternalServerError, Reason: "InternalError", Message: "Internal server error."}
+	// ErrInternal 表示内部服务器错误.
+	ErrInternal = New(500, "INTERNAL_ERROR", "Internal server error")
 
-	// ErrNotFound 表示资源未找到.
-	ErrNotFound = &ErrorX{Code: http.StatusNotFound, Reason: "NotFound", Message: "Resource not found."}
+	// ErrNotFound 表示资源未找到错误.
+	ErrNotFound = New(404, "NOT_FOUND", "Resource not found")
 
-	// ErrBind 表示请求体绑定错误.
-	ErrBind = &ErrorX{Code: http.StatusBadRequest, Reason: "BindError", Message: "Error occurred while binding the request body to the struct."}
+	// ErrBind 表示请求参数绑定错误.
+	ErrBind = New(400, "BIND_ERROR", "Request parameter binding failed")
 
-	// ErrInvalidArgument 表示参数验证失败.
-	ErrInvalidArgument = &ErrorX{Code: http.StatusBadRequest, Reason: "InvalidArgument", Message: "Argument verification failed."}
+	// ErrInvalidArgument 表示无效参数错误.
+	ErrInvalidArgument = New(400, "INVALID_ARGUMENT", "Invalid argument")
 
-	// ErrUnauthenticated 表示认证失败.
-	ErrUnauthenticated = &ErrorX{Code: http.StatusUnauthorized, Reason: "Unauthenticated", Message: "Unauthenticated."}
+	// ErrUnauthenticated 表示未认证错误.
+	ErrUnauthenticated = New(401, "UNAUTHENTICATED", "Authentication required")
 
-	// ErrPermissionDenied 表示请求没有权限.
-	ErrPermissionDenied = &ErrorX{Code: http.StatusForbidden, Reason: "PermissionDenied", Message: "Permission denied. Access to the requested resource is forbidden."}
+	// ErrPermissionDenied 表示权限拒绝错误.
+	ErrPermissionDenied = New(403, "PERMISSION_DENIED", "Permission denied")
 
-	// ErrOperationFailed 表示操作失败.
-	ErrOperationFailed = &ErrorX{Code: http.StatusConflict, Reason: "OperationFailed", Message: "The requested operation has failed. Please try again later."}
+	// ErrOperationFailed 表示操作失败错误.
+	ErrOperationFailed = New(500, "OPERATION_FAILED", "Operation failed")
+
+	// ErrValidation 表示验证错误.
+	ErrValidation = New(422, "VALIDATION_ERROR", "Validation failed")
+
+	// ErrConflict 表示资源冲突错误.
+	ErrConflict = New(409, "CONFLICT", "Resource conflict")
+
+	// ErrTooManyRequests 表示请求过多错误.
+	ErrTooManyRequests = New(429, "TOO_MANY_REQUESTS", "Too many requests")
+
+	// ErrServiceUnavailable 表示服务不可用错误.
+	ErrServiceUnavailable = New(503, "SERVICE_UNAVAILABLE", "Service unavailable")
+
+	// ErrTimeout 表示超时错误.
+	ErrTimeout = New(408, "TIMEOUT", "Request timeout")
 )
