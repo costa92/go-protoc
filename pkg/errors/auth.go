@@ -70,7 +70,7 @@ func NewAccountNotActivatedError(userID, activationMethod string) *errorsx.Error
 
 // NewTokenInvalidError 创建 Token 无效错误（带token和reason参数）
 func NewTokenInvalidError(token, reason string) *errorsx.ErrorX {
-	return ErrTokenInvalid.
+	return ErrTokenInvalid.WithMessage("Invalid token: %s", reason).
 		AddMetadata("token", token).
 		AddMetadata("reason", reason)
 }
@@ -84,12 +84,12 @@ func NewTokenExpiredError(token string, expiredAt time.Time) *errorsx.ErrorX {
 
 // NewTokenMissingError 创建 Token 缺失错误
 func NewTokenMissingError(header string) *errorsx.ErrorX {
-	return ErrTokenMissing.AddMetadata("header", header)
+	return ErrTokenMissing.WithMessage("Token is missing in %s header", header).AddMetadata("header", header)
 }
 
 // NewInsufficientPermissionsError 创建权限不足错误（带详细参数）
 func NewInsufficientPermissionsError(userID, requiredPermission string, userPermissions []string) *errorsx.ErrorX {
-	return ErrInsufficientPermissions.
+	return ErrInsufficientPermissions.WithMessage("User %s does not have required permission %s", userID, requiredPermission).
 		AddMetadata("user_id", userID).
 		AddMetadata("required_permission", requiredPermission).
 		AddMetadata("user_permissions", userPermissions)
@@ -97,7 +97,7 @@ func NewInsufficientPermissionsError(userID, requiredPermission string, userPerm
 
 // NewLoginFailedError 创建登录失败错误
 func NewLoginFailedError(username, reason string, attemptCount int) *errorsx.ErrorX {
-	return ErrLoginFailed.
+	return ErrLoginFailed.WithMessage("Login failed for user %s: %s", username, reason).
 		AddMetadata("username", username).
 		AddMetadata("reason", reason).
 		AddMetadata("attempt_count", attemptCount)
@@ -105,7 +105,7 @@ func NewLoginFailedError(username, reason string, attemptCount int) *errorsx.Err
 
 // NewAccountLockedError 创建账户锁定错误
 func NewAccountLockedError(userID, lockReason string, unlockAt time.Time) *errorsx.ErrorX {
-	return ErrAccountLocked.
+	return ErrAccountLocked.WithMessage("Account for user %s is locked: %s", userID, lockReason).
 		AddMetadata("user_id", userID).
 		AddMetadata("lock_reason", lockReason).
 		AddMetadata("unlock_at", unlockAt.Format(time.RFC3339))

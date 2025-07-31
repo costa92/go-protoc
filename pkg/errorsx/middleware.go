@@ -18,7 +18,7 @@ type ErrorResponse struct {
 	Message   string            `json:"message"`
 	Metadata  map[string]any    `json:"metadata,omitempty"`
 	RequestID string            `json:"request_id,omitempty"`
-	Timestamp int64             `json:"timestamp"`
+	Timestamp string            `json:"timestamp"`
 }
 
 // ErrorHandler 错误处理器接口
@@ -41,11 +41,24 @@ func NewDefaultErrorHandler(logger log.Logger) *DefaultErrorHandler {
 // HandleError 处理错误
 func (h *DefaultErrorHandler) HandleError(ctx context.Context, err error) *ErrorResponse {
 	if err == nil {
-		return nil
+		return &ErrorResponse{
+			Code:      http.StatusOK,
+			Reason:    "OK",
+			Message:   "Success",
+			Timestamp: getCurrentTimestamp(),
+		}
 	}
 
 	// 转换为 ErrorX
 	errorX := FromError(err)
+	if errorX == nil {
+		return &ErrorResponse{
+			Code:      http.StatusInternalServerError,
+			Reason:    "INTERNAL_ERROR",
+			Message:   "Internal server error",
+			Timestamp: getCurrentTimestamp(),
+		}
+	}
 	
 	// 本地化错误
 	localizedErr := LocalizeError(ctx, errorX)
@@ -62,10 +75,9 @@ func (h *DefaultErrorHandler) HandleError(ctx context.Context, err error) *Error
 		Timestamp: getCurrentTimestamp(),
 	}
 	
-	// 添加请求 ID
-	if requestID := getRequestID(ctx); requestID != "" {
-		resp.RequestID = requestID
-	}
+			if localizedErr.RequestID != "" {
+			resp.RequestID = localizedErr.RequestID
+		}
 	
 	return resp
 }
@@ -114,8 +126,8 @@ func GinErrorMiddleware(handler ErrorHandler) gin.HandlerFunc {
 		
 		// 检查是否有错误
 		if len(c.Errors) > 0 {
-			// 获取最后一个错误
-			err := c.Errors.Last().Err
+			// 获取第一个错误
+			err := c.Errors[0].Err
 			
 			// 处理错误
 			resp := handler.HandleError(c.Request.Context(), err)
@@ -173,17 +185,11 @@ func (w *responseWrapper) WriteError(err error) {
 // 辅助函数
 
 // getCurrentTimestamp 获取当前时间戳
-func getCurrentTimestamp() int64 {
-	return time.Now().Unix()
+func getCurrentTimestamp() string {
+	return time.Now().Format(time.RFC3339)
 }
 
-// getRequestID 从上下文获取请求 ID
-func getRequestID(ctx context.Context) string {
-	if requestID, ok := ctx.Value("request_id").(string); ok {
-		return requestID
-	}
-	return ""
-}
+
 
 // AbortWithError 中止请求并返回错误（Gin 专用）
 func AbortWithError(c *gin.Context, err error) {
@@ -199,7 +205,7 @@ func AbortWithErrorX(c *gin.Context, err *ErrorX) {
 
 // WriteErrorResponse 直接写入错误响应
 func WriteErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
-	handler := NewDefaultErrorHandler(nil)
+	handler := NewDefaultErrorHandler(log.Default())
 	resp := handler.HandleError(r.Context(), err)
 	if resp == nil {
 		return

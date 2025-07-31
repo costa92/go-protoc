@@ -112,19 +112,17 @@ func TestNewUserAlreadyExistsError(t *testing.T) {
 func TestNewUserValidationError(t *testing.T) {
 	// 测试用户验证错误构建
 	field := "email"
-	value := "invalid-email"
 	reason := "format invalid"
 	
-	err := errors.NewUserValidationError(field, value, reason)
+	err := errors.NewUserValidationError(field, reason)
 	
 	assert.Equal(t, int32(400), err.Code)
 	assert.Equal(t, "USER_VALIDATION_FAILED", err.Reason)
 	assert.Contains(t, err.Message, field)
 	assert.Contains(t, err.Message, reason)
 	assert.Equal(t, field, err.Metadata["field"])
-	assert.Equal(t, value, err.Metadata["value"])
 	assert.Equal(t, reason, err.Metadata["reason"])
-	assert.Equal(t, "errors.user.validation_failed", err.GetI18nKey())
+	assert.Equal(t, "errors.user.validation", err.GetI18nKey())
 }
 
 func TestNewUserInactiveError(t *testing.T) {
@@ -273,16 +271,17 @@ func TestUserErrors_BuilderPattern(t *testing.T) {
 	email := "test@example.com"
 	
 	// 使用构建器模式创建复杂的用户错误
-	err := errorsx.BadRequest().
-		WithReason("USER_VALIDATION_FAILED").
+	err := errorsx.BadRequest("USER_VALIDATION_FAILED").
 		WithMessage("User validation failed for multiple fields").
 		WithI18nKey("errors.user.validation_failed").
-		AddMetadata("user_id", userID).
-		AddMetadata("email", email).
-		AddMetadata("fields", []string{"email", "password"}).
-		AddMetadata("validation_errors", map[string]string{
-			"email":    "invalid format",
-			"password": "too weak",
+		WithMetadata(map[string]any{"user_id": userID}).
+		WithMetadata(map[string]any{"email": email}).
+		WithMetadata(map[string]any{"fields": []string{"email", "password"}}).
+		WithMetadata(map[string]any{
+			"validation_errors": map[string]string{
+				"email":    "invalid format",
+				"password": "too weak",
+			},
 		}).
 		Build()
 	

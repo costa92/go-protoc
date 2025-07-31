@@ -18,7 +18,7 @@ func TestErrorX_NewAndToString(t *testing.T) {
 	errx := errorsx.New(500, "InternalError.DBConnection", "Database connection failed: %s", "timeout")
 
 	// 检查字段值
-	assert.Equal(t, 500, errx.Code)
+	assert.Equal(t, int32(500), errx.Code)
 	assert.Equal(t, "InternalError.DBConnection", errx.Reason)
 	assert.Equal(t, "Database connection failed: timeout", errx.Message)
 
@@ -32,11 +32,11 @@ func TestErrorX_WithMessage(t *testing.T) {
 	errx := errorsx.New(400, "BadRequest.InvalidInput", "Invalid input for field %s", "username")
 
 	// 更新错误的消息
-	errx.WithMessage("New error message: %s", "retry failed")
+	errx = errx.WithMessage("New error message: %s", "retry failed")
 
 	// 验证变更
 	assert.Equal(t, "New error message: retry failed", errx.Message)
-	assert.Equal(t, 400, errx.Code)                         // Code 不变
+	assert.Equal(t, int32(400), errx.Code)                         // Code 不变
 	assert.Equal(t, "BadRequest.InvalidInput", errx.Reason) // Reason 不变
 }
 
@@ -45,7 +45,7 @@ func TestErrorX_WithMetadata(t *testing.T) {
 	errx := errorsx.New(400, "BadRequest.InvalidInput", "Invalid input")
 
 	// 添加元数据
-	errx.WithMetadata(map[string]string{
+	errx.WithMetadata(map[string]any{
 		"field": "username",
 		"type":  "empty",
 	})
@@ -92,7 +92,7 @@ func TestErrorX_FromError_WithGRPCError(t *testing.T) {
 	errx := errorsx.FromError(grpcErr)
 
 	// 检查转换后的 ErrorX
-	assert.Equal(t, 400, errx.Code) // httpstatus.FromGRPCCode(3) 对应 HTTP 400
+	assert.Equal(t, int32(400), errx.Code) // httpstatus.FromGRPCCode(3) 对应 HTTP 400
 	assert.Equal(t, "Invalid argument", errx.Message)
 
 	// 没有附加的元数据
@@ -112,7 +112,7 @@ func TestErrorX_FromError_WithGRPCErrorDetails(t *testing.T) {
 	errx := errorsx.FromError(grpcErr.Err())
 
 	// 检查转换后的 ErrorX
-	assert.Equal(t, 400, errx.Code) // gRPC INVALID_ARGUMENT = HTTP 400
+	assert.Equal(t, int32(400), errx.Code) // gRPC INVALID_ARGUMENT = HTTP 400
 	assert.Equal(t, "Invalid argument", errx.Message)
 	assert.Equal(t, "InvalidInput", errx.Reason) // 从 gRPC ErrorInfo 中提取
 
@@ -210,11 +210,10 @@ func TestWrapf(t *testing.T) {
 
 func TestBuilder(t *testing.T) {
 	// 测试错误构建器
-	err := errorsx.BadRequest().
-		WithReason("VALIDATION_FAILED").
+	err := errorsx.BadRequest("VALIDATION_FAILED").
 		WithMessage("Validation failed").
 		WithI18nKey("errors.validation.failed").
-		AddMetadata("field", "email").
+		WithMetadata(map[string]any{"field": "email"}).
 		Build()
 	
 	assert.Equal(t, int32(400), err.Code)
@@ -228,8 +227,7 @@ func TestBuilderWithContext(t *testing.T) {
 	// 测试带上下文的构建器
 	ctx := context.Background()
 	
-	err := errorsx.BadRequest().
-		WithReason("VALIDATION_FAILED").
+	err := errorsx.BadRequest("VALIDATION_FAILED").
 		WithI18nKey("errors.validation.failed").
 		BuildWithContext(ctx)
 	
@@ -282,7 +280,7 @@ func TestBuilderMethods(t *testing.T) {
 	// 测试各种构建器方法
 	tests := []struct {
 		name    string
-		builder func() *errorsx.Builder
+		builder func(reason string) *errorsx.Builder
 		expCode int32
 	}{
 		{"BadRequest", errorsx.BadRequest, 400},
@@ -294,12 +292,20 @@ func TestBuilderMethods(t *testing.T) {
 		{"TooManyRequests", errorsx.TooManyRequests, 429},
 		{"InternalError", errorsx.InternalError, 500},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.builder().WithMessage("Test message").Build()
+			err := tt.builder("TEST_REASON").WithMessage("Test message").Build()
+			
 			assert.Equal(t, tt.expCode, err.Code)
+			assert.Equal(t, "TEST_REASON", err.Reason)
 			assert.Equal(t, "Test message", err.Message)
 		})
 	}
+}
+
+func TestRequestIDPropagation(t *testing.T) {
+	errorX := errorsx.New(200, "OK", "Success")
+	errorX = errorX.WithRequestID("test-request-id")
+	assert.Equal(t, "test-request-id", errorX.RequestID)
 }

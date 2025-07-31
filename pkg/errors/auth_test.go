@@ -287,12 +287,12 @@ func TestAuthErrors_BuilderPattern(t *testing.T) {
 	err := errorsx.Forbidden("INSUFFICIENT_PERMISSIONS").
 		WithMessage("User does not have required permissions").
 		WithI18nKey("errors.auth.insufficient_permissions").
-		WithMetadata("user_id", userID).
-		WithMetadata("required_role", requiredRole).
-		WithMetadata("user_roles", userRoles).
-		WithMetadata("resource", "admin_panel").
-		WithMetadata("action", "delete_user").
-		WithMetadata("timestamp", time.Now().Format(time.RFC3339)).
+		WithMetadata(map[string]any{"user_id": userID}).
+		WithMetadata(map[string]any{"required_role": requiredRole}).
+		WithMetadata(map[string]any{"user_roles": userRoles}).
+		WithMetadata(map[string]any{"resource": "admin_panel"}).
+		WithMetadata(map[string]any{"action": "delete_user"}).
+		WithMetadata(map[string]any{"timestamp": time.Now().Format(time.RFC3339)}).
 		Build()
 	
 	assert.Equal(t, int32(403), err.Code)

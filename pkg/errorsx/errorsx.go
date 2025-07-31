@@ -23,6 +23,7 @@ type ErrorX struct {
 
 	// Metadata 用于存储与该错误相关的额外元信息，可以包含上下文或调试信息.
 	Metadata map[string]any `json:"metadata,omitempty"`
+	RequestID string `json:"request_id,omitempty"`
 	
 	// 内部字段
 	i18nKey string // 国际化键
@@ -51,7 +52,12 @@ func (err *ErrorX) WithMessage(format string, args ...any) *ErrorX {
 
 // WithMetadata 设置元数据.
 func (err *ErrorX) WithMetadata(md map[string]any) *ErrorX {
-	err.Metadata = md
+	if err.Metadata == nil {
+		err.Metadata = make(map[string]any)
+	}
+	for k, v := range md {
+		err.Metadata[k] = v
+	}
 	return err
 }
 
@@ -98,7 +104,8 @@ func (err *ErrorX) GRPCStatus() *status.Status {
 
 // WithRequestID 设置请求 ID.
 func (err *ErrorX) WithRequestID(requestID string) *ErrorX {
-	return err.KV("request_id", requestID)
+	err.RequestID = requestID
+	return err
 }
 
 // WithI18nKey 设置国际化键.
@@ -149,7 +156,7 @@ func Code(err error) int32 {
 // Reason 返回特定错误的原因.
 func Reason(err error) string {
 	if err == nil {
-		return ErrInternal.Reason
+		return ""
 	}
 	return FromError(err).Reason
 }
@@ -172,7 +179,7 @@ func FromError(err error) *ErrorX {
 	// 则返回一个带有默认值的 ErrorX，表示是一个未知类型的错误.
 	gs, ok := status.FromError(err)
 	if !ok {
-		return New(ErrInternal.Code, ErrInternal.Reason, "internal error").WithCause(err)
+		return New(UnknownCode, UnknownReason, "%s", err.Error())
 	}
 
 	// 如果 err 是 gRPC 的错误类型，会成功返回一个 gRPC status 对象（gs）.
@@ -181,6 +188,7 @@ func FromError(err error) *ErrorX {
 		Code:    int32(httpstatus.FromGRPCCode(gs.Code())),
 		Reason:  ErrInternal.Reason,
 		Message: gs.Message(),
+		RequestID: "", // Initialize RequestID
 	}
 
 	// 遍历 gRPC 错误详情中的所有附加信息（Details）.

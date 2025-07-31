@@ -102,17 +102,25 @@ func Create(reason string) *Builder {
 	return builder
 }
 
-// GetTemplate 获取错误模板
-func GetTemplate(reason string) (*ErrorTemplate, bool) {
-	return GlobalRegistry.Get(reason)
+// Create 使用注册器创建错误构建器，如果模板不存在则返回 nil
+func (r *Registry) Create(reason string) *Builder {
+	template, exists := r.Get(reason)
+	if !exists {
+		return nil
+	}
+	builder := NewBuilder(template.Code, template.Reason)
+	if template.I18nKey != "" {
+		builder = builder.WithI18nKey(template.I18nKey)
+	}
+	return builder
 }
 
-// ListTemplates 列出所有错误模板
-func ListTemplates() map[string]*ErrorTemplate {
-	return GlobalRegistry.List()
-}
-
-// TemplateExists 检查错误模板是否存在
-func TemplateExists(reason string) bool {
-	return GlobalRegistry.Exists(reason)
+// MustCreate 使用注册器创建错误构建器，如果模板不存在则 panic
+func (r *Registry) MustCreate(reason string) *Builder {
+	template := r.MustGet(reason)
+	builder := NewBuilder(template.Code, template.Reason)
+	if template.I18nKey != "" {
+		builder = builder.WithI18nKey(template.I18nKey)
+	}
+	return builder
 }

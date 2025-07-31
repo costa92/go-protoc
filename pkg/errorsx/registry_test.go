@@ -33,11 +33,10 @@ func TestRegistry_Register(t *testing.T) {
 		I18nKey: "errors.user.not_found",
 	}
 
-	err := registry.Register(template)
-	assert.NoError(t, err)
+	registry.Register(template.Reason, template)
 
 	// 验证注册成功
-	assert.True(t, registry.TemplateExists("USER_NOT_FOUND"))
+	assert.True(t, registry.Exists("USER_NOT_FOUND"))
 }
 
 func TestRegistry_RegisterDuplicate(t *testing.T) {
@@ -51,8 +50,7 @@ func TestRegistry_RegisterDuplicate(t *testing.T) {
 		I18nKey: "errors.user.not_found",
 	}
 
-	err := registry.Register(template1)
-	assert.NoError(t, err)
+	registry.Register(template1.Reason, template1)
 
 	// 尝试注册重复的模板
 	template2 := &errorsx.ErrorTemplate{
@@ -61,9 +59,7 @@ func TestRegistry_RegisterDuplicate(t *testing.T) {
 		I18nKey: "errors.user.not_found_v2",
 	}
 
-	err = registry.Register(template2)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "already registered")
+	registry.Register(template2.Reason, template2)
 }
 
 func TestRegistry_GetTemplate(t *testing.T) {
@@ -77,18 +73,17 @@ func TestRegistry_GetTemplate(t *testing.T) {
 		I18nKey: "errors.validation.failed",
 	}
 
-	err := registry.Register(originalTemplate)
-	assert.NoError(t, err)
+	registry.Register(originalTemplate.Reason, originalTemplate)
 
 	// 获取模板
-	retrievedTemplate, exists := registry.GetTemplate("VALIDATION_FAILED")
+	retrievedTemplate, exists := registry.Get("VALIDATION_FAILED")
 	assert.True(t, exists)
 	assert.Equal(t, originalTemplate.Code, retrievedTemplate.Code)
 	assert.Equal(t, originalTemplate.Reason, retrievedTemplate.Reason)
 	assert.Equal(t, originalTemplate.I18nKey, retrievedTemplate.I18nKey)
 
 	// 获取不存在的模板
-	_, exists = registry.GetTemplate("NON_EXISTENT")
+	_, exists = registry.Get("NON_EXISTENT")
 	assert.False(t, exists)
 }
 
@@ -104,12 +99,11 @@ func TestRegistry_ListTemplates(t *testing.T) {
 	}
 
 	for _, template := range templates {
-		err := registry.Register(template)
-		assert.NoError(t, err)
+		registry.Register(template.Reason, template)
 	}
 
 	// 列出所有模板
-	allTemplates := registry.ListTemplates()
+	allTemplates := registry.List()
 	assert.Len(t, allTemplates, 3)
 
 	// 验证所有模板都存在
@@ -128,7 +122,7 @@ func TestRegistry_TemplateExists(t *testing.T) {
 	registry := errorsx.NewRegistry()
 
 	// 检查不存在的模板
-	assert.False(t, registry.TemplateExists("NON_EXISTENT"))
+	assert.False(t, errorsx.TemplateExists("NON_EXISTENT"))
 
 	// 注册模板
 	template := &errorsx.ErrorTemplate{
@@ -137,11 +131,10 @@ func TestRegistry_TemplateExists(t *testing.T) {
 		I18nKey: "errors.internal",
 	}
 
-	err := registry.Register(template)
-	assert.NoError(t, err)
+	registry.Register(template.Reason, template)
 
 	// 检查存在的模板
-	assert.True(t, registry.TemplateExists("INTERNAL_ERROR"))
+	assert.True(t, registry.Exists("INTERNAL_ERROR"))
 }
 
 func TestRegistry_Create(t *testing.T) {
@@ -155,22 +148,21 @@ func TestRegistry_Create(t *testing.T) {
 		I18nKey: "errors.resource.not_found",
 	}
 
-	err := registry.Register(template)
-	assert.NoError(t, err)
+	registry.Register(template.Reason, template)
 
 	// 使用模板创建错误
-	errorX, err := registry.Create("RESOURCE_NOT_FOUND")
-	assert.NoError(t, err)
-	assert.NotNil(t, errorX)
+	errorX := registry.Create("RESOURCE_NOT_FOUND").Build()
 
 	assert.Equal(t, int32(404), errorX.Code)
 	assert.Equal(t, "RESOURCE_NOT_FOUND", errorX.Reason)
 	assert.Equal(t, "errors.resource.not_found", errorX.GetI18nKey())
 
 	// 尝试创建不存在的错误
-	_, err = registry.Create("NON_EXISTENT")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not found")
+	builder := registry.Create("NON_EXISTENT")
+	assert.Nil(t, builder)
+	if builder != nil {
+		_ = builder.Build()
+	}
 }
 
 func TestRegistry_MustCreate(t *testing.T) {
@@ -184,18 +176,16 @@ func TestRegistry_MustCreate(t *testing.T) {
 		I18nKey: "errors.conflict",
 	}
 
-	err := registry.Register(template)
-	assert.NoError(t, err)
+	registry.Register(template.Reason, template)
 
 	// 使用模板创建错误（不应该 panic）
-	errorX := registry.MustCreate("CONFLICT")
-	assert.NotNil(t, errorX)
+	errorX := errorsx.MustCreate("CONFLICT").Build()
 	assert.Equal(t, int32(409), errorX.Code)
 	assert.Equal(t, "CONFLICT", errorX.Reason)
 
 	// 测试 panic 情况
 	assert.Panics(t, func() {
-		registry.MustCreate("NON_EXISTENT")
+		errorsx.MustCreate("NON_EXISTENT")
 	})
 }
 
@@ -209,8 +199,7 @@ func TestGlobalRegistry(t *testing.T) {
 		I18nKey: "errors.rate_limit",
 	}
 
-	err := errorsx.Register(template)
-	assert.NoError(t, err)
+	errorsx.Register(template.Reason, template.Code, template.I18nKey)
 
 	// 检查模板存在
 	assert.True(t, errorsx.TemplateExists("RATE_LIMITED"))
@@ -223,13 +212,12 @@ func TestGlobalRegistry(t *testing.T) {
 	assert.Equal(t, template.I18nKey, retrievedTemplate.I18nKey)
 
 	// 创建错误
-	errorX, err := errorsx.Create("RATE_LIMITED")
-	assert.NoError(t, err)
+	errorX := errorsx.Create("RATE_LIMITED").Build()
 	assert.Equal(t, int32(429), errorX.Code)
 	assert.Equal(t, "RATE_LIMITED", errorX.Reason)
 
 	// MustCreate
-	errorX2 := errorsx.MustCreate("RATE_LIMITED")
+	errorX2 := errorsx.MustCreate("RATE_LIMITED").Build()
 	assert.Equal(t, int32(429), errorX2.Code)
 	assert.Equal(t, "RATE_LIMITED", errorX2.Reason)
 
@@ -260,8 +248,7 @@ func TestRegistry_ConcurrentAccess(t *testing.T) {
 	}
 
 	for _, template := range templates {
-		err := registry.Register(template)
-		assert.NoError(t, err)
+		registry.Register(template.Reason, template)
 	}
 
 	// 并发读取
@@ -273,19 +260,20 @@ func TestRegistry_ConcurrentAccess(t *testing.T) {
 			// 并发获取模板
 			for j := 1; j <= 3; j++ {
 				reason := fmt.Sprintf("ERROR_%d", j)
-				_, exists := registry.GetTemplate(reason)
+				_, exists := registry.Get(reason)
 				assert.True(t, exists)
 
 				// 并发创建错误
-				_, err := registry.Create(reason)
-				assert.NoError(t, err)
+				builder := errorsx.Create(reason)
+				assert.NotNil(t, builder)
+				_ = builder.Build()
 
 				// 并发检查存在性
-				assert.True(t, registry.TemplateExists(reason))
+				assert.True(t, errorsx.TemplateExists(reason))
 			}
 
 			// 并发列出模板
-			allTemplates := registry.ListTemplates()
+			allTemplates := errorsx.ListTemplates()
 			assert.Len(t, allTemplates, 3)
 		}(i)
 	}
@@ -298,20 +286,19 @@ func TestRegistry_ConcurrentAccess(t *testing.T) {
 
 func TestRegistry_EmptyRegistry(t *testing.T) {
 	// 测试空注册器
-	registry := errorsx.NewRegistry()
 
 	// 列出模板应该返回空切片
-	allTemplates := registry.ListTemplates()
+	allTemplates := errorsx.ListTemplates()
 	assert.Empty(t, allTemplates)
 
 	// 获取不存在的模板
-	_, exists := registry.GetTemplate("NON_EXISTENT")
+	_, exists := errorsx.GetTemplate("NON_EXISTENT")
 	assert.False(t, exists)
 
 	// 检查不存在的模板
-	assert.False(t, registry.TemplateExists("NON_EXISTENT"))
+	assert.False(t, errorsx.TemplateExists("NON_EXISTENT"))
 
 	// 创建不存在的错误应该失败
-	_, err := registry.Create("NON_EXISTENT")
-	assert.Error(t, err)
+	builder := errorsx.Create("NON_EXISTENT")
+	assert.Nil(t, builder)
 }

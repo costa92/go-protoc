@@ -1,6 +1,8 @@
 package errors
 
 import (
+	"time"
+
 	"github.com/costa92/go-protoc/v2/pkg/errorsx"
 )
 
@@ -19,10 +21,10 @@ var (
 	ErrInvalidRequest = errorsx.New(400, "INVALID_REQUEST", "Invalid request").WithI18nKey("errors.common.invalid_request")
 	
 	// ErrMissingParameter 缺少必需参数
-	ErrMissingParameter = errorsx.New(400, "MISSING_PARAMETER", "Missing required parameter").WithI18nKey("errors.common.missing_parameter")
+	ErrMissingParameter = errorsx.New(400, "INVALID_REQUEST", "Missing required parameter").WithI18nKey("errors.common.missing_parameter")
 	
 	// ErrInvalidParameter 参数无效
-	ErrInvalidParameter = errorsx.New(400, "INVALID_PARAMETER", "Invalid parameter").WithI18nKey("errors.common.invalid_parameter")
+	ErrInvalidParameter = errorsx.New(400, "INVALID_REQUEST", "Invalid parameter").WithI18nKey("errors.common.invalid_parameter")
 	
 	// ErrParameterOutOfRange 参数超出范围
 	ErrParameterOutOfRange = errorsx.New(400, "PARAMETER_OUT_OF_RANGE", "Parameter out of range").WithI18nKey("errors.common.parameter_out_of_range")
@@ -53,6 +55,14 @@ var (
 	
 	// ErrUnsupportedFileType 不支持的文件类型
 	ErrUnsupportedFileType = errorsx.New(415, "UNSUPPORTED_FILE_TYPE", "Unsupported file type").WithI18nKey("errors.common.unsupported_file_type")
+	// ErrInternalServer 内部服务错误
+	ErrInternalServer = errorsx.New(500, "INTERNAL_SERVER_ERROR", "Internal server error").WithI18nKey("errors.common.internal_server_error")
+	// ErrRequestTimeout 请求超时
+	ErrRequestTimeout = errorsx.New(408, "REQUEST_TIMEOUT", "Request timeout").WithI18nKey("errors.common.request_timeout")
+	// ErrDatabaseConnection 数据库连接错误
+	ErrDatabaseConnection = errorsx.New(500, "DATABASE_CONNECTION_ERROR", "Database connection error").WithI18nKey("errors.common.database_connection_error")
+	// ErrExternalService 外部服务错误
+	ErrExternalService = errorsx.New(502, "EXTERNAL_SERVICE_ERROR", "External service error").WithI18nKey("errors.common.external_service_error")
 )
 
 // 通用错误构建器函数
@@ -135,4 +145,11 @@ func NewUnsupportedFileTypeError(filename, fileType string, supportedTypes []str
 		AddMetadata("filename", filename).
 		AddMetadata("file_type", fileType).
 		AddMetadata("supported_types", supportedTypes)
+}
+
+// NewTimeoutError 创建超时错误
+func NewTimeoutError(operation string, timeout time.Duration) *errorsx.ErrorX {
+	return ErrRequestTimeout.
+		AddMetadata("operation", operation).
+		AddMetadata("timeout", timeout.String())
 }

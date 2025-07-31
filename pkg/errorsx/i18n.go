@@ -71,6 +71,7 @@ func LocalizeError(ctx context.Context, err *ErrorX) *ErrorX {
 		Reason:   err.Reason,
 		Message:  err.Message,
 		Metadata: err.Metadata,
+		RequestID: err.RequestID,
 		i18nKey:  err.i18nKey,
 		cause:    err.cause,
 	}
@@ -99,6 +100,7 @@ func LocalizeErrorWithParams(ctx context.Context, err *ErrorX, params map[string
 		Reason:   err.Reason,
 		Message:  err.Message,
 		Metadata: err.Metadata,
+		RequestID: err.RequestID,
 		i18nKey:  err.i18nKey,
 		cause:    err.cause,
 	}

@@ -39,11 +39,13 @@ func (b *Builder) WithMessage(message string) *Builder {
 }
 
 // WithMetadata 添加元数据
-func (b *Builder) WithMetadata(key string, value any) *Builder {
+func (b *Builder) WithMetadata(data map[string]any) *Builder {
 	if b.metadata == nil {
 		b.metadata = make(map[string]any)
 	}
-	b.metadata[key] = value
+	for k, v := range data {
+		b.metadata[k] = v
+	}
 	return b
 }
 
@@ -55,7 +57,7 @@ func (b *Builder) WithCause(err error) *Builder {
 
 // Build 构建错误对象
 func (b *Builder) Build() *ErrorX {
-	return &ErrorX{
+	err := &ErrorX{
 		Code:     b.code,
 		Reason:   b.reason,
 		Message:  b.message,
@@ -63,6 +65,16 @@ func (b *Builder) Build() *ErrorX {
 		i18nKey:  b.i18nKey,
 		cause:    b.cause,
 	}
+
+	if err.Message == "" {
+		err.Message = "An unexpected error occurred."
+	}
+
+	if err.Reason == "" {
+		err.Reason = "UNKNOWN_ERROR"
+	}
+
+	return err
 }
 
 // BuildWithContext 使用上下文构建错误对象，自动进行国际化
