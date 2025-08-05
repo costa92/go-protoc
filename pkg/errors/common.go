@@ -10,49 +10,49 @@ import (
 var (
 	// ErrResourceNotFound 资源不存在
 	ErrResourceNotFound = errorsx.New(404, "RESOURCE_NOT_FOUND", "Resource not found").WithI18nKey("errors.common.resource_not_found")
-	
+
 	// ErrResourceAlreadyExists 资源已存在
 	ErrResourceAlreadyExists = errorsx.New(409, "RESOURCE_ALREADY_EXISTS", "Resource already exists").WithI18nKey("errors.common.resource_already_exists")
-	
+
 	// ErrResourceConflict 资源冲突
 	ErrResourceConflict = errorsx.New(409, "RESOURCE_CONFLICT", "Resource conflict").WithI18nKey("errors.common.resource_conflict")
-	
+
 	// ErrInvalidRequest 请求无效
 	ErrInvalidRequest = errorsx.New(400, "INVALID_REQUEST", "Invalid request").WithI18nKey("errors.common.invalid_request")
-	
+
 	// ErrMissingParameter 缺少必需参数
 	ErrMissingParameter = errorsx.New(400, "INVALID_REQUEST", "Missing required parameter").WithI18nKey("errors.common.missing_parameter")
-	
+
 	// ErrInvalidParameter 参数无效
 	ErrInvalidParameter = errorsx.New(400, "INVALID_REQUEST", "Invalid parameter").WithI18nKey("errors.common.invalid_parameter")
-	
+
 	// ErrParameterOutOfRange 参数超出范围
 	ErrParameterOutOfRange = errorsx.New(400, "PARAMETER_OUT_OF_RANGE", "Parameter out of range").WithI18nKey("errors.common.parameter_out_of_range")
-	
+
 	// ErrRateLimitExceeded 请求频率超限
 	ErrRateLimitExceeded = errorsx.New(429, "RATE_LIMIT_EXCEEDED", "Rate limit exceeded").WithI18nKey("errors.common.rate_limit_exceeded")
-	
+
 	// ErrServiceUnavailable 服务不可用
 	ErrServiceUnavailable = errorsx.New(503, "SERVICE_UNAVAILABLE", "Service temporarily unavailable").WithI18nKey("errors.common.service_unavailable")
-	
+
 	// ErrDatabaseError 数据库错误
 	ErrDatabaseError = errorsx.New(500, "DATABASE_ERROR", "Database operation failed").WithI18nKey("errors.common.database_error")
-	
+
 	// ErrExternalServiceError 外部服务错误
 	ErrExternalServiceError = errorsx.New(502, "EXTERNAL_SERVICE_ERROR", "External service error").WithI18nKey("errors.common.external_service_error")
-	
+
 	// ErrConfigurationError 配置错误
 	ErrConfigurationError = errorsx.New(500, "CONFIGURATION_ERROR", "Configuration error").WithI18nKey("errors.common.configuration_error")
-	
+
 	// ErrFileNotFound 文件不存在
 	ErrFileNotFound = errorsx.New(404, "FILE_NOT_FOUND", "File not found").WithI18nKey("errors.common.file_not_found")
-	
+
 	// ErrFileUploadFailed 文件上传失败
 	ErrFileUploadFailed = errorsx.New(400, "FILE_UPLOAD_FAILED", "File upload failed").WithI18nKey("errors.common.file_upload_failed")
-	
+
 	// ErrFileSizeExceeded 文件大小超限
 	ErrFileSizeExceeded = errorsx.New(413, "FILE_SIZE_EXCEEDED", "File size exceeded").WithI18nKey("errors.common.file_size_exceeded")
-	
+
 	// ErrUnsupportedFileType 不支持的文件类型
 	ErrUnsupportedFileType = errorsx.New(415, "UNSUPPORTED_FILE_TYPE", "Unsupported file type").WithI18nKey("errors.common.unsupported_file_type")
 	// ErrInternalServer 内部服务错误

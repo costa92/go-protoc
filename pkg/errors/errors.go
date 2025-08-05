@@ -57,28 +57,28 @@ const (
 var (
 	// ErrMinerInvalidConfiguration 矿工配置无效
 	ErrMinerInvalidConfiguration = errorsx.New(400, "MINER_INVALID_CONFIGURATION", "Invalid miner configuration").WithI18nKey("errors.miner.invalid_configuration")
-	
+
 	// ErrMinerUnsupportedChange 不支持的矿工变更操作
 	ErrMinerUnsupportedChange = errorsx.New(400, "MINER_UNSUPPORTED_CHANGE", "Unsupported miner change operation").WithI18nKey("errors.miner.unsupported_change")
-	
+
 	// ErrMinerInsufficientResources 矿工资源不足
 	ErrMinerInsufficientResources = errorsx.New(400, "MINER_INSUFFICIENT_RESOURCES", "Insufficient miner resources").WithI18nKey("errors.miner.insufficient_resources")
-	
+
 	// ErrMinerCreateFailed 创建矿工失败
 	ErrMinerCreateFailed = errorsx.New(500, "MINER_CREATE_FAILED", "Failed to create miner").WithI18nKey("errors.miner.create_failed")
-	
+
 	// ErrMinerUpdateFailed 更新矿工失败
 	ErrMinerUpdateFailed = errorsx.New(500, "MINER_UPDATE_FAILED", "Failed to update miner").WithI18nKey("errors.miner.update_failed")
-	
+
 	// ErrMinerDeleteFailed 删除矿工失败
 	ErrMinerDeleteFailed = errorsx.New(500, "MINER_DELETE_FAILED", "Failed to delete miner").WithI18nKey("errors.miner.delete_failed")
-	
+
 	// ErrMinerJoinClusterTimeout 矿工加入集群超时
 	ErrMinerJoinClusterTimeout = errorsx.New(408, "MINER_JOIN_CLUSTER_TIMEOUT", "Miner join cluster timeout").WithI18nKey("errors.miner.join_cluster_timeout")
-	
+
 	// ErrMinerNotFound 矿工不存在
 	ErrMinerNotFound = errorsx.New(404, "MINER_NOT_FOUND", "Miner not found").WithI18nKey("errors.miner.not_found")
-	
+
 	// ErrMinerAlreadyExists 矿工已存在
 	ErrMinerAlreadyExists = errorsx.New(409, "MINER_ALREADY_EXISTS", "Miner already exists").WithI18nKey("errors.miner.already_exists")
 )

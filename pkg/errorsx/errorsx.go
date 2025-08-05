@@ -4,11 +4,28 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
+	"sync"
 
 	httpstatus "github.com/go-kratos/kratos/v2/transport/http/status"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/status"
 )
+
+// 字符串构建器对象池，用于优化错误消息格式化性能
+var stringBuilderPool = sync.Pool{
+	New: func() interface{} {
+		return &strings.Builder{}
+	},
+}
+
+// 元数据对象池，用于优化元数据map分配
+var metadataPool = sync.Pool{
+	New: func() interface{} {
+		return make(map[string]any)
+	},
+}
 
 // ErrorX 定义了 OneX 项目体系中使用的错误类型，用于描述错误的详细信息.
 type ErrorX struct {
@@ -22,9 +39,9 @@ type ErrorX struct {
 	Message string `json:"message,omitempty"`
 
 	// Metadata 用于存储与该错误相关的额外元信息，可以包含上下文或调试信息.
-	Metadata map[string]any `json:"metadata,omitempty"`
-	RequestID string `json:"request_id,omitempty"`
-	
+	Metadata  map[string]any `json:"metadata,omitempty"`
+	RequestID string         `json:"request_id,omitempty"`
+
 	// 内部字段
 	i18nKey string // 国际化键
 	cause   error  // 原始错误
@@ -32,28 +49,58 @@ type ErrorX struct {
 
 // New 创建一个新的错误.
 func New(code int32, reason string, format string, args ...any) *ErrorX {
+	var message string
+	if len(args) == 0 {
+		message = format // 避免不必要的格式化
+	} else {
+		message = fmt.Sprintf(format, args...)
+	}
 	return &ErrorX{
 		Code:    code,
 		Reason:  reason,
-		Message: fmt.Sprintf(format, args...),
+		Message: message,
 	}
 }
 
 // Error 实现 error 接口中的 `Error` 方法.
 func (err *ErrorX) Error() string {
-	return fmt.Sprintf("error: code = %d reason = %s message = %s metadata = %v", err.Code, err.Reason, err.Message, err.Metadata)
+	builder := stringBuilderPool.Get().(*strings.Builder)
+	defer func() {
+		builder.Reset()
+		stringBuilderPool.Put(builder)
+	}()
+
+	builder.WriteString("error: code = ")
+	builder.WriteString(strconv.FormatInt(int64(err.Code), 10))
+	builder.WriteString(" reason = ")
+	builder.WriteString(err.Reason)
+	builder.WriteString(" message = ")
+	builder.WriteString(err.Message)
+	if len(err.Metadata) > 0 {
+		builder.WriteString(" metadata = ")
+		builder.WriteString(fmt.Sprintf("%v", err.Metadata))
+	}
+	return builder.String()
 }
 
 // WithMessage 设置错误的 Message 字段.
 func (err *ErrorX) WithMessage(format string, args ...any) *ErrorX {
-	err.Message = fmt.Sprintf(format, args...)
+	if len(args) == 0 {
+		err.Message = format // 避免不必要的格式化
+	} else {
+		err.Message = fmt.Sprintf(format, args...)
+	}
 	return err
 }
 
 // WithMetadata 设置元数据.
 func (err *ErrorX) WithMetadata(md map[string]any) *ErrorX {
 	if err.Metadata == nil {
-		err.Metadata = make(map[string]any)
+		err.Metadata = metadataPool.Get().(map[string]any)
+		// 清空池中可能存在的旧数据
+		for k := range err.Metadata {
+			delete(err.Metadata, k)
+		}
 	}
 	for k, v := range md {
 		err.Metadata[k] = v
@@ -61,10 +108,26 @@ func (err *ErrorX) WithMetadata(md map[string]any) *ErrorX {
 	return err
 }
 
+// releaseMetadata 释放元数据映射回对象池
+func (err *ErrorX) releaseMetadata() {
+	if err.Metadata != nil {
+		// 清空 map 但保留容量
+		for k := range err.Metadata {
+			delete(err.Metadata, k)
+		}
+		metadataPool.Put(err.Metadata)
+		err.Metadata = nil
+	}
+}
+
 // AddMetadata 添加单个元数据项.
 func (err *ErrorX) AddMetadata(key string, value any) *ErrorX {
 	if err.Metadata == nil {
-		err.Metadata = make(map[string]any)
+		err.Metadata = metadataPool.Get().(map[string]any)
+		// 清空池中可能存在的旧数据
+		for k := range err.Metadata {
+			delete(err.Metadata, k)
+		}
 	}
 	err.Metadata[key] = value
 	return err
@@ -73,7 +136,11 @@ func (err *ErrorX) AddMetadata(key string, value any) *ErrorX {
 // KV 使用 key-value 对设置元数据.
 func (err *ErrorX) KV(kvs ...string) *ErrorX {
 	if err.Metadata == nil {
-		err.Metadata = make(map[string]any) // 初始化元数据映射
+		err.Metadata = metadataPool.Get().(map[string]any)
+		// 清空池中可能存在的旧数据
+		for k := range err.Metadata {
+			delete(err.Metadata, k)
+		}
 	}
 
 	for i := 0; i < len(kvs); i += 2 {
@@ -87,8 +154,8 @@ func (err *ErrorX) KV(kvs ...string) *ErrorX {
 
 // GRPCStatus 返回 gRPC 状态表示.
 func (err *ErrorX) GRPCStatus() *status.Status {
-	// 转换 metadata 为 string map
-	strMetadata := make(map[string]string)
+	// 转换 metadata 为 string map，预分配容量
+	strMetadata := make(map[string]string, len(err.Metadata))
 	for k, v := range err.Metadata {
 		if str, ok := v.(string); ok {
 			strMetadata[k] = str
@@ -96,7 +163,7 @@ func (err *ErrorX) GRPCStatus() *status.Status {
 			strMetadata[k] = fmt.Sprintf("%v", v)
 		}
 	}
-	
+
 	details := errdetails.ErrorInfo{Reason: err.Reason, Metadata: strMetadata}
 	s, _ := status.New(httpstatus.ToGRPCCode(int(err.Code)), err.Message).WithDetails(&details)
 	return s
@@ -185,9 +252,9 @@ func FromError(err error) *ErrorX {
 	// 如果 err 是 gRPC 的错误类型，会成功返回一个 gRPC status 对象（gs）.
 	// 使用 gRPC 状态中的错误代码和消息创建一个 ErrorX.
 	ret := &ErrorX{
-		Code:    int32(httpstatus.FromGRPCCode(gs.Code())),
-		Reason:  ErrInternal.Reason,
-		Message: gs.Message(),
+		Code:      int32(httpstatus.FromGRPCCode(gs.Code())),
+		Reason:    ErrInternal.Reason,
+		Message:   gs.Message(),
 		RequestID: "", // Initialize RequestID
 	}
 
@@ -212,7 +279,7 @@ func Wrap(err error, code int32, reason, message string) *ErrorX {
 	if err == nil {
 		return nil
 	}
-	
+
 	return &ErrorX{
 		Code:    code,
 		Reason:  reason,
@@ -226,11 +293,18 @@ func Wrapf(err error, code int32, reason, format string, args ...any) *ErrorX {
 	if err == nil {
 		return nil
 	}
-	
+
+	var message string
+	if len(args) == 0 {
+		message = format // 避免不必要的格式化
+	} else {
+		message = fmt.Sprintf(format, args...)
+	}
+
 	return &ErrorX{
 		Code:    code,
 		Reason:  reason,
-		Message: fmt.Sprintf(format, args...),
+		Message: message,
 		cause:   err,
 	}
 }

@@ -39,7 +39,7 @@ func (e *I18nError) LocalizeWithParams(ctx context.Context, params map[string]an
 		for k, v := range params {
 			allParams[k] = v
 		}
-		
+
 		// 使用 i18n 的模板功能（如果支持）
 		return e.i18n.T(e.i18nKey)
 	}
@@ -64,18 +64,18 @@ func LocalizeError(ctx context.Context, err *ErrorX) *ErrorX {
 	if err == nil {
 		return nil
 	}
-	
+
 	// 创建错误副本
 	localizedErr := &ErrorX{
-		Code:     err.Code,
-		Reason:   err.Reason,
-		Message:  err.Message,
-		Metadata: err.Metadata,
+		Code:      err.Code,
+		Reason:    err.Reason,
+		Message:   err.Message,
+		Metadata:  err.Metadata,
 		RequestID: err.RequestID,
-		i18nKey:  err.i18nKey,
-		cause:    err.cause,
+		i18nKey:   err.i18nKey,
+		cause:     err.cause,
 	}
-	
+
 	// 如果有国际化键，进行本地化
 	if err.i18nKey != "" {
 		if translator := i18n.FromContext(ctx); translator != nil {
@@ -84,7 +84,7 @@ func LocalizeError(ctx context.Context, err *ErrorX) *ErrorX {
 			localizedErr.Message = globalI18n.T(err.i18nKey)
 		}
 	}
-	
+
 	return localizedErr
 }
 
@@ -93,18 +93,18 @@ func LocalizeErrorWithParams(ctx context.Context, err *ErrorX, params map[string
 	if err == nil {
 		return nil
 	}
-	
+
 	// 创建错误副本
 	localizedErr := &ErrorX{
-		Code:     err.Code,
-		Reason:   err.Reason,
-		Message:  err.Message,
-		Metadata: err.Metadata,
+		Code:      err.Code,
+		Reason:    err.Reason,
+		Message:   err.Message,
+		Metadata:  err.Metadata,
 		RequestID: err.RequestID,
-		i18nKey:  err.i18nKey,
-		cause:    err.cause,
+		i18nKey:   err.i18nKey,
+		cause:     err.cause,
 	}
-	
+
 	// 合并元数据和参数
 	allParams := make(map[string]any)
 	for k, v := range err.Metadata {
@@ -114,7 +114,7 @@ func LocalizeErrorWithParams(ctx context.Context, err *ErrorX, params map[string
 		allParams[k] = v
 	}
 	localizedErr.Metadata = allParams
-	
+
 	// 如果有国际化键，进行本地化
 	if err.i18nKey != "" {
 		if translator := i18n.FromContext(ctx); translator != nil {
@@ -123,7 +123,7 @@ func LocalizeErrorWithParams(ctx context.Context, err *ErrorX, params map[string
 			localizedErr.Message = globalI18n.T(err.i18nKey)
 		}
 	}
-	
+
 	return localizedErr
 }
 
@@ -132,18 +132,18 @@ func MustLocalizeError(ctx context.Context, err *ErrorX) *ErrorX {
 	if err == nil {
 		return nil
 	}
-	
+
 	localizedErr := LocalizeError(ctx, err)
-	
+
 	// 如果本地化后消息为空，使用原始消息
 	if localizedErr.Message == "" {
 		localizedErr.Message = err.Message
 	}
-	
+
 	// 如果仍然为空，使用默认消息
 	if localizedErr.Message == "" {
 		localizedErr.Message = "An error occurred"
 	}
-	
+
 	return localizedErr
 }

@@ -39,40 +39,39 @@ func TestErrorResponse(t *testing.T) {
 
 type mockLogger struct{}
 
-func (m *mockLogger) Debugf(format string, args ...any) {}
-func (m *mockLogger) Debugw(msg string, keyvals ...any) {}
-func (m *mockLogger) Infof(format string, args ...any) {}
-func (m *mockLogger) Infow(msg string, keyvals ...any) {}
-func (m *mockLogger) Warnf(format string, args ...any) {}
-func (m *mockLogger) Warnw(msg string, keyvals ...any) {}
-func (m *mockLogger) Errorf(format string, args ...any) {}
-func (m *mockLogger) Errorw(err error, msg string, keyvals ...any) {}
-func (m *mockLogger) Panicf(format string, args ...any) {}
-func (m *mockLogger) Panicw(msg string, keyvals ...any) {}
-func (m *mockLogger) Fatalf(format string, args ...any) {}
-func (m *mockLogger) Fatalw(msg string, keyvals ...any) {}
-func (m *mockLogger) Log(level krtlog.Level, keyvals ...interface{}) error { return nil }
-func (m *mockLogger) LogMode(gormlogger.LogLevel) gormlogger.Interface { return m }
-func (m *mockLogger) Info(ctx context.Context, msg string, args ...interface{}) {}
-func (m *mockLogger) Warn(ctx context.Context, msg string, args ...interface{}) {}
+func (m *mockLogger) Debugf(format string, args ...any)                          {}
+func (m *mockLogger) Debugw(msg string, keyvals ...any)                          {}
+func (m *mockLogger) Infof(format string, args ...any)                           {}
+func (m *mockLogger) Infow(msg string, keyvals ...any)                           {}
+func (m *mockLogger) Warnf(format string, args ...any)                           {}
+func (m *mockLogger) Warnw(msg string, keyvals ...any)                           {}
+func (m *mockLogger) Errorf(format string, args ...any)                          {}
+func (m *mockLogger) Errorw(err error, msg string, keyvals ...any)               {}
+func (m *mockLogger) Panicf(format string, args ...any)                          {}
+func (m *mockLogger) Panicw(msg string, keyvals ...any)                          {}
+func (m *mockLogger) Fatalf(format string, args ...any)                          {}
+func (m *mockLogger) Fatalw(msg string, keyvals ...any)                          {}
+func (m *mockLogger) Log(level krtlog.Level, keyvals ...interface{}) error       { return nil }
+func (m *mockLogger) LogMode(gormlogger.LogLevel) gormlogger.Interface           { return m }
+func (m *mockLogger) Info(ctx context.Context, msg string, args ...interface{})  {}
+func (m *mockLogger) Warn(ctx context.Context, msg string, args ...interface{})  {}
 func (m *mockLogger) Error(ctx context.Context, msg string, args ...interface{}) {}
-func (m *mockLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {}
-func (m *mockLogger) W(ctx context.Context) log.Logger { return m }
-func (m *mockLogger) WithValues(keysAndValues ...any) log.Logger { return m }
+func (m *mockLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
+}
+func (m *mockLogger) W(ctx context.Context) log.Logger                { return m }
+func (m *mockLogger) WithValues(keysAndValues ...any) log.Logger      { return m }
 func (m *mockLogger) WithContext(ctx context.Context) context.Context { return ctx }
-func (m *mockLogger) AddCallerSkip(skip int) log.Logger { return m }
-func (m *mockLogger) Sync() {}
+func (m *mockLogger) AddCallerSkip(skip int) log.Logger               { return m }
+func (m *mockLogger) Sync()                                           {}
 
-	func TestDefaultErrorHandler_HandleError(t *testing.T) {
+func TestDefaultErrorHandler_HandleError(t *testing.T) {
 	// 创建默认错误处理器
 	handler := errorsx.NewDefaultErrorHandler(&mockLogger{})
 
 	// 测试处理 ErrorX 错误
 	errorX := errorsx.New(404, "NOT_FOUND", "Resource not found")
-		errorX = errorX.AddMetadata("resource", "user")
+	errorX = errorX.AddMetadata("resource", "user")
 	errorX = errorX.WithRequestID("req-456")
-
-	
 
 	ctx := context.WithValue(context.Background(), "request_id", "req-456")
 	resp := handler.HandleError(ctx, errorX)

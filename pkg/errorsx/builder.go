@@ -80,14 +80,14 @@ func (b *Builder) Build() *ErrorX {
 // BuildWithContext 使用上下文构建错误对象，自动进行国际化
 func (b *Builder) BuildWithContext(ctx context.Context) *ErrorX {
 	err := b.Build()
-	
+
 	// 如果设置了国际化键且消息为空，则进行国际化
 	if b.i18nKey != "" && b.message == "" {
 		if translator := i18n.FromContext(ctx); translator != nil {
 			err.Message = translator.T(b.i18nKey)
 		}
 	}
-	
+
 	return err
 }
 

@@ -36,7 +36,7 @@ func TestErrorX_WithMessage(t *testing.T) {
 
 	// 验证变更
 	assert.Equal(t, "New error message: retry failed", errx.Message)
-	assert.Equal(t, int32(400), errx.Code)                         // Code 不变
+	assert.Equal(t, int32(400), errx.Code)                  // Code 不变
 	assert.Equal(t, "BadRequest.InvalidInput", errx.Reason) // Reason 不变
 }
 
@@ -125,7 +125,7 @@ func TestErrorX_WithI18nKey(t *testing.T) {
 	// 测试国际化键设置
 	err := errorsx.New(404, "NOT_FOUND", "Resource not found")
 	err = err.WithI18nKey("errors.resource.not_found")
-	
+
 	assert.Equal(t, "errors.resource.not_found", err.GetI18nKey())
 }
 
@@ -134,9 +134,9 @@ func TestErrorX_WithCause(t *testing.T) {
 	originalErr := fmt.Errorf("database connection failed")
 	err := errorsx.New(500, "DATABASE_ERROR", "Database operation failed")
 	err = err.WithCause(originalErr)
-	
+
 	assert.Equal(t, originalErr, err.GetCause())
-	
+
 	// 测试 Unwrap 接口
 	unwrapped := errors.Unwrap(err)
 	assert.Equal(t, originalErr, unwrapped)
@@ -147,7 +147,7 @@ func TestErrorX_AddMetadata(t *testing.T) {
 	err := errorsx.New(400, "VALIDATION_ERROR", "Validation failed")
 	err = err.AddMetadata("field", "email")
 	err = err.AddMetadata("value", "invalid-email")
-	
+
 	assert.Equal(t, "email", err.Metadata["field"])
 	assert.Equal(t, "invalid-email", err.Metadata["value"])
 }
@@ -157,11 +157,11 @@ func TestCode(t *testing.T) {
 	err := errorsx.New(404, "NOT_FOUND", "Resource not found")
 	code := errorsx.Code(err)
 	assert.Equal(t, int32(404), code)
-	
+
 	// 测试 nil 错误
 	code = errorsx.Code(nil)
 	assert.Equal(t, int32(200), code)
-	
+
 	// 测试标准错误
 	stdErr := fmt.Errorf("standard error")
 	code = errorsx.Code(stdErr)
@@ -173,11 +173,11 @@ func TestReason(t *testing.T) {
 	err := errorsx.New(404, "NOT_FOUND", "Resource not found")
 	reason := errorsx.Reason(err)
 	assert.Equal(t, "NOT_FOUND", reason)
-	
+
 	// 测试 nil 错误
 	reason = errorsx.Reason(nil)
 	assert.Equal(t, "", reason)
-	
+
 	// 测试标准错误
 	stdErr := fmt.Errorf("standard error")
 	reason = errorsx.Reason(stdErr)
@@ -188,11 +188,11 @@ func TestWrap(t *testing.T) {
 	// 测试错误包装
 	originalErr := fmt.Errorf("database connection failed")
 	wrappedErr := errorsx.Wrap(originalErr, 500, "DATABASE_ERROR", "Database operation failed")
-	
+
 	assert.Equal(t, int32(500), wrappedErr.Code)
 	assert.Equal(t, "DATABASE_ERROR", wrappedErr.Reason)
 	assert.Equal(t, originalErr, wrappedErr.GetCause())
-	
+
 	// 测试 nil 错误包装
 	wrappedErr = errorsx.Wrap(nil, 500, "TEST", "Test")
 	assert.Nil(t, wrappedErr)
@@ -202,7 +202,7 @@ func TestWrapf(t *testing.T) {
 	// 测试格式化错误包装
 	originalErr := fmt.Errorf("connection failed")
 	wrappedErr := errorsx.Wrapf(originalErr, 500, "DATABASE_ERROR", "Database operation failed: %s", "timeout")
-	
+
 	expectedMessage := "Database operation failed: timeout"
 	assert.Equal(t, expectedMessage, wrappedErr.Message)
 	assert.Equal(t, originalErr, wrappedErr.GetCause())
@@ -215,7 +215,7 @@ func TestBuilder(t *testing.T) {
 		WithI18nKey("errors.validation.failed").
 		WithMetadata(map[string]any{"field": "email"}).
 		Build()
-	
+
 	assert.Equal(t, int32(400), err.Code)
 	assert.Equal(t, "VALIDATION_FAILED", err.Reason)
 	assert.Equal(t, "Validation failed", err.Message)
@@ -226,11 +226,11 @@ func TestBuilder(t *testing.T) {
 func TestBuilderWithContext(t *testing.T) {
 	// 测试带上下文的构建器
 	ctx := context.Background()
-	
+
 	err := errorsx.BadRequest("VALIDATION_FAILED").
 		WithI18nKey("errors.validation.failed").
 		BuildWithContext(ctx)
-	
+
 	assert.Equal(t, int32(400), err.Code)
 	assert.Equal(t, "errors.validation.failed", err.GetI18nKey())
 }
@@ -238,9 +238,9 @@ func TestBuilderWithContext(t *testing.T) {
 func TestPredefinedErrors(t *testing.T) {
 	// 测试预定义错误
 	tests := []struct {
-		name     string
-		err      *errorsx.ErrorX
-		expCode  int32
+		name      string
+		err       *errorsx.ErrorX
+		expCode   int32
 		expReason string
 	}{
 		{"OK", errorsx.OK, 200, "OK"},
@@ -252,7 +252,7 @@ func TestPredefinedErrors(t *testing.T) {
 		{"ErrPermissionDenied", errorsx.ErrPermissionDenied, 403, "PERMISSION_DENIED"},
 		{"ErrOperationFailed", errorsx.ErrOperationFailed, 500, "OPERATION_FAILED"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.expCode, tt.err.Code)
@@ -266,11 +266,11 @@ func TestErrorChaining(t *testing.T) {
 	originalErr := fmt.Errorf("original error")
 	err1 := errorsx.Wrap(originalErr, 500, "LEVEL1", "Level 1 error")
 	err2 := errorsx.Wrap(err1, 500, "LEVEL2", "Level 2 error")
-	
+
 	// 检查错误链
 	assert.True(t, errors.Is(err2, originalErr))
 	assert.True(t, errors.Is(err2, err1))
-	
+
 	// 检查直接原因
 	assert.Equal(t, err1, err2.GetCause())
 	assert.Equal(t, originalErr, err1.GetCause())
@@ -296,7 +296,7 @@ func TestBuilderMethods(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.builder("TEST_REASON").WithMessage("Test message").Build()
-			
+
 			assert.Equal(t, tt.expCode, err.Code)
 			assert.Equal(t, "TEST_REASON", err.Reason)
 			assert.Equal(t, "Test message", err.Message)

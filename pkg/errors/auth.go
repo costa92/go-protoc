@@ -2,7 +2,7 @@ package errors
 
 import (
 	"time"
-	
+
 	"github.com/costa92/go-protoc/v2/pkg/errorsx"
 )
 
@@ -10,46 +10,46 @@ import (
 var (
 	// ErrTokenInvalid JWT Token 无效
 	ErrTokenInvalid = errorsx.New(401, "TOKEN_INVALID", "Invalid token").WithI18nKey("errors.auth.token_invalid")
-	
+
 	// ErrTokenExpired JWT Token 已过期
 	ErrTokenExpired = errorsx.New(401, "TOKEN_EXPIRED", "Token has expired").WithI18nKey("errors.auth.token_expired")
-	
+
 	// ErrTokenMalformed JWT Token 格式错误
 	ErrTokenMalformed = errorsx.New(401, "TOKEN_MALFORMED", "Malformed token").WithI18nKey("errors.auth.token_malformed")
-	
+
 	// ErrTokenMissing JWT Token 缺失
 	ErrTokenMissing = errorsx.New(401, "TOKEN_MISSING", "Token is missing").WithI18nKey("errors.auth.token_missing")
-	
+
 	// ErrRefreshTokenInvalid 刷新令牌无效
 	ErrRefreshTokenInvalid = errorsx.New(401, "REFRESH_TOKEN_INVALID", "Invalid refresh token").WithI18nKey("errors.auth.refresh_token_invalid")
-	
+
 	// ErrRefreshTokenExpired 刷新令牌已过期
 	ErrRefreshTokenExpired = errorsx.New(401, "REFRESH_TOKEN_EXPIRED", "Refresh token has expired").WithI18nKey("errors.auth.refresh_token_expired")
-	
+
 	// ErrInsufficientPermissions 权限不足
 	ErrInsufficientPermissions = errorsx.New(403, "INSUFFICIENT_PERMISSIONS", "Insufficient permissions").WithI18nKey("errors.auth.insufficient_permissions")
-	
+
 	// ErrAccountNotActivated 账户未激活
 	ErrAccountNotActivated = errorsx.New(403, "ACCOUNT_NOT_ACTIVATED", "Account is not activated").WithI18nKey("errors.auth.account_not_activated")
-	
+
 	// ErrTwoFactorRequired 需要双因子认证
 	ErrTwoFactorRequired = errorsx.New(403, "TWO_FACTOR_REQUIRED", "Two-factor authentication required").WithI18nKey("errors.auth.two_factor_required")
-	
+
 	// ErrTwoFactorInvalid 双因子认证码无效
 	ErrTwoFactorInvalid = errorsx.New(401, "TWO_FACTOR_INVALID", "Invalid two-factor authentication code").WithI18nKey("errors.auth.two_factor_invalid")
-	
+
 	// ErrLoginAttemptExceeded 登录尝试次数超限
 	ErrLoginAttemptExceeded = errorsx.New(429, "LOGIN_ATTEMPT_EXCEEDED", "Too many login attempts").WithI18nKey("errors.auth.login_attempt_exceeded")
-	
+
 	// ErrPasswordResetRequired 需要重置密码
 	ErrPasswordResetRequired = errorsx.New(403, "PASSWORD_RESET_REQUIRED", "Password reset required").WithI18nKey("errors.auth.password_reset_required")
-	
+
 	// ErrLoginFailed 登录失败
 	ErrLoginFailed = errorsx.New(401, "LOGIN_FAILED", "Login failed").WithI18nKey("errors.auth.login_failed")
-	
+
 	// ErrAccountLocked 账户被锁定
 	ErrAccountLocked = errorsx.New(423, "ACCOUNT_LOCKED", "Account is locked").WithI18nKey("errors.auth.account_locked")
-	
+
 	// ErrSessionExpired 会话已过期
 	ErrSessionExpired = errorsx.New(401, "SESSION_EXPIRED", "Session has expired").WithI18nKey("errors.auth.session_expired")
 )

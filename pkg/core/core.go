@@ -113,7 +113,7 @@ func WriteResponse(c *gin.Context, data any, err error) {
 	if err != nil {
 		// 如果发生错误，生成错误响应
 		errx := errorsx.FromError(err) // 提取错误详细信息
-		
+
 		// 转换 metadata 从 map[string]any 到 map[string]string
 		metadata := make(map[string]string)
 		for k, v := range errx.Metadata {
@@ -123,7 +123,7 @@ func WriteResponse(c *gin.Context, data any, err error) {
 				metadata[k] = ""
 			}
 		}
-		
+
 		c.JSON(int(errx.Code), ErrorResponse{
 			Reason:   errx.Reason,
 			Message:  errx.Message,

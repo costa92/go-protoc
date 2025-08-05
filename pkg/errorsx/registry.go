@@ -53,7 +53,7 @@ func (r *Registry) MustGet(reason string) *ErrorTemplate {
 func (r *Registry) List() map[string]*ErrorTemplate {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
-	
+
 	result := make(map[string]*ErrorTemplate)
 	for reason, template := range r.errors {
 		result[reason] = template

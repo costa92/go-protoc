@@ -79,7 +79,7 @@ func setMySQLDefaults(opts *MySQLOptions) {
 		opts.MaxOpenConnections = 100
 	}
 	if opts.MaxConnectionLifeTime == 0 {
-		opts.MaxConnectionLifeTime = time.Duration(10) * time.Second
+		opts.MaxConnectionLifeTime = time.Duration(10) * time.Minute
 	}
 	if opts.Logger == nil {
 		opts.Logger = logger.Default

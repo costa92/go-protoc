@@ -5,20 +5,35 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/costa92/go-protoc/v2/pkg/log"
+	"github.com/gin-gonic/gin"
 )
+
+// 日志字段对象池，用于优化日志字段分配性能
+var logFieldsPool = sync.Pool{
+	New: func() interface{} {
+		return make([]any, 0, 20) // 预分配容量
+	},
+}
+
+// 响应对象池，用于优化错误响应分配
+var errorResponsePool = sync.Pool{
+	New: func() interface{} {
+		return &ErrorResponse{}
+	},
+}
 
 // ErrorResponse 错误响应结构
 type ErrorResponse struct {
-	Code      int32             `json:"code"`
-	Reason    string            `json:"reason"`
-	Message   string            `json:"message"`
-	Metadata  map[string]any    `json:"metadata,omitempty"`
-	RequestID string            `json:"request_id,omitempty"`
-	Timestamp string            `json:"timestamp"`
+	Code      int32          `json:"code"`
+	Reason    string         `json:"reason"`
+	Message   string         `json:"message"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
+	RequestID string         `json:"request_id,omitempty"`
+	Timestamp string         `json:"timestamp"`
 }
 
 // ErrorHandler 错误处理器接口
@@ -59,13 +74,13 @@ func (h *DefaultErrorHandler) HandleError(ctx context.Context, err error) *Error
 			Timestamp: getCurrentTimestamp(),
 		}
 	}
-	
+
 	// 本地化错误
 	localizedErr := LocalizeError(ctx, errorX)
-	
+
 	// 记录错误日志
 	h.logError(ctx, localizedErr)
-	
+
 	// 构建响应
 	resp := &ErrorResponse{
 		Code:      localizedErr.Code,
@@ -74,11 +89,11 @@ func (h *DefaultErrorHandler) HandleError(ctx context.Context, err error) *Error
 		Metadata:  localizedErr.Metadata,
 		Timestamp: getCurrentTimestamp(),
 	}
-	
-			if localizedErr.RequestID != "" {
-			resp.RequestID = localizedErr.RequestID
-		}
-	
+
+	if localizedErr.RequestID != "" {
+		resp.RequestID = localizedErr.RequestID
+	}
+
 	return resp
 }
 
@@ -87,35 +102,35 @@ func (h *DefaultErrorHandler) logError(ctx context.Context, err *ErrorX) {
 	if h.logger == nil {
 		return
 	}
-	
-	fields := map[string]any{
-		"code":   err.Code,
-		"reason": err.Reason,
-	}
-	
+
+	// 从对象池获取字段映射
+	fields := logFieldsPool.Get().([]any)
+	defer func() {
+		// 重置切片长度但保留容量
+		fields = fields[:0]
+		logFieldsPool.Put(fields)
+	}()
+
+	// 添加基础字段
+	fields = append(fields, "code", err.Code, "reason", err.Reason)
+
 	// 添加元数据
 	for k, v := range err.Metadata {
-		fields[k] = v
+		fields = append(fields, k, v)
 	}
-	
+
 	// 添加原始错误
 	if err.cause != nil {
-		fields["cause"] = err.cause.Error()
+		fields = append(fields, "cause", err.cause.Error())
 	}
-	
+
 	// 根据错误级别记录日志
-	// 将 map[string]any 转换为 []any 格式
-	logFields := make([]any, 0, len(fields)*2)
-	for k, v := range fields {
-		logFields = append(logFields, k, v)
-	}
-	
 	if err.Code >= 500 {
-		h.logger.Errorw(err.cause, err.Message, logFields...)
+		h.logger.Errorw(err.cause, err.Message, fields...)
 	} else if err.Code >= 400 {
-		h.logger.Warnw(err.Message, logFields...)
+		h.logger.Warnw(err.Message, fields...)
 	} else {
-		h.logger.Infow(err.Message, logFields...)
+		h.logger.Infow(err.Message, fields...)
 	}
 }
 
@@ -123,12 +138,12 @@ func (h *DefaultErrorHandler) logError(ctx context.Context, err *ErrorX) {
 func GinErrorMiddleware(handler ErrorHandler) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()
-		
+
 		// 检查是否有错误
 		if len(c.Errors) > 0 {
 			// 获取第一个错误
 			err := c.Errors[0].Err
-			
+
 			// 处理错误
 			resp := handler.HandleError(c.Request.Context(), err)
 			if resp != nil {
@@ -149,7 +164,7 @@ func HTTPErrorMiddleware(handler ErrorHandler) func(http.Handler) http.Handler {
 				handler:        handler,
 				request:        r,
 			}
-			
+
 			next.ServeHTTP(wrapper, r)
 		})
 	}
@@ -168,15 +183,15 @@ func (w *responseWrapper) WriteError(err error) {
 	if w.written {
 		return
 	}
-	
+
 	resp := w.handler.HandleError(w.request.Context(), err)
 	if resp == nil {
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(int(resp.Code))
-	
+
 	data, _ := json.Marshal(resp)
 	w.Write(data)
 	w.written = true
@@ -188,8 +203,6 @@ func (w *responseWrapper) WriteError(err error) {
 func getCurrentTimestamp() string {
 	return time.Now().Format(time.RFC3339)
 }
-
-
 
 // AbortWithError 中止请求并返回错误（Gin 专用）
 func AbortWithError(c *gin.Context, err error) {
@@ -210,10 +223,10 @@ func WriteErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	if resp == nil {
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(int(resp.Code))
-	
+
 	data, _ := json.Marshal(resp)
 	w.Write(data)
 }
@@ -229,10 +242,10 @@ func RecoverMiddleware(handler ErrorHandler) gin.HandlerFunc {
 				} else {
 					err = fmt.Errorf("panic: %v", r)
 				}
-				
+
 				// 包装为内部错误
 				errorX := Wrap(err, 500, "INTERNAL_ERROR", "Internal server error")
-				
+
 				// 处理错误
 				resp := handler.HandleError(c.Request.Context(), errorX)
 				if resp != nil {
@@ -241,7 +254,7 @@ func RecoverMiddleware(handler ErrorHandler) gin.HandlerFunc {
 				c.Abort()
 			}
 		}()
-		
+
 		c.Next()
 	}
 }
