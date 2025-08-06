@@ -15,3 +15,14 @@ formatters:
  settings:
   option: value
 
+run:
+ timeout: 5m
+ relative-path-mode: gomod
+ issues-exit-code: 2
+ tests: false
+ modules-download-mode: readonly
+ allow-parallel-runners: true
+ allow-serial-runners: true
+ go: '1.23'
+ concurrency: 4
+
