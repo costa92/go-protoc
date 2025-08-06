@@ -1,0 +1,17 @@
+linters:
+
+default: all
+
+enable:
+ - arangolint
+ - musttag
+ - bodyclose 
+
+formatters:
+ enable:
+  - gofmt
+  - swaggo
+  - golines
+ settings:
+  option: value
+
