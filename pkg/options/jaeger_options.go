@@ -46,7 +46,7 @@ func (o *JaegerOptions) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 	fs.StringVar(&o.Env, "jaeger.env", o.Env, "Specify the deployment environment(dev/test/staging/prod).")
 }
 
-func (o *JaegerOptions) SetTracerProvider() error {
+func (o *JaegerOptions) SetTracerProvider(serviceName string) error {
 	// Create the Jaeger exporter
 	opts := make([]otlptracegrpc.Option, 0)
 	opts = append(opts, otlptracegrpc.WithEndpoint(o.Server), otlptracegrpc.WithInsecure())
@@ -56,7 +56,7 @@ func (o *JaegerOptions) SetTracerProvider() error {
 	}
 
 	res, err := resource.New(context.Background(), resource.WithAttributes(
-		semconv.ServiceNameKey.String(o.ServiceName),
+		semconv.ServiceNameKey.String(serviceName),
 		attribute.String("env", o.Env),
 		attribute.String("exporter", "jaeger"),
 	))

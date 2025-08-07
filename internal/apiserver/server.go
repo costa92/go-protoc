@@ -35,11 +35,12 @@ var (
 )
 
 type Config struct {
-	GRPCOptions  *genericoptions.GRPCOptions
-	HTTPOptions  *genericoptions.HTTPOptions
-	TLSOptions   *genericoptions.TLSOptions
-	MySQLOptions *genericoptions.MySQLOptions
-	JWTOptions   *genericoptions.JWTOptions // Added JWT Options
+	GRPCOptions   *genericoptions.GRPCOptions
+	HTTPOptions   *genericoptions.HTTPOptions
+	TLSOptions    *genericoptions.TLSOptions
+	MySQLOptions  *genericoptions.MySQLOptions
+	JWTOptions    *genericoptions.JWTOptions    // Added JWT Options
+	JaegerOptions *genericoptions.JaegerOptions // Added Jaeger Options
 }
 
 type Server struct {
@@ -54,6 +55,9 @@ type ServerConfig struct {
 }
 
 func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
+	if err := cfg.JaegerOptions.SetTracerProvider(Name); err != nil {
+		return nil, err
+	}
 
 	var mysqlOptions db.MySQLOptions
 	_ = core.Copy(&mysqlOptions, cfg.MySQLOptions)
