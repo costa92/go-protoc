@@ -1,126 +1,9 @@
 {
   "files": [
     {
-      "name": "apiserver/v1/apiserver.proto",
+      "name": "errno/errno.proto",
       "description": "",
-      "package": "apiserver.v1",
-      "hasEnums": false,
-      "hasExtensions": false,
-      "hasMessages": true,
-      "hasServices": true,
-      "enums": [],
-      "extensions": [],
-      "messages": [
-        {
-          "name": "GetUserRequest",
-          "longName": "GetUserRequest",
-          "fullName": "apiserver.v1.GetUserRequest",
-          "description": "",
-          "hasExtensions": false,
-          "hasFields": true,
-          "hasOneofs": false,
-          "extensions": [],
-          "fields": [
-            {
-              "name": "id",
-              "description": "",
-              "label": "",
-              "type": "string",
-              "longType": "string",
-              "fullType": "string",
-              "ismap": false,
-              "isoneof": false,
-              "oneofdecl": "",
-              "defaultValue": ""
-            }
-          ]
-        },
-        {
-          "name": "GetUserResponse",
-          "longName": "GetUserResponse",
-          "fullName": "apiserver.v1.GetUserResponse",
-          "description": "",
-          "hasExtensions": false,
-          "hasFields": true,
-          "hasOneofs": false,
-          "extensions": [],
-          "fields": [
-            {
-              "name": "id",
-              "description": "",
-              "label": "",
-              "type": "string",
-              "longType": "string",
-              "fullType": "string",
-              "ismap": false,
-              "isoneof": false,
-              "oneofdecl": "",
-              "defaultValue": ""
-            },
-            {
-              "name": "name",
-              "description": "",
-              "label": "",
-              "type": "string",
-              "longType": "string",
-              "fullType": "string",
-              "ismap": false,
-              "isoneof": false,
-              "oneofdecl": "",
-              "defaultValue": ""
-            },
-            {
-              "name": "email",
-              "description": "",
-              "label": "",
-              "type": "string",
-              "longType": "string",
-              "fullType": "string",
-              "ismap": false,
-              "isoneof": false,
-              "oneofdecl": "",
-              "defaultValue": ""
-            }
-          ]
-        }
-      ],
-      "services": [
-        {
-          "name": "ApiServer",
-          "longName": "ApiServer",
-          "fullName": "apiserver.v1.ApiServer",
-          "description": "",
-          "methods": [
-            {
-              "name": "GetUser",
-              "description": "",
-              "requestType": "GetUserRequest",
-              "requestLongType": "GetUserRequest",
-              "requestFullType": "apiserver.v1.GetUserRequest",
-              "requestStreaming": false,
-              "responseType": "GetUserResponse",
-              "responseLongType": "GetUserResponse",
-              "responseFullType": "apiserver.v1.GetUserResponse",
-              "responseStreaming": false,
-              "options": {
-                "google.api.http": {
-                  "rules": [
-                    {
-                      "method": "GET",
-                      "pattern": "/v1/users/{id}"
-                    }
-                  ]
-                }
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "apiserver/v1/errors.proto",
-      "description": "",
-      "package": "apiserver.v1",
+      "package": "errno",
       "hasEnums": true,
       "hasExtensions": false,
       "hasMessages": false,
@@ -129,48 +12,53 @@
         {
           "name": "ErrorReason",
           "longName": "ErrorReason",
-          "fullName": "apiserver.v1.ErrorReason",
+          "fullName": "errno.ErrorReason",
           "description": "",
           "values": [
             {
-              "name": "UserLoginFailed",
+              "name": "Unknown",
               "number": "0",
-              "description": "用户登录失败，身份验证未通过"
+              "description": "未知错误，服务器内部错误"
             },
             {
-              "name": "UserAlreadyExists",
+              "name": "InvalidParameter",
               "number": "1",
-              "description": "用户已存在，无法创建用户"
+              "description": "无效参数错误"
             },
             {
-              "name": "UserNotFound",
+              "name": "NotFound",
               "number": "2",
-              "description": "用户未找到，可能是用户不存在或输入的用户标识有误"
+              "description": "未找到错误"
             },
             {
-              "name": "UserCreateFailed",
+              "name": "Unauthorized",
               "number": "3",
-              "description": "创建用户失败，可能是由于服务器或其他问题导致的创建过程中的错误"
+              "description": "未经授权错误"
             },
             {
-              "name": "UserOperationForbidden",
+              "name": "Forbidden",
               "number": "4",
-              "description": "用户操作被禁止，可能是由于权限不足或其他安全限制导致的"
+              "description": "禁止访问错误"
             },
             {
-              "name": "SecretReachMaxCount",
+              "name": "IdempotentMissingToken",
               "number": "5",
-              "description": "密钥达到最大数量限制，无法继续创建新密钥"
+              "description": "缺少幂等性令牌错误"
             },
             {
-              "name": "SecretNotFound",
+              "name": "IdempotentTokenExpired",
               "number": "6",
-              "description": "密钥未找到，可能是由于密钥不存在或输入的密钥标识有误"
+              "description": "幂等性令牌已过期错误"
             },
             {
-              "name": "SecretCreateFailed",
+              "name": "PageNotFound",
               "number": "7",
-              "description": "创建密钥失败，可能是由于服务器或其他问题导致的创建过程中的错误"
+              "description": "请求路径没有找到"
+            },
+            {
+              "name": "BindFailed",
+              "number": "8",
+              "description": "Gin 请求参数绑定失败"
             }
           ]
         }

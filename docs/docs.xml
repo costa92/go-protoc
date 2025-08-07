@@ -3,149 +3,26 @@
   <title>Protocol Documentation</title>
   
   <section>
-    <title>apiserver/v1/apiserver.proto</title>
+    <title>errors/errors.proto</title>
     <para></para>
     
-    <section id="apiserver.v1.GetUserRequest">
-      <title>GetUserRequest</title>
-      <para></para>
-      
-      <table frame="all">
-        <title><classname>GetUserRequest</classname> Fields</title>
-        <tgroup cols="4">
+    
+
+    
+    <section>
+      <title>File-level Extensions</title>
+      <informaltable frame="all">
+        <tgroup cols="5">
+          <colspec colwidth="*"/>
           <colspec colwidth="*"/>
           <colspec colwidth="*"/>
           <colspec colwidth="0.5*"/>
           <colspec colwidth="3*"/>
           <thead>
             <row>
-              <entry>Field</entry>
+              <entry>Extension</entry>
               <entry>Type</entry>
-              <entry>Label</entry>
-              <entry>Description</entry>
-            </row>
-          </thead>
-          <tbody>
-            
-            <row>
-              <entry>id</entry>
-              <entry><link linkend="string">string</link></entry>
-              <entry></entry>
-              <entry><para></para></entry>
-            </row>
-            
-          </tbody>
-        </tgroup>
-      </table>
-      
-      
-    </section>
-    
-    <section id="apiserver.v1.GetUserResponse">
-      <title>GetUserResponse</title>
-      <para></para>
-      
-      <table frame="all">
-        <title><classname>GetUserResponse</classname> Fields</title>
-        <tgroup cols="4">
-          <colspec colwidth="*"/>
-          <colspec colwidth="*"/>
-          <colspec colwidth="0.5*"/>
-          <colspec colwidth="3*"/>
-          <thead>
-            <row>
-              <entry>Field</entry>
-              <entry>Type</entry>
-              <entry>Label</entry>
-              <entry>Description</entry>
-            </row>
-          </thead>
-          <tbody>
-            
-            <row>
-              <entry>id</entry>
-              <entry><link linkend="string">string</link></entry>
-              <entry></entry>
-              <entry><para></para></entry>
-            </row>
-            
-            <row>
-              <entry>name</entry>
-              <entry><link linkend="string">string</link></entry>
-              <entry></entry>
-              <entry><para></para></entry>
-            </row>
-            
-            <row>
-              <entry>email</entry>
-              <entry><link linkend="string">string</link></entry>
-              <entry></entry>
-              <entry><para></para></entry>
-            </row>
-            
-          </tbody>
-        </tgroup>
-      </table>
-      
-      
-    </section>
-    
-    
-
-    
-
-    
-    <section id="apiserver.v1.ApiServer">
-      <title>ApiServer</title>
-      <para></para>
-      <table frame="all">
-        <title><classname>ApiServer</classname> Methods</title>
-        <tgroup cols="4">
-          <colspec colwidth="*"/>
-          <colspec colwidth="*"/>
-          <colspec colwidth="*"/>
-          <colspec colwidth="3*"/>
-          <thead>
-            <row>
-              <entry>Method Name</entry>
-              <entry>Request Type</entry>
-              <entry>Response Type</entry>
-              <entry>Description</entry>
-            </row>
-          </thead>
-          <tbody>
-            
-            <row>
-              <entry>GetUser</entry>
-              <entry><link linkend="apiserver.v1.GetUserRequest">GetUserRequest</link></entry>
-              <entry><link linkend="apiserver.v1.GetUserResponse">GetUserResponse</link></entry>
-              <entry><para></para></entry>
-            </row>
-            
-          </tbody>
-        </tgroup>
-      </table>
-    </section>
-    
-  </section>
-  
-  <section>
-    <title>apiserver/v1/errors.proto</title>
-    <para></para>
-    
-    
-    <section id="apiserver.v1.ErrorReason">
-      <title>ErrorReason</title>
-      <para></para>
-      <table frame="all">
-        <title><classname>ErrorReason</classname> Values</title>
-        <tgroup cols="3">
-          <colspec colwidth="*"/>
-          <colspec colwidth="*"/>
-          <colspec colwidth="3*"/>
-          <thead>
-            <row>
-              <entry>Name</entry>
+              <entry>Base</entry>
               <entry>Number</entry>
               <entry>Description</entry>
             </row>
@@ -153,59 +30,25 @@
           <tbody>
             
             <row>
-              <entry>UserLoginFailed</entry>
-              <entry>0</entry>
-              <entry><para>用户登录失败，身份验证未通过</para></entry>
+              <entry>default_code</entry>
+              <entry><link linkend="int32">int32</link></entry>
+              <entry><link linkend="google.protobuf.EnumOptions">.google.protobuf.EnumOptions</link></entry>
+              <entry>1108</entry>
+              <entry><para></para></entry>
             </row>
             
             <row>
-              <entry>UserAlreadyExists</entry>
-              <entry>1</entry>
-              <entry><para>用户已存在，无法创建用户</para></entry>
-            </row>
-            
-            <row>
-              <entry>UserNotFound</entry>
-              <entry>2</entry>
-              <entry><para>用户未找到，可能是用户不存在或输入的用户标识有误</para></entry>
-            </row>
-            
-            <row>
-              <entry>UserCreateFailed</entry>
-              <entry>3</entry>
-              <entry><para>创建用户失败，可能是由于服务器或其他问题导致的创建过程中的错误</para></entry>
-            </row>
-            
-            <row>
-              <entry>UserOperationForbidden</entry>
-              <entry>4</entry>
-              <entry><para>用户操作被禁止，可能是由于权限不足或其他安全限制导致的</para></entry>
-            </row>
-            
-            <row>
-              <entry>SecretReachMaxCount</entry>
-              <entry>5</entry>
-              <entry><para>密钥达到最大数量限制，无法继续创建新密钥</para></entry>
-            </row>
-            
-            <row>
-              <entry>SecretNotFound</entry>
-              <entry>6</entry>
-              <entry><para>密钥未找到，可能是由于密钥不存在或输入的密钥标识有误</para></entry>
-            </row>
-            
-            <row>
-              <entry>SecretCreateFailed</entry>
-              <entry>7</entry>
-              <entry><para>创建密钥失败，可能是由于服务器或其他问题导致的创建过程中的错误</para></entry>
+              <entry>code</entry>
+              <entry><link linkend="int32">int32</link></entry>
+              <entry><link linkend="google.protobuf.EnumValueOptions">.google.protobuf.EnumValueOptions</link></entry>
+              <entry>1109</entry>
+              <entry><para></para></entry>
             </row>
             
           </tbody>
         </tgroup>
-      </table>
+      </informaltable>
     </section>
-    
-
     
 
     

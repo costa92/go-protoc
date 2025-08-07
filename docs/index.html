@@ -175,28 +175,12 @@
         
           
           <li>
-            <a href="#google%2fprotobuf%2fcompiler%2fplugin.proto">google/protobuf/compiler/plugin.proto</a>
+            <a href="#errno%2ferrno.proto">errno/errno.proto</a>
             <ul>
               
-                <li>
-                  <a href="#google.protobuf.compiler.CodeGeneratorRequest"><span class="badge">M</span>CodeGeneratorRequest</a>
-                </li>
               
                 <li>
-                  <a href="#google.protobuf.compiler.CodeGeneratorResponse"><span class="badge">M</span>CodeGeneratorResponse</a>
-                </li>
-              
-                <li>
-                  <a href="#google.protobuf.compiler.CodeGeneratorResponse.File"><span class="badge">M</span>CodeGeneratorResponse.File</a>
-                </li>
-              
-                <li>
-                  <a href="#google.protobuf.compiler.Version"><span class="badge">M</span>Version</a>
-                </li>
-              
-              
-                <li>
-                  <a href="#google.protobuf.compiler.CodeGeneratorResponse.Feature"><span class="badge">E</span>CodeGeneratorResponse.Feature</a>
+                  <a href="#errno.ErrorReason"><span class="badge">E</span>ErrorReason</a>
                 </li>
               
               
@@ -211,260 +195,15 @@
     
       
       <div class="file-heading">
-        <h2 id="google/protobuf/compiler/plugin.proto">google/protobuf/compiler/plugin.proto</h2><a href="#title">Top</a>
+        <h2 id="errno/errno.proto">errno/errno.proto</h2><a href="#title">Top</a>
       </div>
       <p></p>
 
       
-        <h3 id="google.protobuf.compiler.CodeGeneratorRequest">CodeGeneratorRequest</h3>
-        <p>An encoded CodeGeneratorRequest is written to the plugin's stdin.</p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>file_to_generate</td>
-                  <td><a href="#string">string</a></td>
-                  <td>repeated</td>
-                  <td><p>The .proto files that were explicitly listed on the command-line.  The
-code generator should generate code only for these files.  Each file&#39;s
-descriptor will be included in proto_file, below. </p></td>
-                </tr>
-              
-                <tr>
-                  <td>parameter</td>
-                  <td><a href="#string">string</a></td>
-                  <td>optional</td>
-                  <td><p>The generator parameter passed on the command-line. </p></td>
-                </tr>
-              
-                <tr>
-                  <td>proto_file</td>
-                  <td><a href="#google.protobuf.FileDescriptorProto">google.protobuf.FileDescriptorProto</a></td>
-                  <td>repeated</td>
-                  <td><p>FileDescriptorProtos for all files in files_to_generate and everything
-they import.  The files will appear in topological order, so each file
-appears before any file that imports it.
-
-protoc guarantees that all proto_files will be written after
-the fields above, even though this is not technically guaranteed by the
-protobuf wire format.  This theoretically could allow a plugin to stream
-in the FileDescriptorProtos and handle them one by one rather than read
-the entire set into memory at once.  However, as of this writing, this
-is not similarly optimized on protoc&#39;s end -- it will store all fields in
-memory at once before sending them to the plugin.
-
-Type names of fields and extensions in the FileDescriptorProto are always
-fully qualified. </p></td>
-                </tr>
-              
-                <tr>
-                  <td>compiler_version</td>
-                  <td><a href="#google.protobuf.compiler.Version">Version</a></td>
-                  <td>optional</td>
-                  <td><p>The version number of protocol compiler. </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-
-        
-      
-        <h3 id="google.protobuf.compiler.CodeGeneratorResponse">CodeGeneratorResponse</h3>
-        <p>The plugin writes an encoded CodeGeneratorResponse to stdout.</p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>error</td>
-                  <td><a href="#string">string</a></td>
-                  <td>optional</td>
-                  <td><p>Error message.  If non-empty, code generation failed.  The plugin process
-should exit with status code zero even if it reports an error in this way.
-
-This should be used to indicate errors in .proto files which prevent the
-code generator from generating correct code.  Errors which indicate a
-problem in protoc itself -- such as the input CodeGeneratorRequest being
-unparseable -- should be reported by writing a message to stderr and
-exiting with a non-zero status code. </p></td>
-                </tr>
-              
-                <tr>
-                  <td>supported_features</td>
-                  <td><a href="#uint64">uint64</a></td>
-                  <td>optional</td>
-                  <td><p>A bitmask of supported features that the code generator supports.
-This is a bitwise &#34;or&#34; of values from the Feature enum. </p></td>
-                </tr>
-              
-                <tr>
-                  <td>file</td>
-                  <td><a href="#google.protobuf.compiler.CodeGeneratorResponse.File">CodeGeneratorResponse.File</a></td>
-                  <td>repeated</td>
-                  <td><p> </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-
-        
-      
-        <h3 id="google.protobuf.compiler.CodeGeneratorResponse.File">CodeGeneratorResponse.File</h3>
-        <p>Represents a single generated file.</p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>name</td>
-                  <td><a href="#string">string</a></td>
-                  <td>optional</td>
-                  <td><p>The file name, relative to the output directory.  The name must not
-contain &#34;.&#34; or &#34;..&#34; components and must be relative, not be absolute (so,
-the file cannot lie outside the output directory).  &#34;/&#34; must be used as
-the path separator, not &#34;\&#34;.
-
-If the name is omitted, the content will be appended to the previous
-file.  This allows the generator to break large files into small chunks,
-and allows the generated text to be streamed back to protoc so that large
-files need not reside completely in memory at one time.  Note that as of
-this writing protoc does not optimize for this -- it will read the entire
-CodeGeneratorResponse before writing files to disk. </p></td>
-                </tr>
-              
-                <tr>
-                  <td>insertion_point</td>
-                  <td><a href="#string">string</a></td>
-                  <td>optional</td>
-                  <td><p>If non-empty, indicates that the named file should already exist, and the
-content here is to be inserted into that file at a defined insertion
-point.  This feature allows a code generator to extend the output
-produced by another code generator.  The original generator may provide
-insertion points by placing special annotations in the file that look
-like:
-  @@protoc_insertion_point(NAME)
-The annotation can have arbitrary text before and after it on the line,
-which allows it to be placed in a comment.  NAME should be replaced with
-an identifier naming the point -- this is what other generators will use
-as the insertion_point.  Code inserted at this point will be placed
-immediately above the line containing the insertion point (thus multiple
-insertions to the same point will come out in the order they were added).
-The double-@ is intended to make it unlikely that the generated code
-could contain things that look like insertion points by accident.
-
-For example, the C&#43;&#43; code generator places the following line in the
-.pb.h files that it generates:
-  // @@protoc_insertion_point(namespace_scope)
-This line appears within the scope of the file&#39;s package namespace, but
-outside of any particular class.  Another plugin can then specify the
-insertion_point &#34;namespace_scope&#34; to generate additional classes or
-other declarations that should be placed in this scope.
-
-Note that if the line containing the insertion point begins with
-whitespace, the same whitespace will be added to every line of the
-inserted text.  This is useful for languages like Python, where
-indentation matters.  In these languages, the insertion point comment
-should be indented the same amount as any inserted code will need to be
-in order to work correctly in that context.
-
-The code generator that generates the initial file and the one which
-inserts into it must both run as part of a single invocation of protoc.
-Code generators are executed in the order in which they appear on the
-command line.
-
-If |insertion_point| is present, |name| must also be present. </p></td>
-                </tr>
-              
-                <tr>
-                  <td>content</td>
-                  <td><a href="#string">string</a></td>
-                  <td>optional</td>
-                  <td><p>The file contents. </p></td>
-                </tr>
-              
-                <tr>
-                  <td>generated_code_info</td>
-                  <td><a href="#google.protobuf.GeneratedCodeInfo">google.protobuf.GeneratedCodeInfo</a></td>
-                  <td>optional</td>
-                  <td><p>Information describing the file content being inserted. If an insertion
-point is used, this information will be appropriately offset and inserted
-into the code generation metadata for the generated files. </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-
-        
-      
-        <h3 id="google.protobuf.compiler.Version">Version</h3>
-        <p>The version number of protocol compiler.</p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>major</td>
-                  <td><a href="#int32">int32</a></td>
-                  <td>optional</td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>minor</td>
-                  <td><a href="#int32">int32</a></td>
-                  <td>optional</td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>patch</td>
-                  <td><a href="#int32">int32</a></td>
-                  <td>optional</td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>suffix</td>
-                  <td><a href="#string">string</a></td>
-                  <td>optional</td>
-                  <td><p>A suffix for alpha, beta or rc release, e.g., &#34;alpha-1&#34;, &#34;rc2&#34;. It should
-be empty for mainline stable releases. </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-
-        
-      
 
       
-        <h3 id="google.protobuf.compiler.CodeGeneratorResponse.Feature">CodeGeneratorResponse.Feature</h3>
-        <p>Sync with code_generator.h.</p>
+        <h3 id="errno.ErrorReason">ErrorReason</h3>
+        <p></p>
         <table class="enum-table">
           <thead>
             <tr><td>Name</td><td>Number</td><td>Description</td></tr>
@@ -472,15 +211,57 @@ be empty for mainline stable releases. </p></td>
           <tbody>
             
               <tr>
-                <td>FEATURE_NONE</td>
+                <td>Unknown</td>
                 <td>0</td>
-                <td><p></p></td>
+                <td><p>未知错误，服务器内部错误</p></td>
               </tr>
             
               <tr>
-                <td>FEATURE_PROTO3_OPTIONAL</td>
+                <td>InvalidParameter</td>
                 <td>1</td>
-                <td><p></p></td>
+                <td><p>无效参数错误</p></td>
+              </tr>
+            
+              <tr>
+                <td>NotFound</td>
+                <td>2</td>
+                <td><p>未找到错误</p></td>
+              </tr>
+            
+              <tr>
+                <td>Unauthorized</td>
+                <td>3</td>
+                <td><p>未经授权错误</p></td>
+              </tr>
+            
+              <tr>
+                <td>Forbidden</td>
+                <td>4</td>
+                <td><p>禁止访问错误</p></td>
+              </tr>
+            
+              <tr>
+                <td>IdempotentMissingToken</td>
+                <td>5</td>
+                <td><p>缺少幂等性令牌错误</p></td>
+              </tr>
+            
+              <tr>
+                <td>IdempotentTokenExpired</td>
+                <td>6</td>
+                <td><p>幂等性令牌已过期错误</p></td>
+              </tr>
+            
+              <tr>
+                <td>PageNotFound</td>
+                <td>7</td>
+                <td><p>请求路径没有找到</p></td>
+              </tr>
+            
+              <tr>
+                <td>BindFailed</td>
+                <td>8</td>
+                <td><p>Gin 请求参数绑定失败</p></td>
               </tr>
             
           </tbody>
