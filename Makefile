@@ -26,7 +26,7 @@ targets: Makefile ## Show all Sub-makefile targets.
 		if grep -q -E ':.*##' "$$mk"; then \
 			printf '\n\033[35m%s\033[0m\n' "$$mk"; \
 			category=$$(grep -m 1 '^##@' "$$mk" 2>/dev/null | sed 's/^##@ //' | tr '[:upper:]' '[:lower:]'); \
-			awk -F':.*##' -v category="$$category" -f scripts/targets.awk "$$mk"; \
+			awk -F':.*##' -v category="$$category" -f scripts/awk/targets.awk "$$mk"; \
 		fi; \
 	done
 
@@ -48,7 +48,7 @@ list-mk: ## List all included makefiles.
 # http://linuxcommand.org/lc3_adv_awk.php
 .PHONY: help
 help: Makefile ## Display this help info.
-	@awk -f scripts/help.awk $(MAKEFILE_LIST)
+	@awk -f scripts/awk/help.awk $(MAKEFILE_LIST)
 
 
 .PHONY: rename-project
