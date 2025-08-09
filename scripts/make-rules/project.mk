@@ -86,8 +86,3 @@ _docs.serve: ## Internal: Serve documentation
 		npm install -g http-server; \
 		http-server docs -p 8081; \
 	fi
-
-.PHONY: tools.install.protoc-gen-doc
-tools.install.protoc-gen-doc: ## Install protoc-gen-doc for API documentation
-	@echo "Installing protoc-gen-doc..."
-	@$(GO) install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@latest
