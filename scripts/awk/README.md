@@ -5,6 +5,7 @@ This directory contains AWK scripts used by the Makefile system for generating h
 ## Files
 
 ### `help.awk`
+
 - **Purpose**: Generates the formatted help output for `make help` command
 - **Features**:
   - Parses all Makefile targets with `##` comments
@@ -13,6 +14,7 @@ This directory contains AWK scripts used by the Makefile system for generating h
   - Supports dynamic prefix extraction from Makefile names
 
 ### `targets.awk`
+
 - **Purpose**: Generates the formatted target list for `make targets` command
 - **Features**:
   - Lists all documented targets from individual Makefiles
@@ -32,17 +34,20 @@ This allows for flexible naming without hardcoding specific file or category nam
 ## Usage
 
 These scripts are automatically invoked by:
+
 - `make help` - uses `help.awk`
 - `make targets` - uses `targets.awk`
 
 ## Syntax Requirements
 
 For targets to appear in help output, they must follow this format:
+
 ```makefile
 target-name: ## Description of what this target does
 ```
 
 For category headers:
+
 ```makefile
 ##@ Category Name
 ```
