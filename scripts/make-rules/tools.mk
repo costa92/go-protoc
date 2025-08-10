@@ -92,3 +92,7 @@ _install.protoc-gen-doc: ## Install protoc-gen-doc for API documentation
 	@echo "Installing protoc-gen-doc..."
 	@$(GO) install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@latest
 
+.PHONY: _install.docker-compose
+_install.docker-compose: ## Install Docker Compose for container orchestration
+	@DOCKER_COMPOSE_VERSION=$(DOCKER_COMPOSE_VERSION) $(SCRIPTS_DIR)/installation/docker-compose.sh
+

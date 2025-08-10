@@ -1,10 +1,10 @@
-version: '3'
+version: "3"
 
 services:
   kafka:
-    image: 'bitnami/kafka:latest'
+    image: "bitnami/kafka:latest"
     ports:
-      - '9092:9092'
+      - "9092:9092"
     environment:
       # KRaft settings
       - KAFKA_CFG_NODE_ID=0

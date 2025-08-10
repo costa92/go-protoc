@@ -26,6 +26,12 @@ BUF_VERSION ?= 1.54.0
 # 安装 goimports
 GOIMPORTS_VERSION ?= v0.35.0
 
+# 安装 golangci-lint
+GOLANGCI_LINT_VERSION ?= v1.61.0
+
 # gRPC工具
 PROTOC_GEN_GO_VERSION ?= $(call get_go_version,google.golang.org/protobuf/cmd/protoc-gen-go)
 PROTOC_GEN_GO_GRPC_VERSION ?= $(call get_go_version,google.golang.org/grpc/cmd/protoc-gen-go-grpc)
+
+# Docker Compose 工具
+DOCKER_COMPOSE_VERSION ?= v2.29.7

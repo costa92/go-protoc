@@ -1,6 +1,6 @@
 # go-protoc 开发文档
 
-> 该文档由 `make docs.dev` 自动生成，更新时间: 2025-08-07 19:08:00
+> 该文档由 `make docs.dev` 自动生成，更新时间: 2025-08-09 16:07:58
 
 ## 📋 项目概览
 
@@ -13,11 +13,13 @@
 ## 🚀 快速开始
 
 ### 环境要求
+
 - Go 1.24.0+ (安装命令: `make tools.install.go`)
 - Protocol Buffers 编译器 (安装命令: `make tools.install.buf`)
 - Docker & Docker Compose (用于开发环境)
 
 ### 本地开发
+
 ```bash
 # 1. 安装开发工具
 make install-tools
@@ -51,6 +53,7 @@ make run-api
 ## 🔧 开发命令
 
 ### 核心命令
+
 ```bash
 make help                        # 查看所有可用命令
 make run-api                     # 运行开发服务器
@@ -59,6 +62,7 @@ make test                        # 运行测试套件
 ```
 
 ### 代码生成
+
 ```bash
 make generate                    # 生成protobuf相关代码
 make wire                        # 重新生成依赖注入
@@ -66,6 +70,7 @@ make fmt                         # 格式化代码并排序imports
 ```
 
 ### 依赖管理
+
 ```bash
 make tidy                        # 清理和整理go.mod
 make tools.install.%             # 安装特定工具
@@ -86,11 +91,13 @@ make install-tools               # 安装所有开发工具
 ## 🔍 调试与监控
 
 ### 健康检查
+
 - **健康状态**: `GET /health`
 - **性能指标**: `GET /metrics` (Prometheus格式)
-- **调用链路**: Jaeger集成 (http://localhost:16686)
+- **调用链路**: Jaeger集成 (<http://localhost:16686>)
 
 ### 开发调试
+
 ```bash
 # 查看所有可用环境变量
 go run cmd/apiserver/main.go -h
@@ -105,6 +112,7 @@ DEBUG=true make run-api
 ## 📊 测试
 
 ### 单元测试
+
 ```bash
 go test ./...                    # 运行所有测试
 go test -v ./pkg/errorsx/       # 针对特定包测试
@@ -113,6 +121,7 @@ go test ./... -bench=.          # 基准测试
 ```
 
 ### 集成测试
+
 ```bash
 # 启动测试环境
 make run-redis
@@ -126,6 +135,7 @@ go test -tags=integration ./...
 ### 添加新API端点的完整流程
 
 1. **定义API** (`pkg/api/apiserver/v1/*.proto`)
+
    ```protobuf
    service ApiServer {
      rpc GetUser(GetUserRequest) returns (GetUserResponse) {}
@@ -133,6 +143,7 @@ go test -tags=integration ./...
    ```
 
 2. **生成代码**
+
    ```bash
    make generate
    ```
@@ -158,6 +169,7 @@ go test -tags=integration ./...
 ## 📚 进阶配置
 
 ### 数据库配置
+
 ```yaml
 # configs/apiserver.yaml
 mysql:
@@ -169,6 +181,7 @@ mysql:
 ```
 
 ### Redis配置
+
 ```yaml
 redis:
   addr: "localhost:6379"

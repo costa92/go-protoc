@@ -3,35 +3,35 @@
 
 .PHONY: run-jaeger
 run-jaeger: ## Run Jaeger service using docker-compose.
-	@./scripts/service.sh start jaeger
+	@./scripts/installation/service.sh start jaeger
 
 .PHONY: stop-jaeger
 stop-jaeger: ## Stop and remove Jaeger service.
-	@./scripts/service.sh stop jaeger
+	@./scripts/installation/service.sh stop jaeger
 
 .PHONY: run-redis
 run-redis: ## Run Redis service using docker-compose.
-	@./scripts/service.sh start redis
+	@./scripts/installation/service.sh start redis
 
 .PHONY: stop-redis
 stop-redis: ## Stop and remove Redis service.
-	@./scripts/service.sh stop redis
+	@./scripts/installation/service.sh stop redis
 
 .PHONY: run-kafka
 run-kafka: ## Run Kafka service using docker-compose.
-	@./scripts/service.sh start kafka
+	@./scripts/installation/service.sh start kafka
 
 .PHONY: stop-kafka
 stop-kafka: ## Stop and remove Kafka service.
-	@./scripts/service.sh stop kafka
+	@./scripts/installation/service.sh stop kafka
 
 .PHONY: start-all
 start-all: ## Start all dependent services.
-	@./scripts/service.sh start all
+	@./scripts/installation/service.sh start all
 
 .PHONY: stop-all
 stop-all: ## Stop and remove all dependent services.
-	@./scripts/service.sh stop all
+	@./scripts/installation/service.sh stop all
 
 ##@ Development Pipeline
 # The following commands provide a complete development pipeline workflow.

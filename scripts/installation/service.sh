@@ -8,7 +8,7 @@ set -o pipefail
 
 # Define the root directory of the project
 # This allows the script to be run from anywhere
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)"
 
 # Function to print usage
 usage() {

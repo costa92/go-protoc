@@ -26,6 +26,13 @@ spec:
           env:
             - name: COLLECTOR_ZIPKIN_HTTP_PORT
               value: "9411"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
 ---
 apiVersion: v1
 kind: Service
@@ -34,7 +41,7 @@ metadata:
   labels:
     app: jaeger
 spec:
-  type: NodePort
+  type: LoadBalancer
   ports:
     - name: http
       port: 16686
