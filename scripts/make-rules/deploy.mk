@@ -26,3 +26,7 @@ _install.redis:  ## Install Redis for deployment.
 .PHONY: _uninstall.redis
 _uninstall.redis: ## Uninstall Redis for deployment.
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::redis::uninstall
+
+.PHONY: _install.docker.redis
+_install.docker.redis: ## Install docker install redis
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::docker::redis::uninstall

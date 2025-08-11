@@ -25,6 +25,13 @@ proj::redis::install() {
     log::info "Redis installation completed successfully!"
 }
 
+# Func
+proj::docker::redis::install(){
+    log::info "Installing docker Redis..."
+}
+
+
+
 if [[ "$*" =~ proj::redis:: ]]; then
   eval $*
 fi
