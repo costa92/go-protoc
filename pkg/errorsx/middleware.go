@@ -103,6 +103,11 @@ func (h *DefaultErrorHandler) logError(ctx context.Context, err *ErrorX) {
 		return
 	}
 
+	// 优化: 错误采样，减少高频错误的日志量
+	if shouldSkipLogging(err) {
+		return
+	}
+
 	// 从对象池获取字段映射
 	fields := logFieldsPool.Get().([]any)
 	defer func() {
@@ -114,9 +119,11 @@ func (h *DefaultErrorHandler) logError(ctx context.Context, err *ErrorX) {
 	// 添加基础字段
 	fields = append(fields, "code", err.Code, "reason", err.Reason)
 
-	// 添加元数据
-	for k, v := range err.Metadata {
-		fields = append(fields, k, v)
+	// 优化: 只在必要时添加元数据，避免过多日志
+	if len(err.Metadata) > 0 && len(err.Metadata) < 10 { // 限制元数据字段数量
+		for k, v := range err.Metadata {
+			fields = append(fields, k, v)
+		}
 	}
 
 	// 添加原始错误
@@ -132,6 +139,42 @@ func (h *DefaultErrorHandler) logError(ctx context.Context, err *ErrorX) {
 	} else {
 		h.logger.Infow(err.Message, fields...)
 	}
+}
+
+// 错误采样相关变量
+var (
+	errorSampleCounter = make(map[string]int64) // 错误计数器
+	errorSampleMutex   sync.RWMutex
+	lastCleanupTime    = time.Now()
+)
+
+// shouldSkipLogging 判断是否应该跳过日志记录（错误采样）
+func shouldSkipLogging(err *ErrorX) bool {
+	// 500级别错误始终记录
+	if err.Code >= 500 {
+		return false
+	}
+	
+	// 生成错误键
+	errorKey := fmt.Sprintf("%d:%s", err.Code, err.Reason)
+	
+	errorSampleMutex.Lock()
+	defer errorSampleMutex.Unlock()
+	
+	// 定期清理计数器（每小时清理一次）
+	if time.Since(lastCleanupTime) > time.Hour {
+		errorSampleCounter = make(map[string]int64)
+		lastCleanupTime = time.Now()
+	}
+	
+	count := errorSampleCounter[errorKey]
+	errorSampleCounter[errorKey] = count + 1
+	
+	// 采样策略：前10次记录，之后每100次记录一次
+	if count < 10 {
+		return false
+	}
+	return count%100 != 0
 }
 
 // GinErrorMiddleware Gin 错误处理中间件

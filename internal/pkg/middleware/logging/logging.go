@@ -31,17 +31,22 @@ func Server(logger krtlog.Logger) middleware.Middleware {
 				code = se.Code
 				reason = se.Reason
 			}
-			level, stack := extractError(err)
-			_ = log.W(ctx).Log(level,
-				"kind", "server",
-				"component", kind,
-				"operation", operation,
-				"args", extractArgs(rq),
-				"code", code,
-				"reason", reason,
-				"stack", stack,
-				"latency", time.Since(startTime).Seconds(),
-			)
+			
+			// 优化: 只对错误请求或高级别日志进行详细记录
+			latency := time.Since(startTime).Seconds()
+			if err != nil || latency > 0.5 { // 只记录错误请求或慢请求(>500ms)
+				level, stack := extractError(err)
+				_ = log.W(ctx).Log(level,
+					"kind", "server",
+					"component", kind,
+					"operation", operation,
+					"args", extractArgs(rq),
+					"code", code,
+					"reason", reason,
+					"stack", stack,
+					"latency", latency,
+				)
+			}
 			return reply, err
 		}
 	}

@@ -3,6 +3,7 @@ package authn
 import (
 	"context"
 	"strings"
+	"sync"
 
 	"github.com/costa92/go-protoc/v2/internal/apiserver/pkg/locales"
 	v1 "github.com/costa92/go-protoc/v2/pkg/api/apiserver/v1" // For JWT business errors
@@ -17,43 +18,85 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// PublicPaths is a list of paths that do not require JWT authentication.
-// This should ideally be configurable.
-var PublicPaths = map[string]bool{
-	"/login":        true, // Example: Login path
-	"/healthz":      true, // Example: Health check
-	"/metrics":      true, // Prometheus metrics
-	"/debug/pprof":  true, // Base pprof path
-	"/debug/pprof/": true, // Also handle trailing slash for prefixes
-	"/openapi/":     true, // OpenAPI docs
-	// Add other public paths or path prefixes here
-	// Note: For prefixes, ensure the check handles them correctly (e.g., strings.HasPrefix)
+// PathTrie 前缀树用于高效路径匹配
+type PathTrie struct {
+	isEnd    bool
+	children map[byte]*PathTrie
+}
+
+// pathMatcher 全局路径匹配器
+var (
+	pathMatcher *PathTrie
+	once        sync.Once
+)
+
+// initPathMatcher 初始化路径匹配器（只执行一次）
+func initPathMatcher() {
+	once.Do(func() {
+		pathMatcher = &PathTrie{children: make(map[byte]*PathTrie)}
+		
+		// 优化: 预定义的公共路径列表
+		publicPaths := []string{
+			"/login",
+			"/healthz",
+			"/metrics",
+			"/debug/pprof",
+			"/openapi/",
+		}
+		
+		for _, path := range publicPaths {
+			pathMatcher.Insert(path)
+		}
+	})
+}
+
+// Insert 插入路径到前缀树
+func (pt *PathTrie) Insert(path string) {
+	current := pt
+	for i := 0; i < len(path); i++ {
+		char := path[i]
+		if current.children[char] == nil {
+			current.children[char] = &PathTrie{children: make(map[byte]*PathTrie)}
+		}
+		current = current.children[char]
+	}
+	current.isEnd = true
+}
+
+// IsPublicPath 检查路径是否为公共路径
+func (pt *PathTrie) IsPublicPath(path string) bool {
+	current := pt
+	for i := 0; i < len(path); i++ {
+		char := path[i]
+		if current.children[char] == nil {
+			return false
+		}
+		current = current.children[char]
+		// 检查是否匹配前缀路径（以/结尾的路径）
+		if current.isEnd {
+			// 完全匹配或前缀匹配
+			if i == len(path)-1 || (i < len(path)-1 && path[i] == '/') {
+				return true
+			}
+		}
+	}
+	return current.isEnd
 }
 
 // ServerJWTAuth is the JWT authentication middleware for Kratos HTTP server.
 func ServerJWTAuth(jwtOpts *options.JWTOptions) middleware.Middleware {
+	// 优化: 初始化路径匹配器
+	initPathMatcher()
+	
 	return func(handler middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, req interface{}) (interface{}, error) {
 			// Access the HTTP request to check the path
 			if httpReq, ok := http.RequestFromServerContext(ctx); ok {
 				path := httpReq.URL.Path
-				// Check if the path (or its prefix) is public
-				if PublicPaths[path] {
+				// 优化: 使用前缀树进行高效路径匹配
+				if pathMatcher.IsPublicPath(path) {
 					return handler(ctx, req) // Skip auth for public paths
 				}
-				// Handle prefix paths
-				for prefix := range PublicPaths {
-					if strings.HasPrefix(path, prefix) && strings.HasSuffix(prefix, "/") {
-						if PublicPaths[prefix] {
-							return handler(ctx, req)
-						}
-					}
-				}
-			} else {
-				// If we can't get HTTP request, proceed with caution or deny.
-				// For now, let's assume if no HTTP request, it might be a non-HTTP context
-				// or an issue, so we proceed to auth check by default.
-				// Alternatively, could return an error here.
 			}
 
 			// Try to get a HeaderCarrier from the context

@@ -16,15 +16,53 @@ import (
 // 字符串构建器对象池，用于优化错误消息格式化性能
 var stringBuilderPool = sync.Pool{
 	New: func() interface{} {
-		return &strings.Builder{}
+		// 优化: 预分配缓冲区大小，减少扩容次数
+		builder := &strings.Builder{}
+		builder.Grow(256) // 预分配256字节缓冲区
+		return builder
 	},
 }
 
 // 元数据对象池，用于优化元数据map分配
 var metadataPool = sync.Pool{
 	New: func() interface{} {
-		return make(map[string]any)
+		// 优化: 预分配map容量，减少扩容开销
+		return make(map[string]any, 8)
 	},
+}
+
+// 错误码到字符串的预建映射表，避免运行时格式化
+var (
+	errorCodeStrings = make(map[int32]string, 1000) // 预分配常见错误码
+	errorCodeMutex   sync.RWMutex
+)
+
+// 初始化常见错误码字符串映射
+func init() {
+	// 预建常见HTTP状态码字符串
+	commonCodes := []int32{200, 400, 401, 403, 404, 422, 500, 502, 503, 504}
+	for _, code := range commonCodes {
+		errorCodeStrings[code] = strconv.FormatInt(int64(code), 10)
+	}
+}
+
+// getErrorCodeString 获取错误码的字符串表示（使用缓存）
+func getErrorCodeString(code int32) string {
+	errorCodeMutex.RLock()
+	if str, exists := errorCodeStrings[code]; exists {
+		errorCodeMutex.RUnlock()
+		return str
+	}
+	errorCodeMutex.RUnlock()
+	
+	// 不在缓存中，生成并缓存
+	str := strconv.FormatInt(int64(code), 10)
+	errorCodeMutex.Lock()
+	if len(errorCodeStrings) < 2000 { // 限制缓存大小
+		errorCodeStrings[code] = str
+	}
+	errorCodeMutex.Unlock()
+	return str
 }
 
 // ErrorX 定义了 OneX 项目体系中使用的错误类型，用于描述错误的详细信息.
@@ -70,8 +108,9 @@ func (err *ErrorX) Error() string {
 		stringBuilderPool.Put(builder)
 	}()
 
+	// 优化: 使用高效的字符串拼接和缓存的错误码字符串
 	builder.WriteString("error: code = ")
-	builder.WriteString(strconv.FormatInt(int64(err.Code), 10))
+	builder.WriteString(getErrorCodeString(err.Code)) // 使用缓存的字符串
 	builder.WriteString(" reason = ")
 	builder.WriteString(err.Reason)
 	builder.WriteString(" message = ")

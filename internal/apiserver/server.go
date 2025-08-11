@@ -101,12 +101,13 @@ func ProvideKratosAppConfig(registrar registry.Registrar) server.KratosAppConfig
 }
 
 func NewMiddlewares(logger krtlog.Logger, val validate.RequestValidator, jwtOpts *genericoptions.JWTOptions) []middleware.Middleware {
+	// 优化: 调整中间件顺序，将轻量级中间件前置
 	return []middleware.Middleware{
-		logging.Server(logger), // Logging early
-		tracing.Server(),       // Tracing
+		tracing.Server(),                                           // 优化: 先启动追踪，性能开销最小
+		authn.ServerJWTAuth(jwtOpts),                              // 优化: 认证放在前面，早期过滤无效请求
+		logging.Server(logger),                                     // 优化: 只对通过认证的请求详细记录日志
 		i18nmw.Translator(i18n.WithLanguage(language.English), i18n.WithFS(locales.Locales)), // i18n
-		authn.ServerJWTAuth(jwtOpts), // JWT Authentication
-		validate.Validator(val),      // Validation after auth
+		validate.Validator(val),                                    // 验证放在最后，只验证有效的已认证请求
 	}
 }
 

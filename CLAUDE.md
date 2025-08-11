@@ -16,15 +16,38 @@ A production-ready Go microservice framework built on Kratos v2 with Protocol Bu
 - `make fmt` - Format and import order correction
 - `make tidy` - Clean up go.mod dependencies
 
+### Development Environment
+- `make dev-setup` - Complete development environment setup (tools + services + code generation)
+- `make dev-clean` - Clean development environment and stop services
+- `make dev-quick` - Quick development start (skip tool installation)
+- `make dev-watch` - File watching with auto-rebuild
+- `make dev-test` - Full test pipeline with coverage
+- `make dev-bench` - Run benchmarks
+
 ### Code Generation
 - `make generate` - Generate protobuf/gRPC/HTTP code with buf
 - `make wire` - Regenerate dependency injection code (run after structural changes)
 - `buf generate` - Direct protobuf generation (if buf.yaml changed)
 
-### Advanced Development
+### Tool Installation
 - `make install-tools` - Install CI tools only
 - `make install-tools A=1` - Install all development tools
-- `make apidiff` - Check API breaking changes vs master
+- `make tools.install.<tool>` - Install specific tool (wire, golangci-lint, buf, etc.)
+
+### Infrastructure Services
+- `make run-redis` - Start Redis with docker-compose
+- `make stop-redis` - Stop Redis service
+- `make run-jaeger` - Start Jaeger tracing
+- `make stop-jaeger` - Stop Jaeger service  
+- `make run-kafka` - Start Kafka service
+- `make stop-kafka` - Stop Kafka service
+- `make start-all` - Start all dependent services
+- `make stop-all` - Stop all services
+
+### Documentation
+- `make docs.dev` - Generate development documentation to docs/DEVELOPMENT.md
+- `make docs.api` - Generate API documentation from protobuf
+- `make docs.serve` - Serve documentation locally
 
 ## Architecture Overview
 
@@ -63,8 +86,14 @@ HTTP Request → gRPC-Gateway → Handlers → Biz → Store → Database
 ### Local Setup
 1. Copy and edit: `cp configs/apiserver.yaml configs/apiserver_local.yaml`
 2. Configure database in local config
-3. Start dependencies: `docker-compose -f deployments/redis/docker-compose.yml up`
+3. Start dependencies: `make run-redis` (or `docker-compose -f deployments/redis/docker-compose.yml up`)
 4. Run: `go run cmd/apiserver/main.go -c configs/apiserver_local.yaml`
+
+### Alternative Quick Setup
+```bash
+make dev-setup      # Install tools + start services + generate code
+make run-api        # Start the API server
+```
 
 ### Development Dependencies
 - **Database**: MySQL 8.0+ or PostgreSQL 12+
@@ -125,9 +154,10 @@ go test -tags=integration ./...   # Run integration tests
 ## Infrastructure Templates
 
 ### Docker Services Ready to Use
-- **Redis**: `make redis-up` or `docker-compose -f deployments/redis/docker-compose.yml up`
-- **Jaeger**: `make jaeger-up` or use provided docker-compose
-- **Kafka**: `make kafka-up` (when integrated)
+- **Redis**: `make run-redis` or `docker-compose -f deployments/redis/docker-compose.yml up`
+- **Jaeger**: `make run-jaeger` or `docker-compose -f deployments/jaeger/docker-compose.yml up`
+- **Kafka**: `make run-kafka` or `docker-compose -f deployments/kafka/docker-compose.yml up`
+- **All services**: `make start-all` (starts Redis, Jaeger, Kafka simultaneously)
 
 ### Monitoring Endpoints
 - **Health**: `GET /health`
@@ -144,3 +174,9 @@ go test -tags=integration ./...   # Run integration tests
 ## Project-Specific Tools
 - **rename-project**: Change module path with `make rename-project OLD_PATH=X NEW_PATH=Y`
 - **githooks**: Git hooks installed automatically: githooks/{pre-commit,commit-msg,pre-push}
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.

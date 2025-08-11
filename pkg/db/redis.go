@@ -57,24 +57,30 @@ func setRedisDefaults(opts *RedisOptions) {
 		opts.Addr = "127.0.0.1:6379"
 	}
 	if opts.PoolSize == 0 {
-		opts.PoolSize = 100 // 设置合理的连接池大小
+		// 优化: 增加连接池大小以支持更高并发
+		opts.PoolSize = 200
 	}
 	if opts.MinIdleConns == 0 {
-		opts.MinIdleConns = 10
+		// 优化: 增加最小空闲连接数，减少连接建立开销
+		opts.MinIdleConns = 50
 	}
 	if opts.MaxRetries == 0 {
 		opts.MaxRetries = 3
 	}
 	if opts.DialTimeout == 0 {
-		opts.DialTimeout = 5 * time.Second
+		// 优化: 减少连接超时时间
+		opts.DialTimeout = 2 * time.Second
 	}
 	if opts.ReadTimeout == 0 {
-		opts.ReadTimeout = 3 * time.Second
+		// 优化: 减少读超时时间，提高响应速度
+		opts.ReadTimeout = 1 * time.Second
 	}
 	if opts.WriteTimeout == 0 {
-		opts.WriteTimeout = 3 * time.Second
+		// 优化: 减少写超时时间，提高响应速度
+		opts.WriteTimeout = 1 * time.Second
 	}
 	if opts.PoolTimeout == 0 {
-		opts.PoolTimeout = 4 * time.Second
+		// 优化: 减少连接池等待超时
+		opts.PoolTimeout = 2 * time.Second
 	}
 }

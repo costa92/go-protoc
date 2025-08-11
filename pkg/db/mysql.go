@@ -73,13 +73,16 @@ func setMySQLDefaults(opts *MySQLOptions) {
 		opts.Addr = "127.0.0.1:3306"
 	}
 	if opts.MaxIdleConnections == 0 {
-		opts.MaxIdleConnections = 100
+		// 优化: 降低空闲连接数，减少资源占用
+		opts.MaxIdleConnections = 25
 	}
 	if opts.MaxOpenConnections == 0 {
-		opts.MaxOpenConnections = 100
+		// 优化: 增加最大连接数，支持更高并发
+		opts.MaxOpenConnections = 200
 	}
 	if opts.MaxConnectionLifeTime == 0 {
-		opts.MaxConnectionLifeTime = time.Duration(10) * time.Minute
+		// 优化: 增加连接生命周期，减少连接重建开销
+		opts.MaxConnectionLifeTime = time.Duration(30) * time.Minute
 	}
 	if opts.Logger == nil {
 		opts.Logger = logger.Default
