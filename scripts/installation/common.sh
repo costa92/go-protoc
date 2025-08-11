@@ -8,5 +8,20 @@ PROJ_ROOT_DIR=$(dirname "${BASH_SOURCE[0]}")/../..
 # 都会统一加载 scripts/common.sh 脚本
 source "${PROJ_ROOT_DIR}/scripts/common.sh"
 
+# 容器网络名称
+NETWORK_NAME=${NETWORK_NAME:-proj}
+
 
 COMMON_SOURCED=true # Sourced flag
+
+# 设置 PROJ_ENV_FILE（重要）
+PROJ_ENV_FILE=${PROJ_ENV_FILE:-${PROJ_ROOT_DIR}/manifests/env/env.dev}
+# 加载本地安装环境变量（非常重要的一步，后面很多步骤都依赖于env.local中的变量设置）
+source ${PROJ_ENV_FILE}
+
+# 确保 proj 容器网络存在。
+# 在 uninstall 时，可不删除 proj 容器网络，可以作为一个无害的无用数据
+proj::common::network()
+{
+  docker network ls |grep -q ${NETWORK_NAME} || docker network create ${NETWORK_NAME}
+}
