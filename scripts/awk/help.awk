@@ -2,16 +2,16 @@
 # It parses all makefiles and prints a formatted list of targets.
 
 BEGIN {
-    # Match a colon, optional whitespace, and then ##.
-    FS = ":[ \t]*##";
+    FS = ":[ \t]*##";  # Split on colon + spaces/tabs + ##
     current_category = "";
-    # Print a static header.
+    # List of special prefixes to replace
+    special_prefixes = "_install\\.|_uninstall\\.|_verify\\.";
+
     printf "\nUsage:\n  make \033[36m<TARGETS> <OPTIONS>\033[0m\n";
     printf "\n\033[35mTargets:\033[0m\n";
 }
 
-# Process category headers.
-# A line starting with ##@ is a category header.
+# Process category headers
 /^##@/ {
     category_name = substr($0, 5);
     printf "\n\033[1m%s\033[0m\n", category_name;
@@ -19,72 +19,53 @@ BEGIN {
     next;
 }
 
-# Process any line that is a documented target.
-# It must not start with whitespace or a hash, and must contain `: ##`.
-/^[^\t #].*:[ \t]*##/ {
+# Process documented targets
+/^[^	 #].*:[ 	]*##/ {
     target = $1;
     comment = $2;
 
-    # Check if it's a variable-based target, e.g., `$(VAR)`
+    # Get file prefix if in a .mk file
+    file_prefix = "";
+    if (FILENAME ~ /\.mk$/) {
+        split(FILENAME, path_parts, "/");
+        filename = path_parts[length(path_parts)];
+        sub(/\.mk$/, "", filename);
+        file_prefix = filename;
+    }
+
+    # Variable form: $(VAR)
     if (target ~ /^\$\(/) {
         var = substr(target, 3, length(target)-3);
-        # Extract file prefix from filename (e.g., tools.mk -> tools)
-        file_prefix = "";
-        if (FILENAME ~ /\.mk$/) {
-            split(FILENAME, path_parts, "/");
-            filename = path_parts[length(path_parts)];
-            sub(/\.mk$/, "", filename);
-            file_prefix = filename;
+
+        if (file_prefix != "") {
+            # Replace special prefixes in one go
+            if (var ~ "^(" special_prefixes ")") {
+                sub(/^_/, file_prefix ".", var);
+            }
+            gsub("_", ".", var); # Convert underscores to dots
+        } else {
+            gsub("_", "-", var); # Convert underscores to hyphens
         }
 
-        # If we have a file prefix, use it for transformation
-        if (file_prefix != "") {
-            # Convert _install.* to {prefix}.install.*
-            if (var ~ /^_install\./) {
-                sub(/^_/, file_prefix ".", var);
-            }
-            # Convert _verify.* to {prefix}.verify.*
-            else if (var ~ /^_verify\./) {
-                sub(/^_/, file_prefix ".", var);
-            }
-            # For other patterns, keep dots
-            gsub("_", ".", var);
-        } else {
-            gsub("_", "-", var);
-        }
         printf "  \033[36m%-45s\033[0m%s\n", tolower(var), comment;
     }
-    # Else, it's a simple target, e.g., `build` or `target: prerequisite`
+    # Simple target
     else {
-        # If there are prerequisites, only print the target name itself.
         split(target, arr, ":");
         target_name = arr[1];
-        # Extract file prefix from filename (e.g., tools.mk -> tools)
-        file_prefix = "";
-        if (FILENAME ~ /\.mk$/) {
-            split(FILENAME, path_parts, "/");
-            filename = path_parts[length(path_parts)];
-            sub(/\.mk$/, "", filename);
-            file_prefix = filename;
+
+        if (file_prefix != "") {
+            if (target_name ~ "^(" special_prefixes ")") {
+                sub(/^_/, file_prefix ".", target_name);
+            }
         }
 
-        # If we have a file prefix, convert '_install.*' to '{prefix}.install.*'
-        # and '_verify.*' to '{prefix}.verify.*' for display.
-        if (file_prefix != "") {
-            if (target_name ~ /^_install\./) {
-                sub(/^_/, file_prefix ".", target_name);
-            }
-            else if (target_name ~ /^_verify\./) {
-                sub(/^_/, file_prefix ".", target_name);
-            }
-        }
         printf "  \033[36m%-45s\033[0m%s\n", target_name, comment;
     }
 }
 
-# After processing all files, print the footer.
+# Print footer
 END {
-    # The USAGE_OPTIONS variable is passed from the Makefile environment.
     if (ENVIRON["USAGE_OPTIONS"]) {
         printf "%s\n", ENVIRON["USAGE_OPTIONS"];
     }

@@ -6,6 +6,7 @@ include scripts/make-rules/project.mk
 # Include core build tools and utility commands.
 include scripts/make-rules/tools.mk
 
+@echo "==> DEBUG: Including deploy.mk"
 include scripts/make-rules/deploy.mk
 
 # Include Go-specific build and formatting commands.

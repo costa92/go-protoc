@@ -30,11 +30,11 @@ docs.clean: ## Clean all generated documentation
 	@echo "Documentation cleaned"
 
 .PHONY: _docs.generate-dev
-_docs.generate-dev: ## Internal: Generate development documentation
+_docs.generate-dev:
 	@scripts/generate-dev-docs.sh
 
 .PHONY: _docs.generate-api
-_docs.generate-api: ## Internal: Generate API documentation
+_docs.generate-api:
 	@mkdir -p docs/generated
 	@if command -v protoc-gen-doc >/dev/null 2>&1; then \
 		echo "Generating API documentation..."; \
@@ -47,7 +47,7 @@ _docs.generate-api: ## Internal: Generate API documentation
 	@echo "API documentation updated"
 
 .PHONY: _docs.serve
-_docs.serve: ## Internal: Serve documentation
+_docs.serve:
 	@if command -v http-server >/dev/null 2>&1; then \
 		http-server docs -p 8081; \
 	else \
@@ -55,3 +55,4 @@ _docs.serve: ## Internal: Serve documentation
 		npm install -g http-server; \
 		http-server docs -p 8081; \
 	fi
+
