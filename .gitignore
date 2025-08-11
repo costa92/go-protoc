@@ -1,3 +1,5 @@
 .DS_Store
 .vscode
 ._output
+.idea
+._thirdparty
