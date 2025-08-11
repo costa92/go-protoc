@@ -5,7 +5,7 @@ package kratos
 import (
 	krtlog "github.com/go-kratos/kratos/v2/log"
 
-	"github.com/onexstack/onexstack/pkg/log"
+	"github.com/costa92/go-protoc/v2/pkg/log"
 )
 
 func NewLogger(id, name, version string) krtlog.Logger {

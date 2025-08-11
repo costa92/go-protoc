@@ -23,7 +23,6 @@ require (
 	github.com/hashicorp/consul/api v1.31.0
 	github.com/jinzhu/copier v0.4.0
 	github.com/nicksnyder/go-i18n/v2 v2.4.1
-	github.com/onexstack/onexstack v0.0.2
 	github.com/prometheus/client_golang v1.22.0
 	github.com/redis/go-redis/extra/rediscensus/v9 v9.7.0
 	github.com/redis/go-redis/v9 v9.7.0
@@ -139,6 +138,8 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/onsi/ginkgo/v2 v2.22.1 // indirect
+	github.com/onsi/gomega v1.36.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -181,6 +182,7 @@ require (
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/term v0.30.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
+	golang.org/x/tools v0.29.0 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

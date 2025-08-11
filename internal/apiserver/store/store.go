@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
+	"github.com/costa92/go-protoc/v2/pkg/store/where"
 	"github.com/google/wire"
-	"github.com/onexstack/onexstack/pkg/store/where"
 	"gorm.io/gorm"
 )
 
