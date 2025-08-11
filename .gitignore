@@ -1,5 +1,5 @@
 .DS_Store
 .vscode
-._output
+._output/
 .idea
-._thirdparty
+._thirdparty/
