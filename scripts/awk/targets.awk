@@ -19,8 +19,12 @@ function format_target(name, file_prefix,   formatted) {
     return name;
 }
 
-# Skip category headers, as the Makefile loop handles printing the filename
-/^##@/ { next }
+# Process category headers
+/^##@/ {
+    category_name = substr($0, 5);
+    printf "\n  \033[1m%s\033[0m\n", category_name;
+    next;
+}
 
 # Process simple targets like `build: ## ...`
 /^[a-zA-Z0-9._-]+:.*?##/ {
