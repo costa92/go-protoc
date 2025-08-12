@@ -42,10 +42,15 @@ proj::mongo::docker::install()
 
 proj::mongo::pre_install()
 {
-  # 获取 MongoDB 公钥并添加到现代密钥环
-  # 使用 --homedir /tmp/gnupg 避免 GPG 家目录权限警告
-  # 使用 --quiet 减少不必要的输出
-  echo ${LINUX_PASSWORD} | sudo -S wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg --dearmor --homedir /tmp/gnupg --quiet -o /usr/share/keyrings/mongodb-server-7.0.gpg
+  # 检查 MongoDB 密钥环文件是否已存在
+  if [ -f /usr/share/keyrings/mongodb-server-7.0.gpg ]; then
+    proj::log::info "MongoDB keyring file already exists, skipping download..."
+  else
+    # 获取 MongoDB 公钥并添加到现代密钥环
+    # 使用 --homedir /tmp/gnupg 避免 GPG 家目录权限警告
+    # 使用 --quiet 减少不必要的输出
+    echo ${LINUX_PASSWORD} | sudo -S wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg --dearmor --homedir /tmp/gnupg --quiet -o /usr/share/keyrings/mongodb-server-7.0.gpg
+  fi
 
   if proj::util::is_ubuntu; then
     # 添加 MongoDB APT 源 - 对于较新的 Ubuntu 版本使用 jammy (22.04) 仓库
