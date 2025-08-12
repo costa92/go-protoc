@@ -15,3 +15,9 @@ C_BBLACK='\033[40m';C_BRED='\033[41m';
 C_BGREEN='\033[42m';C_BYELLOW='\033[43m';
 C_BBLUE='\033[44m';C_BMAGENTA='\033[45m';
 C_BCYAN='\033[46m';C_BWHITE='\033[47m';
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
