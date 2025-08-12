@@ -16,8 +16,9 @@ deploy.uninstall.%: ## Uninstall a specified tool.
 	@$(MAKE) _uninstall.$*
 
 
+##@ Redis Service
 # ==============================================================================
-# Internal installation methods
+# Redis installation methods
 # ==============================================================================
 .PHONY: _install.redis
 _install.redis:  ## Install Redis for deployment.
@@ -37,6 +38,10 @@ _uninstall.docker.redis: ## Uninstall docker install redis
 	@$(PROJ_ROOT_DIR)/scripts/installation/mariadb.sh proj::mariadb::docker::uninstall
 
 
+##@ MariaDB Service
+# ==============================================================================
+# MariaDB installation methods
+# ==============================================================================
 .PHONY: _install.mariadb
 _install.mariadb:  ## Install Mariadb for deployment.
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::mariadb::install
@@ -54,7 +59,10 @@ _install.docker.mariadb: ## Install docker install mariadb
 _uninstall.docker.mariadb: ## Uninstall docker install Mariadb
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::mariadb::docker::uninstall
 
-## mongo
+##@ MongoDB Service
+# ==============================================================================
+# MongoDB installation methods
+# ==============================================================================
 .PHONY: _install.mongo
 _install.mongo:  ## Install mongo
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::mongo::install
@@ -73,7 +81,10 @@ _uninstall.docker.mongo: ## Uninstall docker install mongo
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::mongo::docker::uninstall
 
 
-
+##@ Kafka Service
+# ==============================================================================
+# Kafka installation methods
+# ==============================================================================
 .PHONY: _install.docker.kafka
 _install.docker.kafka: ## Install docker install kafka
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::kafka::docker::install

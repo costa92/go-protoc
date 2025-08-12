@@ -16,7 +16,7 @@ KAFKA_DOCKER_MNAME=${NETWORK_NAME}-kafka
 proj::kafka::docker::install()
 {
   proj::common::network
-  docker run -d --restart always --name ${ZOOKEEPER_DOCKER_MNAME} --network onex -p 2181:2181 -t wurstmeister/zookeeper
+  docker run -d --restart always --name ${ZOOKEEPER_DOCKER_MNAME} --network ${NETWORK_NAME} -p 2181:2181 -t wurstmeister/zookeeper
   docker run -d --name ${KAFKA_DOCKER_MNAME} --link ${ZOOKEEPER_DOCKER_MNAME}:zookeeper \
     --restart always \
     --network ${NETWORK_NAME} \
