@@ -13,23 +13,67 @@ PROJ_REDIS_PASSWORD=${PROJ_REDIS_PASSWORD:-proj(#)666}
 
 # Function to install Redis using kubectl
 proj::redis::install() {
-    proj::log::info "Installing Redis..."
+  proj::redis::pre_install
 
-        # Check if kubectl is available
-    if ! proj::util::cmd_exists kubectl; then
-        proj::log::error "kubectl is not installed. Please install kubectl first."
-        exit 1
-    fi
+  # 创建 `/var/lib/redis` 目录，否则 `redis-server` 命令启动时
+  # 会报：`Can't chdir to '/var/lib/redis': No such file or directory` 错误
+  proj::util::sudo "mkdir -p /var/lib/redis"
 
-    # Apply Redis deployment and service
-    kubectl apply -f ${PROJ_ROOT_DIR}/deployments/redis/redis.yaml
+  # 安装 Redis
+  proj::util::sudo "apt install -y -o Dpkg::Options::="--force-confmiss" --reinstall redis-server"
 
-    # Wait for Redis pod to be ready
-    proj::log::info "Waiting for Redis pod to be ready..."
-    proj::kubectl wait --for=condition=ready pod -l app=redis --timeout=120s
+  # 配置 Redis
+  # 修改 `/etc/redis/redis.conf` 文件，将 daemonize 由 no 改成 yes，表示允许 Redis 在后台启动
+  redis_conf=/etc/redis/redis.conf
+  # 注意：有的系统 redis 配置文件路径为 `/etc/redis.conf`
+  [[ -f /etc/redis.conf ]] && redis_conf=/etc/redis.conf
 
-    proj::log::info "Redis installation completed successfully!"
+  echo ${LINUX_PASSWORD} | sudo -S sed -i '/^daemonize/{s/no/yes/}' ${redis_conf}
+
+  # 修改 Redis 端口为 ${PROJ_REDIS_PORT}
+  echo ${LINUX_PASSWORD} | sudo -S sed -i "s/^port.*/port ${PROJ_REDIS_PORT}/g" ${redis_conf}
+
+  # 在 `bind 127.0.0.1` 前面添加 `#` 将其注释掉，默认情况下只允许本地连接，注释掉后外网可以连接 Redis
+  echo ${LINUX_PASSWORD} | sudo -S sed -i '/^bind .*127.0.0.1/s/^/# /' ${redis_conf}
+
+  # 修改 requirepass 配置，设置 Redis 密码
+  echo ${LINUX_PASSWORD} | sudo -S sed -i 's/^# requirepass.*$/requirepass '"${PROJ_REDIS_PASSWORD}"'/' ${redis_conf}
+
+  # 因为我们上面配置了密码登录，需要将 protected-mode 设置为 no，关闭保护模式
+  echo ${LINUX_PASSWORD} | sudo -S sed -i '/^protected-mode/{s/yes/no/}' ${redis_conf}
+
+  # 为了能够远程连上 Redis，需要执行以下命令关闭防火墙，并禁止防火墙开机启动（如果不需要远程连接，可忽略此步骤）
+  set +o errexit
+  #proj::util::sudo "systemctl stop firewalld.service"
+  #proj::util::sudo "systemctl disable firewalld.service"
+  set -o errexit
+
+  # 重启 Redis
+  #proj::util::sudo "redis-server ${redis_conf}"
+  proj::util::sudo "systemctl restart redis-server"
+
+  proj::redis::status || return 1
+  proj::redis::info
+  proj::log::info "install redis successfully"
 }
+
+
+# Uninstall the redis step by step.
+proj::redis::uninstall()
+{
+  # 先删除 redis-server 进程，否则 `systemctl stop redis-server` 可能会卡主
+  set +o errexit
+  redis_pid=$(pgrep -f redis-server)
+  [[ ${redis_pid} != "" ]] && sudo kill -9 ${redis_pid}
+  proj::util::sudo "systemctl stop redis-server"
+  proj::util::sudo "systemctl disable redis-server"
+  proj::util::sudo "apt remove -y redis-server"
+  proj::util::sudo "rm -rf /var/lib/redis"
+  set -o errexit
+  proj::log::info "uninstall redis successfully"
+  return 0
+}
+
 
 # Pre-install Redis by system init and package management.
 proj::redis::pre_install(){
