@@ -54,7 +54,7 @@ _install.docker.mariadb: ## Install docker install mariadb
 _uninstall.docker.mariadb: ## Uninstall docker install Mariadb
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::mariadb::docker::uninstall
 
-
+## mongo
 .PHONY: _install.mongo
 _install.mongo:  ## Install mongo
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::mongo::install
@@ -71,3 +71,13 @@ _install.docker.mongo: ## Install docker install mongo
 .PHONY: _uninstall.docker.mongo
 _uninstall.docker.mongo: ## Uninstall docker install mongo
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::mongo::docker::uninstall
+
+
+
+.PHONY: _install.docker.kafka
+_install.docker.kafka: ## Install docker install kafka
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::kafka::docker::install
+
+.PHONY: _uninstall.docker.kafka
+_uninstall.docker.kafka: ## Uninstall docker install kafka
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::kafka::docker::uninstall
