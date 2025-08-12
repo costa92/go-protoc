@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
+#
+# Redis Installation Script
+# This script provides functions to install, configure, and manage Redis server
+# both natively and via Docker containers.
+#
 
+# Exit on any error, undefined variables, or pipe failures
 set -o errexit
 set -o nounset
 set -o pipefail
 
-
-# Set some environment variables.
-PROJ_REDIS_HOST=${PROJ_REDIS_HOST:-127.0.0.1}
-PROJ_REDIS_PORT=${PROJ_REDIS_PORT:-6379}
-PROJ_REDIS_PASSWORD=${PROJ_REDIS_PASSWORD:-proj(#)666}
+# Environment variables for Redis configuration
+# Can be overridden by setting these variables before running the script
+PROJ_REDIS_HOST=${PROJ_REDIS_HOST:-127.0.0.1}        # Redis server host
+PROJ_REDIS_PORT=${PROJ_REDIS_PORT:-6379}             # Redis server port
+PROJ_REDIS_PASSWORD=${PROJ_REDIS_PASSWORD:-proj(#)666}  # Redis authentication password
 
 
 # Function to install Redis using kubectl
@@ -88,6 +94,7 @@ proj::redis::pre_install(){
 }
 
 # Func
+# Install Redis using a Docker container.
 proj::redis::docker::install(){
     proj::log::info "Installing docker Redis..."
 
@@ -145,6 +152,10 @@ proj::redis::status()
   }
 }
 
+# This block allows calling functions in this script directly from the command line.
+# It checks if the script's arguments contain a function name with the 'proj::redis::' prefix
+# and, if so, executes that function.
+# For example: ./redis.sh proj::redis::install
 if [[ "$*" =~ proj::redis:: ]]; then
   eval $*
 fi
