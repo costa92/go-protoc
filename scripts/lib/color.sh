@@ -21,3 +21,44 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+
+
+
+# Print colors you can use
+proj::color::print_color()
+{
+  echo
+  echo -e ${bmagenta}--back-color:${normal}
+  echo "bblack; bgreen; bblue; bcyan; bred; byellow; bmagenta; bwhite"
+  echo
+  echo -e ${red}--font-color:${normal}
+  echo "black; red; green; yellow; blue; magenta; cyan; white"
+  echo
+  echo -e ${bold}--font:${normal}
+  echo "normal; italic; reverse; nounder; bold; noitalic; conceal; noblink;
+  dim; blink; nobold; under"
+  echo
+}
+
+proj::color::color_print() {
+  local color=$1
+  shift
+  # if stdout is a terminal, turn on color output.
+  #   '-t' check: is a terminal?
+  #   check isatty in bash https://stackoverflow.com/questions/10022323
+  if [ -t 1 ]; then
+    printf '\e[1;%sm%s\e[0m\n' "$color" "$*"
+  else
+    printf '%s\n' "$*"
+  fi
+}
+
+proj::color::red()
+{
+  proj::color::color_print 31 "$@"
+}
+
+proj::color::green()
+{
+  proj::color::color_print 32 "$@"
+}

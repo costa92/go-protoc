@@ -15,6 +15,7 @@ set -o pipefail
 PROJ_REDIS_HOST=${PROJ_REDIS_HOST:-127.0.0.1}        # Redis server host
 PROJ_REDIS_PORT=${PROJ_REDIS_PORT:-6379}             # Redis server port
 PROJ_REDIS_PASSWORD=${PROJ_REDIS_PASSWORD:-proj(#)666}  # Redis authentication password
+REDIS_DOCKER_MNAME=${NETWORK_NAME}-redis
 
 
 # Function to install Redis using kubectl
@@ -101,7 +102,7 @@ proj::redis::docker::install(){
     proj::redis::pre_install
     proj::common::network
 
-    docker run -d --name proj-redis \
+    docker run -d --name ${REDIS_DOCKER_MNAME} \
       --restart always \
       --network ${NETWORK_NAME} \
       -v ${PROJ_THIRDPARTY_INSTALL_DIR}/redis:/data \
@@ -137,7 +138,7 @@ EOF
 # Uninstall the docker container.
 proj::redis::docker::uninstall()
 {
-  docker rm -f proj-redis &>/dev/null
+  docker rm -f ${REDIS_DOCKER_MNAME} &>/dev/null
   proj::util::sudo "rm -rf ${PROJ_THIRDPARTY_INSTALL_DIR}/redis"
   proj::log::info "uninstall redis successfully"
 }

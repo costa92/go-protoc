@@ -14,4 +14,5 @@ PROJ_ROOT_DIR=$(dirname "${BASH_SOURCE[0]}")/../..
 INSTALL_DIR=${PROJ_ROOT_DIR}/scripts/installation
 
 source ${INSTALL_DIR}/redis.sh
+source ${INSTALL_DIR}/mariadb.sh
 

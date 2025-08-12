@@ -28,6 +28,16 @@ function proj::util::is_mac() {
     [[ "$(uname)" == "Darwin" ]]
 }
 
+# Check if we're running on Ubuntu
+function proj::util::is_ubuntu() {
+    [[ -f /etc/os-release ]] && grep -q "ID=ubuntu" /etc/os-release
+}
+
+# Check if we're running on Debian
+function proj::util::is_debian() {
+    [[ -f /etc/os-release ]] && grep -q "ID=debian" /etc/os-release
+}
+
 # Check if a command exists
 function proj::util::cmd_exists() {
     command -v "$1" >/dev/null 2>&1

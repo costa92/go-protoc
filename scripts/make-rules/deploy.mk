@@ -32,6 +32,24 @@ _install.docker.redis: ## Install docker install redis
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::redis::docker::install
 
 
-.PHONY: _uninstall.docker.redis
+.PHONY: _uninstall.docker.mariadb
 _uninstall.docker.redis: ## Uninstall docker install redis
-	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::redis::docker::uninstall
+	@$(PROJ_ROOT_DIR)/scripts/installation/mariadb.sh proj::mariadb::docker::uninstall
+
+
+.PHONY: _install.
+_install.mariadb:  ## Install Mariadb for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::mariadb::install
+
+.PHONY: _uninstall.mariadb
+_uninstall.mariadb: ## Uninstall Mariadb for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::mariadb::uninstall
+
+.PHONY: _install.docker.mariadb
+_install.docker.mariadb: ## Install docker install mariadb
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::mariadb::docker::install
+
+
+.PHONY: _uninstall.docker.mariadb
+_uninstall.docker.mariadb: ## Uninstall docker install Mariadb
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::mariadb::docker::uninstall
