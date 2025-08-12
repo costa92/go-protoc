@@ -37,7 +37,7 @@ _uninstall.docker.redis: ## Uninstall docker install redis
 	@$(PROJ_ROOT_DIR)/scripts/installation/mariadb.sh proj::mariadb::docker::uninstall
 
 
-.PHONY: _install.
+.PHONY: _install.mariadb
 _install.mariadb:  ## Install Mariadb for deployment.
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::mariadb::install
 
@@ -53,3 +53,21 @@ _install.docker.mariadb: ## Install docker install mariadb
 .PHONY: _uninstall.docker.mariadb
 _uninstall.docker.mariadb: ## Uninstall docker install Mariadb
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::mariadb::docker::uninstall
+
+
+.PHONY: _install.mongo
+_install.mongo:  ## Install mongo
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::mongo::install
+
+.PHONY: _uninstall.mongo
+_uninstall.mongo: ## Uninstall mongo
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::mongo::uninstall
+
+.PHONY: _install.docker.mongo
+_install.docker.mongo: ## Install docker install mongo
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::mongo::docker::install
+
+
+.PHONY: _uninstall.docker.mongo
+_uninstall.docker.mongo: ## Uninstall docker install mongo
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::mongo::docker::uninstall

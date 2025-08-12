@@ -90,7 +90,12 @@ proj::redis::pre_install(){
         proj::log::info "Mac OS detected, skipping Redis installation..."
         # proj::util::exec "brew install redis-cli"
     else
-        proj::util::sudo "apt install -y redis-tools"
+        if ! proj::util::cmd_exists "redis-tools"; then
+            proj::log::info "Installing redis-tools..."
+            proj::util::sudo "apt install -y redis-tools"
+        else
+            proj::log::info "redis-tools already installed, skipping..."
+        fi
     fi
 }
 

@@ -16,15 +16,17 @@ PROJ_MONGO_ADMIN_PASSWORD=${PROJ_MONGO_ADMIN_PASSWORD:-'proj(#)666'}
 #PROJ_MONGO_ADMIN_AUTH=${PROJ_MONGO_ADMIN_USERNAME}:"'${PROJ_MONGO_ADMIN_PASSWORD}'"
 PROJ_MONGO_ADMIN_AUTH=${PROJ_MONGO_ADMIN_USERNAME}:${PROJ_MONGO_ADMIN_PASSWORD}
 
+MONGO_DOCKER_MNAME=${NETWORK_NAME}-mongo
+
 # Install mongo using containerization.
 proj::mongo::docker::install()
 {
   proj::mongo::pre_install
 
   proj::common::network
-  docker run -d --name onex-mongo \
+  docker run -d --name ${MONGO_DOCKER_MNAME} \
     --restart always \
-    --network onex \
+    --network ${NETWORK_NAME} \
     -v ${PROJ_THIRDPARTY_INSTALL_DIR}/mongo:/data \
     -p ${PROJ_ACCESS_HOST}:${PROJ_MONGO_PORT}:27017 \
     -e MONGO_INITDB_ROOT_USERNAME=${PROJ_MONGO_ADMIN_USERNAME} \
@@ -40,11 +42,26 @@ proj::mongo::docker::install()
 
 proj::mongo::pre_install()
 {
-  # 获取 MongoDB 公钥
-  echo ${LINUX_PASSWORD} | sudo -S wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo apt-key add -
+  # 获取 MongoDB 公钥并添加到现代密钥环
+  # 使用 --homedir /tmp/gnupg 避免 GPG 家目录权限警告
+  # 使用 --quiet 减少不必要的输出
+  echo ${LINUX_PASSWORD} | sudo -S wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg --dearmor --homedir /tmp/gnupg --quiet -o /usr/share/keyrings/mongodb-server-7.0.gpg
 
-  # 添加 MongoDB APT 源
-  echo ${LINUX_PASSWORD} | sudo -S echo "deb [arch=amd64,arm64] https://repo.mongodb.org/apt/debian $(lsb_release -cs)/mongodb-org/7.0 main" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+  if proj::util::is_ubuntu; then
+    # 添加 MongoDB APT 源 - 对于较新的 Ubuntu 版本使用 jammy (22.04) 仓库
+    UBUNTU_CODENAME=$(lsb_release -cs)
+    # 如果是 noble (24.04) 或更新版本，使用 jammy 仓库
+    if [[ "$UBUNTU_CODENAME" == "noble" ]] || [[ "$UBUNTU_CODENAME" > "jammy" ]]; then
+      UBUNTU_CODENAME="jammy"
+    fi
+    echo ${LINUX_PASSWORD} | sudo -S echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg] https://repo.mongodb.org/apt/ubuntu ${UBUNTU_CODENAME}/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+  elif proj::util::is_debian; then
+    # 添加 MongoDB APT 源
+    echo ${LINUX_PASSWORD} | sudo -S echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg] https://repo.mongodb.org/apt/debian $(lsb_release -cs)/mongodb-org/7.0 main" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+  else
+    proj::log::error "Unsupported operating system. Only Ubuntu and Debian are supported."
+    return 1
+  fi
 
   # 安装libssl1.1，否则安装 mongo 时会报以下错误：
   # mongodb-org-mongos : Depends: libssl1.1 (>= 1.1.1) but it is not installable
@@ -53,21 +70,26 @@ proj::mongo::pre_install()
 
   proj::util::sudo "apt update"
 
-  # 安装 MongoDB 客户端
-  proj::util::sudo "apt install -y mongodb-mongosh"
+  # 检查并安装 MongoDB 客户端
+  if ! proj::util::cmd_exists "mongosh"; then
+    proj::log::info "Installing mongodb-mongosh..."
+    proj::util::sudo "apt install -y mongodb-mongosh"
+  else
+    proj::log::info "mongodb-mongosh already installed, skipping..."
+  fi
 }
 
 # Uninstall the docker container.
 proj::mongo::docker::uninstall()
 {
-  docker rm -f onex-mongo &>/dev/null
+  docker rm -f ${MONGO_DOCKER_MNAME} &>/dev/null
   proj::util::sudo "rm -rf ${PROJ_THIRDPARTY_INSTALL_DIR}/mongo"
   proj::log::info "uninstall mongo successfully"
 }
 
 # Install the mongo step by step.
 # sbs is the abbreviation for "step by step".
-proj::mongo::sbs::install()
+proj::mongo::install()
 {
   proj::mongo::pre_install
 
@@ -109,11 +131,11 @@ EOF
 }
 
 # Uninstall the mongo step by step.
-proj::mongo::sbs::uninstall()
+proj::mongo::uninstall()
 {
   set +o errexit
-  proj::util::sudo "systemctl stop mongodb"
-  proj::util::sudo "systemctl disable mongodb"
+  proj::util::sudo "systemctl stop mongod"
+  proj::util::sudo "systemctl disable mongod"
   proj::util::sudo "apt remove -y mongodb-org mongodb-org-server" # 这里我们客户端不卸载
   proj::util::sudo "rm -rvf /var/lib/mongodb"
   proj::util::sudo "rm -vf /etc/apt/sources.list.d/mongodb-org-7.0.list"
