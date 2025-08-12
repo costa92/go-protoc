@@ -1,55 +1,26 @@
 # This script is called by `make targets` to generate the targets list for a single makefile.
 # It's called inside a loop for each makefile.
 
-# List of special prefixes to replace when file prefix is available
-BEGIN {
-    special_prefixes = "_install\\.|_uninstall\\.|_verify\\.";
-}
-
-# Function to apply file prefix rules and formatting
-function format_target(name, file_prefix,   formatted) {
-    if (file_prefix != "") {
-        if (name ~ "^(" special_prefixes ")") {
-            sub(/^_/, file_prefix ".", name);
-        }
-        gsub("_", ".", name); # Keep dots for other cases
-    } else {
-        gsub("_", "-", name); # No file prefix → underscores to hyphens
-    }
-    return name;
-}
+@include "scripts/awk/common.awk"
 
 # Process category headers
 /^##@/ {
-    category_name = substr($0, 5);
-    printf "\n  \033[1m%s\033[0m\n", category_name;
+    process_category_header($0, "\n  ");
     next;
 }
 
 # Process simple targets like `build: ## ...`
 /^[a-zA-Z0-9._-]+:.*?##/ {
-    target_name = $1;
-    file_prefix = "";
-    if (FILENAME ~ /\.mk$/) {
-        split(FILENAME, path_parts, "/");
-        filename = path_parts[length(path_parts)];
-        sub(/\.mk$/, "", filename);
-        file_prefix = filename;
-    }
+    target_name = extract_simple_target($1);
+    file_prefix = get_file_prefix(FILENAME);
     target_name = format_target(target_name, file_prefix);
-    printf "  \033[36m%-45s\033[0m %s\n", target_name, $2;
+    format_target_line(target_name, $2, "  ");
 }
 
 # Process variable-based targets like `$(VAR): ## ...`
 /^\$\([a-zA-Z0-9._-]+\):.*?##/ {
-    var = substr($1, 3, length($1)-3);
-    file_prefix = "";
-    if (FILENAME ~ /\.mk$/) {
-        split(FILENAME, path_parts, "/");
-        filename = path_parts[length(path_parts)];
-        sub(/\.mk$/, "", filename);
-        file_prefix = filename;
-    }
+    var = extract_var_target($1);
+    file_prefix = get_file_prefix(FILENAME);
     var = format_target(var, file_prefix);
-    printf "  \033[36m%-45s\033[0m %s\n", tolower(var), $2;
+    format_target_line(tolower(var), $2, "  ");
 }
