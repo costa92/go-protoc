@@ -245,6 +245,274 @@ go test -tags=integration ./...   # 运行集成测试
 - **项目重命名**: 使用 `make rename-project OLD_PATH=X NEW_PATH=Y` 更改模块路径
 - **Git 钩子**: 自动安装的 Git 钩子: githooks/{pre-commit,commit-msg,pre-push}
 
+## AI Agent 模块开发计划
+
+### 🤖 AI Agent 架构设计
+
+AI Agent 作为项目的核心扩展模块，旨在提供智能化的代码生成、项目分析和对话交互功能。
+
+#### 目录结构规划
+```
+项目根目录/
+├── cmd/ai/                          # AI服务入口（已存在）
+│   ├── main.go                      # AI服务主程序
+│   └── app/                         # AI应用配置
+├── internal/ai/                     # AI服务内部实现
+│   ├── handler/                     # AI API处理器
+│   │   ├── chat.go                  # 对话处理
+│   │   ├── code.go                  # 代码生成
+│   │   └── analysis.go              # 项目分析
+│   ├── biz/                        # AI业务逻辑层
+│   │   ├── agent/                   # AI代理核心
+│   │   ├── llm/                     # LLM集成
+│   │   ├── knowledge/               # 知识库管理
+│   │   └── workflow/                # 工作流引擎
+│   ├── store/                      # AI数据存储
+│   │   ├── conversation.go          # 对话存储
+│   │   ├── knowledge.go             # 知识库存储
+│   │   └── workflow.go              # 工作流存储
+│   └── pkg/                        # AI内部工具
+├── pkg/api/ai/v1/                  # AI API定义
+│   ├── ai.proto                    # AI服务定义
+│   └── errors.proto                # AI错误码
+└── configs/ai/                     # AI配置文件
+```
+
+#### 核心架构分层
+```
+┌─────────────────────────────────────┐
+│           Handler Layer             │ ← gRPC/HTTP API接口层
+├─────────────────────────────────────┤
+│          Business Layer             │ ← AI业务逻辑层
+│  ┌─────────────────────────────────┐ │
+│  │        Agent Core              │ │ ← AI代理核心
+│  │  ┌─────────┬─────────┬────────┐ │ │
+│  │  │   LLM   │Knowledge│Workflow│ │ │ ← 核心组件
+│  │  └─────────┴─────────┴────────┘ │ │
+│  └─────────────────────────────────┘ │
+├─────────────────────────────────────┤
+│          Storage Layer              │ ← 数据存储层
+└─────────────────────────────────────┘
+```
+
+### API 接口规划
+
+#### 核心服务接口
+```protobuf
+service AIAgent {
+  // 对话聊天接口 - 支持流式响应
+  rpc Chat(ChatRequest) returns (stream ChatResponse);
+  
+  // 代码生成接口 - 基于需求生成代码
+  rpc GenerateCode(CodeGenRequest) returns (CodeGenResponse);
+  
+  // 项目分析接口 - 分析项目结构和质量
+  rpc AnalyzeProject(AnalysisRequest) returns (AnalysisResponse);
+  
+  // 知识库管理 - 项目知识索引和搜索
+  rpc UpdateKnowledge(KnowledgeRequest) returns (KnowledgeResponse);
+  
+  // 工作流执行 - 复杂任务自动化
+  rpc ExecuteWorkflow(WorkflowRequest) returns (stream WorkflowResponse);
+}
+```
+
+#### HTTP 路由映射
+- `POST /v1/ai/chat` - 智能对话
+- `POST /v1/ai/code/generate` - 代码生成
+- `POST /v1/ai/analyze` - 项目分析
+- `POST /v1/ai/knowledge` - 知识库管理
+- `POST /v1/ai/workflow` - 工作流执行
+
+### 核心组件设计
+
+#### 1. LLM Provider 抽象层
+- **多Provider支持**: OpenAI、Claude、本地模型
+- **负载均衡**: 智能路由和容错机制
+- **成本控制**: Token使用统计和限流
+- **缓存策略**: 响应缓存和预热机制
+
+#### 2. 知识库管理系统
+- **项目索引**: 自动扫描和索引项目代码
+- **向量搜索**: 基于语义的代码和文档检索
+- **增量更新**: 监控文件变化，增量更新索引
+- **上下文增强**: RAG机制提供相关上下文
+
+#### 3. 工作流引擎
+- **任务编排**: 可视化的工作流定义
+- **并发执行**: 支持步骤间依赖和并行执行
+- **状态管理**: 完整的执行状态跟踪和恢复
+- **错误处理**: 重试机制和失败回滚
+
+### 数据模型设计
+
+#### 对话会话管理
+```go
+type Conversation struct {
+    ID        string    `gorm:"primaryKey"`
+    UserID    string    `gorm:"index"`
+    Title     string
+    Context   JSON      `gorm:"type:json"`
+    CreatedAt time.Time
+    UpdatedAt time.Time
+}
+
+type Message struct {
+    ID             string `gorm:"primaryKey"`
+    ConversationID string `gorm:"index"`
+    Role           string // user, assistant, system
+    Content        string `gorm:"type:text"`
+    Metadata       JSON   `gorm:"type:json"`
+    CreatedAt      time.Time
+}
+```
+
+#### 知识库条目
+```go
+type KnowledgeEntry struct {
+    ID          string    `gorm:"primaryKey"`
+    Type        string    // code, doc, config
+    Path        string    `gorm:"index"`
+    Content     string    `gorm:"type:longtext"`
+    Embedding   []float32 `gorm:"type:json"`
+    Hash        string    `gorm:"index"`
+    UpdatedAt   time.Time
+}
+```
+
+#### 工作流执行记录
+```go
+type WorkflowExecution struct {
+    ID         string              `gorm:"primaryKey"`
+    Name       string
+    Status     WorkflowStatus
+    Steps      []WorkflowStep      `gorm:"type:json"`
+    Results    map[string]any      `gorm:"type:json"`
+    CreatedAt  time.Time
+    FinishedAt *time.Time
+}
+```
+
+### 配置管理
+
+#### AI 专用配置
+```yaml
+# configs/ai/ai.yaml
+ai:
+  llm:
+    default_provider: "openai"
+    providers:
+      openai:
+        api_key: "${AI_OPENAI_API_KEY}"
+        model: "gpt-4"
+        max_tokens: 4000
+      claude:
+        api_key: "${AI_CLAUDE_API_KEY}"
+        model: "claude-3-sonnet"
+        max_tokens: 4000
+    rate_limit:
+      requests_per_minute: 60
+      tokens_per_day: 100000
+  
+  knowledge:
+    vectordb:
+      type: "chroma"
+      host: "localhost:8000"
+    embedding:
+      model: "text-embedding-ada-002"
+      dimensions: 1536
+    index_path: "./data/knowledge"
+  
+  workflow:
+    max_concurrent: 5
+    timeout: "30m"
+    retry:
+      max_attempts: 3
+      backoff: "exponential"
+```
+
+### 开发命令扩展
+
+#### AI 专用命令
+```bash
+# AI 服务管理
+make run-ai                  # 启动 AI 服务器
+make stop-ai                 # 停止 AI 服务器
+make restart-ai              # 重启 AI 服务器
+
+# AI 开发工具
+make ai-generate             # 生成 AI API 代码
+make ai-index                # 构建项目知识索引
+make ai-test                 # 运行 AI 模块测试
+
+# 知识库管理
+make knowledge-build         # 构建完整知识库
+make knowledge-update        # 增量更新知识库
+make knowledge-search QUERY="<query>"  # 搜索知识库
+
+# 向量数据库
+make run-vectordb           # 启动向量数据库
+make stop-vectordb          # 停止向量数据库
+```
+
+### 可观测性增强
+
+#### AI 专用监控指标
+- `ai_llm_requests_total` - LLM调用总数
+- `ai_llm_request_duration_seconds` - LLM请求延迟
+- `ai_token_usage_total` - Token使用量统计
+- `ai_knowledge_search_duration_seconds` - 知识库搜索延迟
+- `ai_workflow_execution_total` - 工作流执行统计
+
+#### 链路追踪增强
+- LLM Provider调用链路
+- 知识库检索操作追踪
+- 工作流步骤执行追踪
+- Token使用情况追踪
+
+### 实施路线图
+
+#### 阶段一：基础架构搭建 (2-3周)
+- [ ] AI API定义和代码生成
+- [ ] 基础存储层实现
+- [ ] 简单LLM Provider集成
+- [ ] 基础配置和依赖注入
+
+#### 阶段二：核心功能实现 (3-4周)
+- [ ] 对话功能完整实现
+- [ ] 代码生成功能开发
+- [ ] 基础知识库系统
+- [ ] 错误处理和中间件集成
+
+#### 阶段三：高级特性开发 (4-5周)
+- [ ] 工作流引擎实现
+- [ ] 多Provider支持和负载均衡
+- [ ] 向量搜索和RAG优化
+- [ ] 流式响应和实时更新
+
+#### 阶段四：生产优化 (2-3周)
+- [ ] 性能优化和缓存策略
+- [ ] 完整的监控和可观测性
+- [ ] 压力测试和稳定性优化
+- [ ] 文档完善和部署指南
+
+### 集成策略
+
+#### 与现有架构的无缝集成
+1. **遵循清洁架构**: 使用相同的分层模式和依赖关系
+2. **Wire依赖注入**: 完全集成到现有的依赖注入体系
+3. **错误处理**: 使用统一的ErrorX错误处理机制
+4. **中间件复用**: 复用现有的认证、日志、追踪中间件
+5. **配置管理**: 扩展现有的配置系统和环境变量支持
+6. **可观测性**: 集成到现有的监控和追踪体系
+
+#### 数据库扩展
+- 复用现有的GORM配置和事务机制
+- 扩展数据库模型以支持AI相关数据
+- 保持数据库迁移的一致性
+
+这个AI Agent模块设计充分利用了现有项目的成熟架构，保持了设计一致性，同时为未来的AI功能扩展提供了强大的基础设施支持。
+
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
