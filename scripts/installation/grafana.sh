@@ -32,12 +32,12 @@ proj::grafana::install() {
   proj::util::sudo "mkdir -p ${PROJ_GRAFANA_DATA_DIR}"
   proj::util::sudo "mkdir -p /etc/grafana"
   proj::util::sudo "mkdir -p /var/log/grafana"
-  
+
   # 创建 grafana 用户
   if ! id -u grafana >/dev/null 2>&1; then
     proj::util::sudo "useradd --system --shell /bin/false grafana"
   fi
-  
+
   # 设置正确的目录所有权
   proj::util::sudo "chown -R grafana:grafana ${PROJ_GRAFANA_DATA_DIR}"
   proj::util::sudo "chown -R grafana:grafana /var/log/grafana"
@@ -289,7 +289,7 @@ proj::grafana::status() {
       return 1
     }
   else
-    proj::log::warning "curl not found, skipping health check"
+    proj::log::info "curl not found, skipping health check"
   fi
 }
 

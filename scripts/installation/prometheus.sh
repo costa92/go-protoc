@@ -31,12 +31,12 @@ proj::prometheus::install() {
   proj::util::sudo "mkdir -p ${PROJ_PROMETHEUS_DATA_DIR}"
   proj::util::sudo "mkdir -p ${PROJ_PROMETHEUS_CONFIG_DIR}"
   proj::util::sudo "mkdir -p /var/log/prometheus"
-  
+
   # 创建 prometheus 用户
   if ! id -u prometheus >/dev/null 2>&1; then
     proj::util::sudo "useradd --system --shell /bin/false prometheus"
   fi
-  
+
   # 设置正确的目录所有权
   proj::util::sudo "chown -R prometheus:prometheus ${PROJ_PROMETHEUS_DATA_DIR}"
   proj::util::sudo "chown -R prometheus:prometheus ${PROJ_PROMETHEUS_CONFIG_DIR}"
@@ -293,7 +293,7 @@ proj::prometheus::status() {
       return 1
     }
   else
-    proj::log::warning "curl not found, skipping health check"
+    proj::log::info "curl not found, skipping health check"
   fi
 }
 

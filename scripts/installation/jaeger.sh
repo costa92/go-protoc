@@ -31,12 +31,12 @@ proj::jaeger::install() {
   # 创建 Jaeger 数据目录
   proj::util::sudo "mkdir -p ${PROJ_JAEGER_DATA_DIR}"
   proj::util::sudo "chmod 755 ${PROJ_JAEGER_DATA_DIR}"
-  
+
   # 创建 jaeger 用户
   if ! id -u jaeger >/dev/null 2>&1; then
     proj::util::sudo "useradd --system --shell /bin/false jaeger"
   fi
-  
+
   # 设置正确的目录所有权
   proj::util::sudo "chown -R jaeger:jaeger ${PROJ_JAEGER_DATA_DIR}"
 
@@ -135,13 +135,7 @@ proj::jaeger::pre_install() {
 
   # 判断是 mac 还是 linux
   if proj::util::is_mac; then
-    proj::log::info "Mac OS detected, checking for Jaeger installation..."
-    if ! command -v jaeger-all-in-one >/dev/null 2>&1; then
-      proj::log::info "Installing Jaeger via brew..."
-      brew install jaegertracing/jaeger/jaeger
-    else
-      proj::log::info "Jaeger already installed, skipping..."
-    fi
+    proj::log::info "Mac OS detected"
   else
     # 检查必要的依赖
     if ! command -v curl >/dev/null 2>&1; then
@@ -215,7 +209,7 @@ proj::jaeger::status() {
       return 1
     }
   else
-    proj::log::warning "curl not found, skipping health check"
+    proj::log::info "curl not found, skipping health check"
   fi
 }
 

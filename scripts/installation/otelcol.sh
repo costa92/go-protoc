@@ -34,12 +34,12 @@ proj::otelcol::install() {
   proj::util::sudo "mkdir -p ${PROJ_OTELCOL_DATA_DIR}"
   proj::util::sudo "mkdir -p ${PROJ_OTELCOL_CONFIG_DIR}"
   proj::util::sudo "mkdir -p /var/log/otelcol"
-  
+
   # 创建 otelcol 用户
   if ! id -u otelcol >/dev/null 2>&1; then
     proj::util::sudo "useradd --system --shell /bin/false otelcol"
   fi
-  
+
   # 设置正确的目录所有权
   proj::util::sudo "chown -R otelcol:otelcol ${PROJ_OTELCOL_DATA_DIR}"
   proj::util::sudo "chown -R otelcol:otelcol ${PROJ_OTELCOL_CONFIG_DIR}"
@@ -81,7 +81,7 @@ receivers:
         endpoint: 0.0.0.0:${PROJ_OTELCOL_GRPC_PORT}
       http:
         endpoint: 0.0.0.0:${PROJ_OTELCOL_HTTP_PORT}
-  
+
   prometheus:
     config:
       scrape_configs:
@@ -94,17 +94,17 @@ processors:
   batch:
     timeout: 1s
     send_batch_size: 1024
-  
+
   memory_limiter:
     limit_mib: 512
 
 exporters:
   logging:
     loglevel: debug
-  
+
   prometheus:
     endpoint: "0.0.0.0:8889"
-  
+
   jaeger:
     endpoint: jaeger:14250
     tls:
@@ -116,19 +116,19 @@ service:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters: [logging, jaeger]
-    
+
     metrics:
       receivers: [otlp, prometheus]
       processors: [memory_limiter, batch]
       exporters: [logging, prometheus]
-    
+
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters: [logging]
 
   extensions: [health_check]
-  
+
 extensions:
   health_check:
     endpoint: 0.0.0.0:${PROJ_OTELCOL_HEALTH_PORT}
@@ -249,7 +249,7 @@ receivers:
         endpoint: 0.0.0.0:${PROJ_OTELCOL_GRPC_PORT}
       http:
         endpoint: 0.0.0.0:${PROJ_OTELCOL_HTTP_PORT}
-  
+
   prometheus:
     config:
       scrape_configs:
@@ -262,17 +262,17 @@ processors:
   batch:
     timeout: 1s
     send_batch_size: 1024
-  
+
   memory_limiter:
     limit_mib: 512
 
 exporters:
   logging:
     loglevel: debug
-  
+
   prometheus:
     endpoint: "0.0.0.0:8889"
-  
+
   jaeger:
     endpoint: jaeger:14250
     tls:
@@ -284,19 +284,19 @@ service:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters: [logging, jaeger]
-    
+
     metrics:
       receivers: [otlp, prometheus]
       processors: [memory_limiter, batch]
       exporters: [logging, prometheus]
-    
+
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters: [logging]
 
   extensions: [health_check]
-  
+
 extensions:
   health_check:
     endpoint: 0.0.0.0:${PROJ_OTELCOL_HEALTH_PORT}
@@ -353,7 +353,7 @@ proj::otelcol::status() {
       return 1
     }
   else
-    proj::log::warning "curl not found, skipping health check"
+    proj::log::info "curl not found, skipping health check"
   fi
 }
 

@@ -31,12 +31,12 @@ proj::alertmanager::install() {
   proj::util::sudo "mkdir -p ${PROJ_ALERTMANAGER_DATA_DIR}"
   proj::util::sudo "mkdir -p ${PROJ_ALERTMANAGER_CONFIG_DIR}"
   proj::util::sudo "mkdir -p /var/log/alertmanager"
-  
+
   # 创建 alertmanager 用户
   if ! id -u alertmanager >/dev/null 2>&1; then
     proj::util::sudo "useradd --system --shell /bin/false alertmanager"
   fi
-  
+
   # 设置正确的目录所有权
   proj::util::sudo "chown -R alertmanager:alertmanager ${PROJ_ALERTMANAGER_DATA_DIR}"
   proj::util::sudo "chown -R alertmanager:alertmanager ${PROJ_ALERTMANAGER_CONFIG_DIR}"
@@ -289,7 +289,7 @@ proj::alertmanager::status() {
       return 1
     }
   else
-    proj::log::warning "curl not found, skipping health check"
+    proj::log::info "curl not found, skipping health check"
   fi
 }
 

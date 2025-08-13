@@ -31,12 +31,12 @@ proj::victorialogs::install() {
   proj::util::sudo "mkdir -p ${PROJ_VICTORIALOGS_DATA_DIR}"
   proj::util::sudo "mkdir -p ${PROJ_VICTORIALOGS_CONFIG_DIR}"
   proj::util::sudo "mkdir -p /var/log/victorialogs"
-  
+
   # 创建 victorialogs 用户
   if ! id -u victorialogs >/dev/null 2>&1; then
     proj::util::sudo "useradd --system --shell /bin/false victorialogs"
   fi
-  
+
   # 设置正确的目录所有权
   proj::util::sudo "chown -R victorialogs:victorialogs ${PROJ_VICTORIALOGS_DATA_DIR}"
   proj::util::sudo "chown -R victorialogs:victorialogs ${PROJ_VICTORIALOGS_CONFIG_DIR}"
@@ -141,7 +141,7 @@ proj::victorialogs::pre_install() {
     if ! command -v victoria-logs >/dev/null 2>&1; then
       proj::log::info "Installing VictoriaLogs via brew..."
       # Note: VictoriaLogs may not be available via brew, manual installation needed
-      proj::log::warning "VictoriaLogs brew package not available, please install manually"
+      proj::log::info "VictoriaLogs brew package not available, please install manually"
     else
       proj::log::info "VictoriaLogs already installed, skipping..."
     fi
@@ -221,7 +221,7 @@ proj::victorialogs::status() {
       return 1
     }
   else
-    proj::log::warning "curl not found, skipping health check"
+    proj::log::info "curl not found, skipping health check"
   fi
 }
 
