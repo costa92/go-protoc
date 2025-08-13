@@ -22,13 +22,14 @@
 - **Grafana** (`grafana.sh`) - 数据可视化，统一监控面板
 - **Alertmanager** (`alertmanager.sh`) - 告警管理和路由
 - **OpenTelemetry Collector** (`otelcol.sh`) - 统一遥测数据收集
+- **VictoriaLogs** (`victorialogs.sh`) - 高性能日志存储和查询
 
 ## 服务关联关系
 
 ### 主数据流
 
 ```
-应用程序 → [OpenTelemetry Collector] → [Jaeger/Prometheus]
+应用程序 → [OpenTelemetry Collector] → [Jaeger/Prometheus/VictoriaLogs]
      ↓                                         ↓
    业务数据                                监控数据
      ↓                                         ↓
@@ -54,7 +55,7 @@ etcd ← 服务注册发现 → 应用服务
 ### 可观测性数据流
 
 ```
-应用指标/追踪/日志 → OpenTelemetry Collector → Prometheus/Jaeger
+应用指标/追踪/日志 → OpenTelemetry Collector → Prometheus/Jaeger/VictoriaLogs
                                                       ↓
                                                    Grafana
                                                       ↓
@@ -79,10 +80,12 @@ make dev-setup
 # Docker 方式
 ./redis.sh proj::redis::docker::install
 ./mariadb.sh proj::mariadb::docker::install
+./victorialogs.sh proj::victorialogs::docker::install
 
 # 原生安装方式
 ./redis.sh proj::redis::install
 ./mariadb.sh proj::mariadb::install
+./victorialogs.sh proj::victorialogs::install
 ```
 
 ### 服务管理
@@ -128,6 +131,7 @@ make dev-setup
 | Grafana | 3000 | 可视化面板 | `grafana.sh` |
 | Alertmanager | 9093 | 告警管理 | `alertmanager.sh` |
 | OTEL Collector | 4317/4318 | gRPC/HTTP接收 | `otelcol.sh` |
+| VictoriaLogs | 9428 | 日志存储查询 | `victorialogs.sh` |
 
 ## 环境变量配置
 
@@ -158,6 +162,15 @@ PROJ_MONGO_ADMIN_USERNAME=root
 PROJ_MONGO_ADMIN_PASSWORD=proj(#)666
 ```
 
+### VictoriaLogs 配置
+
+```bash
+PROJ_VICTORIALOGS_HOST=127.0.0.1
+PROJ_VICTORIALOGS_PORT=9428
+PROJ_VICTORIALOGS_DATA_DIR=/var/lib/victorialogs
+PROJ_VICTORIALOGS_VERSION=v0.5.2-victorialogs
+```
+
 ## 统一管理特性
 
 - **环境变量配置**: 所有服务通过环境变量统一配置
@@ -174,6 +187,7 @@ PROJ_MONGO_ADMIN_PASSWORD=proj(#)666
 - `common.sh` - 公共函数库，网络管理、工具函数
 - `service.sh` - 服务管理相关函数
 - `docker-compose.sh` - Docker Compose 相关功能
+- `victorialogs.sh` - VictoriaLogs 日志存储服务安装脚本
 - `各服务.sh` - 单独服务的安装、配置、管理脚本
 
 ## 依赖关系
@@ -190,7 +204,8 @@ install.sh
 ├── prometheus.sh
 ├── grafana.sh (可视化 prometheus 数据)
 ├── alertmanager.sh (处理 prometheus 告警)
-└── otelcol.sh (收集数据到 jaeger/prometheus)
+├── otelcol.sh (收集数据到 jaeger/prometheus/victorialogs)
+└── victorialogs.sh (高性能日志存储和查询)
 ```
 
 ## 故障排查
@@ -199,7 +214,7 @@ install.sh
 
 ```bash
 # 检查所有服务状态
-for service in redis mariadb mongo kafka etcd jaeger prometheus grafana alertmanager otelcol; do
+for service in redis mariadb mongo kafka etcd jaeger prometheus grafana alertmanager otelcol victorialogs; do
     echo "=== $service ==="
     ./${service}.sh proj::${service}::status
 done
@@ -210,17 +225,23 @@ done
 ```bash
 # Docker 服务日志
 docker logs proj-redis
+docker logs proj-victorialogs
 
 # 系统服务日志
 journalctl -u redis-server -f
+journalctl -u victorialogs -f
 ```
 
 ### 网络连通性
 
 ```bash
 # 检查端口监听
-netstat -tlnp | grep -E "(6379|3306|27017|2379|9090|3000)"
+netstat -tlnp | grep -E "(6379|3306|27017|2379|9090|3000|9428)"
 
 # 检查容器网络
 docker network inspect proj
+
+# VictoriaLogs 特定检查
+curl -f http://127.0.0.1:9428/health
+curl -s http://127.0.0.1:9428/metrics | head -10
 ```
