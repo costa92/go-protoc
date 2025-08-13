@@ -113,3 +113,24 @@ _install.docker.etcd: ## Install docker install etcd
 .PHONY: _uninstall.docker.etcd
 _uninstall.docker.etcd: ## Uninstall docker install etcd
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::etcd::docker::uninstall
+
+
+##@ Jaeger Service
+# ==============================================================================
+# Jaeger installation methods
+# ==============================================================================
+.PHONY: _install.jaeger
+_install.jaeger:  ## Install Jaeger for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::jaeger::install
+
+.PHONY: _uninstall.jaeger
+_uninstall.jaeger: ## Uninstall Jaeger for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::jaeger::uninstall
+
+.PHONY: _install.docker.jaeger
+_install.docker.jaeger: ## Install docker install Jaeger
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::jaeger::docker::install
+
+.PHONY: _uninstall.docker.jaeger
+_uninstall.docker.jaeger: ## Uninstall docker install Jaeger
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::jaeger::docker::uninstall

@@ -18,4 +18,5 @@ source ${INSTALL_DIR}/mariadb.sh
 source ${INSTALL_DIR}/mongo.sh
 source ${INSTALL_DIR}/kafka.sh
 source ${INSTALL_DIR}/etcd.sh
+source ${INSTALL_DIR}/jaeger.sh
 
