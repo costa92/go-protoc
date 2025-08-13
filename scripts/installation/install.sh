@@ -19,4 +19,7 @@ source ${INSTALL_DIR}/mongo.sh
 source ${INSTALL_DIR}/kafka.sh
 source ${INSTALL_DIR}/etcd.sh
 source ${INSTALL_DIR}/jaeger.sh
+source ${INSTALL_DIR}/grafana.sh
+source ${INSTALL_DIR}/prometheus.sh
+source ${INSTALL_DIR}/alertmanager.sh
 

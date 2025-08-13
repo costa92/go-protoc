@@ -134,3 +134,66 @@ _install.docker.jaeger: ## Install docker install Jaeger
 .PHONY: _uninstall.docker.jaeger
 _uninstall.docker.jaeger: ## Uninstall docker install Jaeger
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::jaeger::docker::uninstall
+
+
+##@ Grafana Service
+# ==============================================================================
+# Grafana installation methods
+# ==============================================================================
+.PHONY: _install.grafana
+_install.grafana:  ## Install Grafana for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::grafana::install
+
+.PHONY: _uninstall.grafana
+_uninstall.grafana: ## Uninstall Grafana for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::grafana::uninstall
+
+.PHONY: _install.docker.grafana
+_install.docker.grafana: ## Install docker install Grafana
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::grafana::docker::install
+
+.PHONY: _uninstall.docker.grafana
+_uninstall.docker.grafana: ## Uninstall docker install Grafana
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::grafana::docker::uninstall
+
+
+##@ Prometheus Service
+# ==============================================================================
+# Prometheus installation methods
+# ==============================================================================
+.PHONY: _install.prometheus
+_install.prometheus:  ## Install Prometheus for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::prometheus::install
+
+.PHONY: _uninstall.prometheus
+_uninstall.prometheus: ## Uninstall Prometheus for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::prometheus::uninstall
+
+.PHONY: _install.docker.prometheus
+_install.docker.prometheus: ## Install docker install Prometheus
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::prometheus::docker::install
+
+.PHONY: _uninstall.docker.prometheus
+_uninstall.docker.prometheus: ## Uninstall docker install Prometheus
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::prometheus::docker::uninstall
+
+
+##@ AlertManager Service
+# ==============================================================================
+# AlertManager installation methods
+# ==============================================================================
+.PHONY: _install.alertmanager
+_install.alertmanager:  ## Install AlertManager for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::alertmanager::install
+
+.PHONY: _uninstall.alertmanager
+_uninstall.alertmanager: ## Uninstall AlertManager for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::alertmanager::uninstall
+
+.PHONY: _install.docker.alertmanager
+_install.docker.alertmanager: ## Install docker install AlertManager
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::alertmanager::docker::install
+
+.PHONY: _uninstall.docker.alertmanager
+_uninstall.docker.alertmanager: ## Uninstall docker install AlertManager
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::alertmanager::docker::uninstall
