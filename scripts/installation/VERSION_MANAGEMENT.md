@@ -7,11 +7,13 @@
 ## 架构变更
 
 ### 之前的版本管理
+
 - 版本信息分散在各个安装脚本中
 - 部分版本在 `manifests/env/env.dev` 中定义
 - 存在版本不一致和重复定义问题
 
 ### 现在的版本管理
+
 - **统一配置文件**: `scripts/installation/versions.sh`
 - **自动加载机制**: 通过 `common.sh` 自动加载到所有安装脚本
 - **向后兼容**: 保持原有环境变量名称不变
@@ -43,16 +45,19 @@ export DOCKER_COMPOSE_VERSION=v2.29.7
 ## 使用方式
 
 ### 查看所有版本
+
 ```bash
 ./scripts/installation/versions.sh show
 ```
 
 ### 验证版本格式
+
 ```bash
 ./scripts/installation/versions.sh validate
 ```
 
 ### 在脚本中使用
+
 ```bash
 # 自动通过 common.sh 加载
 source scripts/installation/common.sh
@@ -62,22 +67,26 @@ echo "使用 Prometheus 版本: $PROJ_PROMETHEUS_VERSION"
 ## 版本升级步骤
 
 1. **修改版本文件**
+
    ```bash
    # 编辑 scripts/installation/versions.sh
    export PROMETHEUS_VERSION=2.50.0  # 更新到新版本
    ```
 
 2. **验证版本格式**
+
    ```bash
    ./scripts/installation/versions.sh validate
    ```
 
 3. **查看更新结果**
+
    ```bash
    ./scripts/installation/versions.sh show
    ```
 
 4. **测试相关安装脚本**
+
    ```bash
    # 测试 Prometheus 安装脚本是否正常
    source scripts/installation/prometheus.sh
@@ -118,6 +127,7 @@ GRAFANA_VERSION -> PROJ_GRAFANA_VERSION
 ## 故障排除
 
 ### 版本未加载
+
 ```bash
 # 确保 common.sh 正确加载版本文件
 source scripts/installation/common.sh
@@ -125,12 +135,14 @@ echo $PROJ_PROMETHEUS_VERSION
 ```
 
 ### 版本格式错误
+
 ```bash
 # 使用验证功能检查
 ./scripts/installation/versions.sh validate
 ```
 
 ### 环境变量冲突
+
 ```bash
 # 检查是否有其他地方设置了相同变量
 env | grep VERSION
