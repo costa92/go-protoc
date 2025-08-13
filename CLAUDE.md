@@ -1,163 +1,173 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+本文件为 Claude Code (claude.ai/code) 在此代码库中工作提供指导。
 
-## Project Overview
+## 项目概览
 
-A production-ready Go microservice framework built on Kratos v2 with Protocol Buffers as the single source of truth. Uses Clean Architecture with Wire dependency injection, supporting HTTP/gRPC APIs with comprehensive error handling, i18n, authentication, and observability.
+基于 Kratos v2 构建的生产就绪 Go 微服务框架，以 Protocol Buffers 为统一数据源。采用清洁架构与 Wire 依赖注入，支持 HTTP/gRPC API，具备完整的错误处理、国际化、认证和可观测性功能。
 
-## Quick Development Commands
+## 快速开发命令
 
-### Essential Daily Commands
-- `make help` - View all available commands
-- `make run-api` - Start development server with hot reload
-- `make build` - Build optimized binary to ./bin/apiserver
-- `make test` - Run all tests with verbose output
-- `make fmt` - Format and import order correction
-- `make tidy` - Clean up go.mod dependencies
+### 日常必备命令
+- `make help` - 查看所有可用命令
+- `make run-api` - 启动开发服务器（支持热重载）
+- `make build` - 构建优化二进制文件到 ./bin/apiserver
+- `make test` - 运行所有测试（详细输出）
+- `make fmt` - 格式化代码和导入排序
+- `make tidy` - 清理 go.mod 依赖
 
-### Development Environment
-- `make dev-setup` - Complete development environment setup (tools + services + code generation)
-- `make dev-clean` - Clean development environment and stop services
-- `make dev-quick` - Quick development start (skip tool installation)
-- `make dev-watch` - File watching with auto-rebuild
-- `make dev-test` - Full test pipeline with coverage
-- `make dev-bench` - Run benchmarks
+### 开发环境
+- `make dev-setup` - 完整开发环境设置（工具 + 服务 + 代码生成）
+- `make dev-clean` - 清理开发环境并停止服务
+- `make dev-quick` - 快速开发启动（跳过工具安装）
+- `make dev-watch` - 文件监控与自动重构建
+- `make dev-test` - 完整测试流水线（含覆盖率）
+- `make dev-bench` - 运行性能基准测试
 
-### Code Generation
-- `make generate` - Generate protobuf/gRPC/HTTP code with buf
-- `make wire` - Regenerate dependency injection code (run after structural changes)
-- `buf generate` - Direct protobuf generation (if buf.yaml changed)
+### 代码生成
+- `make generate` - 使用 buf 生成 protobuf/gRPC/HTTP 代码
+- `make wire` - 重新生成依赖注入代码（结构变更后运行）
+- `buf generate` - 直接 protobuf 生成（buf.yaml 变更时使用）
 
-### Tool Installation
-- `make install-tools` - Install CI tools only
-- `make install-tools A=1` - Install all development tools
-- `make tools.install.<tool>` - Install specific tool (wire, golangci-lint, buf, etc.)
+### 工具安装
+- `make install-tools` - 仅安装 CI 相关工具
+- `make install-tools A=1` - 安装所有开发工具
+- `make tools.install.<tool>` - 安装特定工具（wire, golangci-lint, buf 等）
 
-### Infrastructure Services
-- `make run-redis` - Start Redis with docker-compose
-- `make stop-redis` - Stop Redis service
-- `make run-jaeger` - Start Jaeger tracing
-- `make stop-jaeger` - Stop Jaeger service  
-- `make run-kafka` - Start Kafka service
-- `make stop-kafka` - Stop Kafka service
-- `make start-all` - Start all dependent services
-- `make stop-all` - Stop all services
+### 基础设施服务
+- `make run-redis` - 使用 docker-compose 启动 Redis
+- `make stop-redis` - 停止 Redis 服务
+- `make run-jaeger` - 启动 Jaeger 链路追踪
+- `make stop-jaeger` - 停止 Jaeger 服务
+- `make run-kafka` - 启动 Kafka 服务
+- `make stop-kafka` - 停止 Kafka 服务
+- `make start-all` - 启动所有依赖服务
+- `make stop-all` - 停止所有服务
 
-### Documentation
-- `make docs.dev` - Generate development documentation to docs/DEVELOPMENT.md
-- `make docs.api` - Generate API documentation from protobuf
-- `make docs.serve` - Serve documentation locally
+### 额外服务（通过安装脚本）
+- `scripts/installation/etcd.sh` - 分布式键值存储
+- `scripts/installation/mariadb.sh` - MariaDB 数据库服务器
+- `scripts/installation/mongo.sh` - MongoDB 文档数据库
+- `scripts/installation/victorialogs.sh` - VictoriaLogs 日志管理
+- `scripts/installation/grafana.sh` - 监控仪表盘
+- `scripts/installation/prometheus.sh` - 指标收集
+- `scripts/installation/alertmanager.sh` - 告警管理
+- `scripts/installation/otelcol.sh` - OpenTelemetry 收集器
 
-## Architecture Overview
+### 文档生成
+- `make docs.dev` - 生成开发文档到 docs/DEVELOPMENT.md
+- `make docs.api` - 从 protobuf 生成 API 文档
+- `make docs.serve` - 本地提供文档服务
 
-### Clean Architecture Layers
+## 架构概览
+
+### 清洁架构分层
 ```
-cmd/apiserver/          → Entry points & orchestration
-internal/apiserver/     → Core business logic
-├── handler/           → HTTP/gRPC handlers (delivery)
-├── biz/              → Use cases (application)
-├── store/            → Data access (infrastructure)
-└── config/           → Internal configuration
+cmd/apiserver/          → 入口点和编排
+ internal/apiserver/     → 核心业务逻辑
+ ├── handler/           → HTTP/gRPC 处理器（交付层）
+ ├── biz/              → 用例（应用层）
+ ├── store/            → 数据访问（基础设施层）
+ └── config/           → 内部配置
 
-pkg/                  → Reusable packages for import
-├── api/              → Protobuf definitions & generated code
-├── errorsx/          → Context-aware error system with i18n
-├── authn/           → JWT authentication utilities
-├── db/              → Database abstractions
-├── server/          → HTTP/gRPC server configurations
-└── options/         → Component configuration schemas
+pkg/                  → 可重用包（对外导出）
+ ├── api/              → Protobuf 定义和生成代码
+ ├── errorsx/          → 上下文感知错误系统（支持 i18n）
+ ├── authn/           → JWT 身份认证工具
+ ├── db/              → 数据库抽象
+ ├── server/          → HTTP/gRPC 服务器配置
+ └── options/         → 组件配置架构
 ```
 
-### Dependency Injection (Wire)
-- **Centralized in** `internal/apiserver/wire.go`
-- **Generated factories** in `internal/apiserver/wire_gen.go`
-- **Auto-discovery** - run `make wire` after adding new dependencies
+### 依赖注入 (Wire)
+- **中心化在** `internal/apiserver/wire.go`
+- **生成的工厂** `internal/apiserver/wire_gen.go`
+- **自动发现** - 添加新依赖后运行 `make wire`
 
-### Request Flow
+### 请求流程
 ```
-HTTP Request → gRPC-Gateway → Handlers → Biz → Store → Database
+HTTP 请求 → gRPC-Gateway → 处理器 → 业务层 → 存储层 → 数据库
      ↓                                          ↓
-  OpenAPI docs (auto-generated)      GORM + context transactions
+  OpenAPI 文档（自动生成）        GORM + 上下文事务
 ```
 
-## Configuration & Environment
+## 配置和环境
 
-### Local Setup
-1. Copy and edit: `cp configs/apiserver.yaml configs/apiserver_local.yaml`
-2. Configure database in local config
-3. Start dependencies: `make run-redis` (or `docker-compose -f deployments/redis/docker-compose.yml up`)
-4. Run: `go run cmd/apiserver/main.go -c configs/apiserver_local.yaml`
+### 本地设置
+1. 复制并编辑：`cp configs/apiserver.yaml configs/apiserver_local.yaml`
+2. 在本地配置中配置数据库
+3. 启动依赖服务：`make run-redis`（或 `docker-compose -f deployments/redis/docker-compose.yml up`）
+4. 运行：`go run cmd/apiserver/main.go -c configs/apiserver_local.yaml`
 
-### Alternative Quick Setup
+### 快速设置替代方案
 ```bash
-make dev-setup      # Install tools + start services + generate code
-make run-api        # Start the API server
+make dev-setup      # 安装工具 + 启动服务 + 生成代码
+make run-api        # 启动 API 服务器
 ```
 
-### Development Dependencies
-- **Database**: MySQL 8.0+ or PostgreSQL 12+
-- **Cache**: Redis 6.2+ (docker-compose provided)
-- **Observability**: Jaeger, Prometheus (docker-compose provided)
+### 开发依赖
+- **数据库**：MySQL 8.0+ 或 PostgreSQL 12+
+- **缓存**：Redis 6.2+（提供 docker-compose）
+- **可观测性**：Jaeger, Prometheus（提供 docker-compose）
 
-### Configuration Files
-- `configs/apiserver.yaml` - Default configuration
-- `configs/apiserver_v1.yaml` - Alternative configuration template
-- Environment-specific configs use format: `apiserver_<env>.yaml`
+### 配置文件
+- `configs/apiserver.yaml` - 默认配置
+- `configs/apiserver_v1.yaml` - 替代配置模板
+- 环境特定配置使用格式：`apiserver_<env>.yaml`
 
-## Testing Commands
+## 测试命令
 
-### Standard Testing
+### 标准测试
 ```bash
-go test ./...                    # Run all tests
-go test -v ./pkg/errorsx/       # Run package tests verbose
-go test -run TestSpecific       # Run specific test
-go test -bench=. ./...          # Run benchmarks
+go test ./...                    # 运行所有测试
+go test -v ./pkg/errorsx/       # 详细运行包测试
+go test -run TestSpecific       # 运行特定测试
+go test -bench=. ./...          # 运行性能测试
 ```
 
-### Integration Testing
+### 集成测试
 ```bash
 docker-compose -f deployments/redis/docker-compose.yml up -d
-go test -tags=integration ./...   # Run integration tests
+go test -tags=integration ./...   # 运行集成测试
 ```
 
-## API Development
+## API 开发
 
-### Adding New Endpoints
-1. **API Definition**: Edit `pkg/api/apiserver/v1/apiserver.proto`
-2. **Generate Code**: `make generate`
-3. **Implement Handler**: Create in `internal/apiserver/handler/`
-4. **Wire Dependency**: Run `make wire`
-5. **Documentation**: Auto-generated at `api/openapi/apiserver/v1/`
+### 添加新端点
+1. **API 定义**：编辑 `pkg/api/apiserver/v1/apiserver.proto`
+2. **生成代码**：`make generate`
+3. **实现处理器**：在 `internal/apiserver/handler/` 中创建
+4. **Wire 依赖**：运行 `make wire`
+5. **文档**：自动生成在 `api/openapi/apiserver/v1/`
 
-### Key Development Conventions
-- **Error codes**: Define in protobuf, auto-generated with `protoc-gen-go-errors-code`
-- **Validation**: Use protoc-gen-validate annotations
-- **i18n**: Use `pkg/i18n/` with context-based locale detection
-- **Logging**: Structured logging via context middleware
-- **Testing**: Test names follow `Test<Level><Description>` pattern
+### 关键开发约定
+- **错误代码**：在 protobuf 中定义，使用 `protoc-gen-go-errors-code` 自动生成
+- **数据验证**：使用 protoc-gen-validate 注解
+- **国际化**：使用 `pkg/i18n/` 和上下文语言检测
+- **日志记录**：通过上下文中间件的结构化日志
+- **测试**：测试名称遵循 `Test<Level><Description>` 模式
 
-## Package Navigation Guide
+## 包导航指南
 
-### Starting Points
-- **Server startup**: `cmd/apiserver/app/server.go:Start()`
-- **Handler examples**: `internal/apiserver/handler/user.go`
-- **Wire setup**: `internal/apiserver/wire_gen.go:InitializeWebServer()`
-- **Error handling**: `pkg/errorsx/builder.go:NewCode()`
-- **Database setup**: `pkg/db/mysql.go:NewMySQL()`
+### 起始点
+- **服务器启动**：`cmd/apiserver/app/server.go:Start()`
+- **处理器示例**：`internal/apiserver/handler/user.go`
+- **Wire 设置**：`internal/apiserver/wire_gen.go:InitializeWebServer()`
+- **错误处理**：`pkg/errorsx/builder.go:NewCode()`
+- **数据库设置**：`pkg/db/mysql.go:NewMySQL()`
 
-### Configuration Patterns
-- **Feature flags**: `pkg/feature/` - Toggle features per environment
-- **Options pattern**: `pkg/options/` - Consistent component configuration
-- **Environment overrides**: Viper handles env var to struct mapping automatically
+### 配置模式
+- **特性开关**：`pkg/feature/` - 按环境切换特性
+- **选项模式**：`pkg/options/` - 一致的组件配置
+- **环境变量覆盖**：Viper 自动处理环境变量到结构体映射
 
-## Infrastructure Templates
+## 基础设施模板
 
-### Docker Services Ready to Use
-- **Redis**: `make run-redis` or `docker-compose -f deployments/redis/docker-compose.yml up`
-- **Jaeger**: `make run-jaeger` or `docker-compose -f deployments/jaeger/docker-compose.yml up`
-- **Kafka**: `make run-kafka` or `docker-compose -f deployments/kafka/docker-compose.yml up`
-- **All services**: `make start-all` (starts Redis, Jaeger, Kafka simultaneously)
+### 可用的 Docker 服务
+- **Redis**：`make run-redis` 或 `docker-compose -f deployments/redis/docker-compose.yml up`
+- **Jaeger**：`make run-jaeger` 或 `docker-compose -f deployments/jaeger/docker-compose.yml up`
+- **Kafka**：`make run-kafka` 或 `docker-compose -f deployments/kafka/docker-compose.yml up`
+- **所有服务**：`make start-all`（同时启动 Redis, Jaeger, Kafka）
 
 ### Observability Stack (统一收集与分析)
 
@@ -181,22 +191,22 @@ go test -tags=integration ./...   # Run integration tests
 ```
 
 ### 监控端点
-- **Health**: `GET /health`
-- **Metrics**: `GET /metrics` (Prometheus)
-- **Tracing**: `GET /jaeger` (Jaeger UI) - 分布式链路追踪
+- **健康检查**: `GET /health`
+- **指标**: `GET /metrics` (Prometheus)
+- **链路追踪**: `GET /jaeger` (Jaeger UI) - 分布式链路追踪
 - **Grafana**: `http://localhost:3000` - 统一监控面板
 - **Alertmanager**: `http://localhost:9093` - 告警管理界面
-- **Debug**: `GET /debug/pprof` (when enabled)
+- **调试**: `GET /debug/pprof` (启用时)
 
-## Module Information
-- **Go Version**: 1.24.0+ required
-- **Module Path**: `github.com/costa92/go-protoc/v2`
-- **Branch**: Currently on `v2` branch
-- **Protobuf**: Uses buf.build for dependency management
+## 模块信息
+- **Go 版本**: 需要 1.24.0+
+- **模块路径**: `github.com/costa92/go-protoc/v2`
+- **分支**: 当前在 `v2` 分支
+- **Protobuf**: 使用 buf.build 进行依赖管理
 
-## Project-Specific Tools
-- **rename-project**: Change module path with `make rename-project OLD_PATH=X NEW_PATH=Y`
-- **githooks**: Git hooks installed automatically: githooks/{pre-commit,commit-msg,pre-push}
+## 项目专用工具
+- **项目重命名**: 使用 `make rename-project OLD_PATH=X NEW_PATH=Y` 更改模块路径
+- **Git 钩子**: 自动安装的 Git 钩子: githooks/{pre-commit,commit-msg,pre-push}
 
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
