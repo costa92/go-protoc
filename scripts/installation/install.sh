@@ -13,6 +13,7 @@ PROJ_ROOT_DIR=$(dirname "${BASH_SOURCE[0]}")/../..
 # Set some environment variables.
 INSTALL_DIR=${PROJ_ROOT_DIR}/scripts/installation
 
+source ${INSTALL_DIR}/versions.sh
 source ${INSTALL_DIR}/redis.sh
 source ${INSTALL_DIR}/mariadb.sh
 source ${INSTALL_DIR}/mongo.sh

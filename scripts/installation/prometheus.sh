@@ -10,13 +10,17 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# 加载通用配置和版本管理
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
+
 # Environment variables for Prometheus configuration
 # Can be overridden by setting these variables before running the script
 PROJ_PROMETHEUS_HOST=${PROJ_PROMETHEUS_HOST:-127.0.0.1}                # Prometheus server host
 PROJ_PROMETHEUS_PORT=${PROJ_PROMETHEUS_PORT:-9090}                     # Prometheus server port
 PROJ_PROMETHEUS_DATA_DIR=${PROJ_PROMETHEUS_DATA_DIR:-/var/lib/prometheus} # Prometheus data directory
 PROJ_PROMETHEUS_CONFIG_DIR=${PROJ_PROMETHEUS_CONFIG_DIR:-/etc/prometheus} # Prometheus config directory
-PROJ_PROMETHEUS_VERSION=${PROJ_PROMETHEUS_VERSION:-2.48.1}             # Prometheus version
+# 版本信息从统一配置文件加载：PROJ_PROMETHEUS_VERSION 在 versions.sh 中定义
 PROMETHEUS_DOCKER_MNAME=${NETWORK_NAME}-prometheus
 
 # Function to install Prometheus natively

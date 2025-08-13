@@ -9,7 +9,12 @@ set -e
 
 
 # Default version (can be overridden by environment variable)
-DOCKER_COMPOSE_VERSION="${DOCKER_COMPOSE_VERSION:-v2.29.7}"
+# 加载通用配置和版本管理
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
+
+# 使用统一版本管理的 Docker Compose 版本
+DOCKER_COMPOSE_VERSION="${DOCKER_COMPOSE_VERSION}"
 
 # Function to print colored output
 print_info() {

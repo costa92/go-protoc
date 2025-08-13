@@ -16,7 +16,11 @@ PROJ_VICTORIALOGS_HOST=${PROJ_VICTORIALOGS_HOST:-127.0.0.1}                # Vic
 PROJ_VICTORIALOGS_PORT=${PROJ_VICTORIALOGS_PORT:-9428}                     # VictoriaLogs server port
 PROJ_VICTORIALOGS_DATA_DIR=${PROJ_VICTORIALOGS_DATA_DIR:-/var/lib/victorialogs} # VictoriaLogs data directory
 PROJ_VICTORIALOGS_CONFIG_DIR=${PROJ_VICTORIALOGS_CONFIG_DIR:-/etc/victorialogs} # VictoriaLogs config directory
-PROJ_VICTORIALOGS_VERSION=${PROJ_VICTORIALOGS_VERSION:-v0.5.2-victorialogs}     # VictoriaLogs version
+# 加载通用配置和版本管理
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
+
+# 版本信息从统一配置文件加载：PROJ_VICTORIALOGS_VERSION 在 versions.sh 中定义
 VICTORIALOGS_DOCKER_MNAME=${NETWORK_NAME}-victorialogs
 
 # Function to install VictoriaLogs natively

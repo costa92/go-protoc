@@ -34,25 +34,62 @@
 - `make install-tools A=1` - 安装所有开发工具
 - `make tools.install.<tool>` - 安装特定工具（wire, golangci-lint, buf 等）
 
-### 基础设施服务
-- `make run-redis` - 使用 docker-compose 启动 Redis
-- `make stop-redis` - 停止 Redis 服务
-- `make run-jaeger` - 启动 Jaeger 链路追踪
-- `make stop-jaeger` - 停止 Jaeger 服务
-- `make run-kafka` - 启动 Kafka 服务
-- `make stop-kafka` - 停止 Kafka 服务
-- `make start-all` - 启动所有依赖服务
-- `make stop-all` - 停止所有服务
+### 统一服务管理
+项目现已实现统一的服务管理机制，支持通过 docker-compose 和安装脚本管理所有第三方服务。
 
-### 额外服务（通过安装脚本）
-- `scripts/installation/etcd.sh` - 分布式键值存储
-- `scripts/installation/mariadb.sh` - MariaDB 数据库服务器
-- `scripts/installation/mongo.sh` - MongoDB 文档数据库
-- `scripts/installation/victorialogs.sh` - VictoriaLogs 日志管理
-- `scripts/installation/grafana.sh` - 监控仪表盘
-- `scripts/installation/prometheus.sh` - 指标收集
-- `scripts/installation/alertmanager.sh` - 告警管理
-- `scripts/installation/otelcol.sh` - OpenTelemetry 收集器
+#### 数据库服务
+- `make run-redis` / `make stop-redis` - Redis 缓存服务
+- `make run-mariadb` / `make stop-mariadb` - MariaDB 数据库服务  
+- `make run-mongodb` / `make stop-mongodb` - MongoDB 文档数据库
+
+#### 消息队列服务
+- `make run-kafka` / `make stop-kafka` - Kafka 消息服务
+
+#### 分布式服务
+- `make run-etcd` / `make stop-etcd` - etcd 分布式键值存储
+
+#### 可观测性服务
+- `make run-jaeger` / `make stop-jaeger` - Jaeger 链路追踪
+- `make run-prometheus` / `make stop-prometheus` - Prometheus 监控
+- `make run-grafana` / `make stop-grafana` - Grafana 仪表板
+- `make run-alertmanager` / `make stop-alertmanager` - AlertManager 告警
+- `make run-otelcol` / `make stop-otelcol` - OpenTelemetry 收集器
+- `make run-victorialogs` / `make stop-victorialogs` - VictoriaLogs 日志管理
+
+#### 服务组管理
+- `make start-all` / `make stop-all` - 所有服务
+- `make restart-all` - 重启所有服务
+- `make start-database` / `make stop-database` - 数据库服务组
+- `make start-observability` / `make stop-observability` - 可观测性服务组
+- `make status-all` - 检查所有服务状态
+- `make logs-all` - 查看所有服务日志
+
+#### 直接脚本调用
+```bash
+# 服务管理脚本支持更多操作
+./scripts/installation/service.sh <action> <service|group>
+
+# 可用操作: start, stop, restart, status, logs
+# 可用服务: redis, mariadb, mongodb, kafka, etcd, jaeger, prometheus, grafana, alertmanager, otelcol, victorialogs
+# 可用服务组: all, database, observability
+```
+
+### 版本管理
+所有第三方组件版本统一管理在 `scripts/installation/versions.sh` 中：
+
+```bash
+# 查看所有组件版本
+./scripts/installation/versions.sh show
+
+# 验证版本格式
+./scripts/installation/versions.sh validate
+```
+
+当前管理的组件版本：
+- **数据库**: Redis 7.2.4, MariaDB 11.2.2, MongoDB 7.0.5
+- **分布式**: etcd v3.5.12, Kafka 3.6.1  
+- **可观测性**: Jaeger 1.52.0, Prometheus 2.48.1, Grafana 10.2.4, AlertManager 0.26.0, OpenTelemetry Collector 0.91.0
+- **日志**: VictoriaLogs v0.5.2-victorialogs
 
 ### 文档生成
 - `make docs.dev` - 生成开发文档到 docs/DEVELOPMENT.md

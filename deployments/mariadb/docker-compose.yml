@@ -1,0 +1,28 @@
+services:
+  mariadb:
+    image: mariadb:${MARIADB_VERSION:-11.2.2}
+    container_name: proj-mariadb
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=proj(#)666
+      - MYSQL_DATABASE=onex
+      - MYSQL_USER=proj
+      - MYSQL_PASSWORD=proj(#)666
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - proj
+    healthcheck:
+      test: ["CMD", "mariadb", "-h", "localhost", "-u", "root", "-pproj(#)666", "-e", "SELECT 1"]
+      timeout: 20s
+      retries: 10
+
+volumes:
+  mariadb_data:
+    driver: local
+
+networks:
+  proj:
+    external: true

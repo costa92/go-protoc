@@ -16,7 +16,11 @@ PROJ_JAEGER_HOST=${PROJ_JAEGER_HOST:-127.0.0.1}                    # Jaeger serv
 PROJ_JAEGER_UI_PORT=${PROJ_JAEGER_UI_PORT:-16686}                  # Jaeger UI port
 PROJ_JAEGER_COLLECTOR_PORT=${PROJ_JAEGER_COLLECTOR_PORT:-14268}    # Jaeger collector port
 PROJ_JAEGER_AGENT_PORT=${PROJ_JAEGER_AGENT_PORT:-6831}             # Jaeger agent port (UDP)
-PROJ_JAEGER_VERSION=${PROJ_JAEGER_VERSION:-1.52.0}                 # Jaeger version
+# 加载通用配置和版本管理
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
+
+# 版本信息从统一配置文件加载：PROJ_JAEGER_VERSION 在 versions.sh 中定义
 PROJ_JAEGER_DATA_DIR=${PROJ_JAEGER_DATA_DIR:-/var/lib/jaeger}      # Jaeger data directory
 JAEGER_DOCKER_MNAME=${NETWORK_NAME}-jaeger
 

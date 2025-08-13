@@ -3,10 +3,14 @@
 set -eEuo pipefail
 
 # 获取项目根目录
-PROJ_ROOT_DIR=$(dirname "${BASH_SOURCE[0]}")/../..
+INSTALLATION_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${0}}")" && pwd)"
+PROJ_ROOT_DIR="${INSTALLATION_DIR}/../.."
 
 # 都会统一加载 scripts/common.sh 脚本
 source "${PROJ_ROOT_DIR}/scripts/common.sh"
+
+# 加载统一版本管理配置
+source "${INSTALLATION_DIR}/versions.sh"
 
 # 容器网络名称
 NETWORK_NAME=${NETWORK_NAME:-proj}

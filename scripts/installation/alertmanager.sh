@@ -16,7 +16,11 @@ PROJ_ALERTMANAGER_HOST=${PROJ_ALERTMANAGER_HOST:-127.0.0.1}                # Ale
 PROJ_ALERTMANAGER_PORT=${PROJ_ALERTMANAGER_PORT:-9093}                     # AlertManager server port
 PROJ_ALERTMANAGER_DATA_DIR=${PROJ_ALERTMANAGER_DATA_DIR:-/var/lib/alertmanager} # AlertManager data directory
 PROJ_ALERTMANAGER_CONFIG_DIR=${PROJ_ALERTMANAGER_CONFIG_DIR:-/etc/alertmanager} # AlertManager config directory
-PROJ_ALERTMANAGER_VERSION=${PROJ_ALERTMANAGER_VERSION:-0.26.0}             # AlertManager version
+# 加载通用配置和版本管理
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
+
+# 版本信息从统一配置文件加载：PROJ_ALERTMANAGER_VERSION 在 versions.sh 中定义
 ALERTMANAGER_DOCKER_MNAME=${NETWORK_NAME}-alertmanager
 
 # Function to install AlertManager natively

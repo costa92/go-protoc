@@ -10,11 +10,16 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# 加载通用配置和版本管理
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
+
 # Environment variables for Redis configuration
 # Can be overridden by setting these variables before running the script
 PROJ_REDIS_HOST=${PROJ_REDIS_HOST:-127.0.0.1}        # Redis server host
 PROJ_REDIS_PORT=${PROJ_REDIS_PORT:-6379}             # Redis server port
 PROJ_REDIS_PASSWORD=${PROJ_REDIS_PASSWORD:-proj(#)666}  # Redis authentication password
+# 版本信息从统一配置文件加载：REDIS_VERSION 在 versions.sh 中定义
 REDIS_DOCKER_MNAME=${NETWORK_NAME}-redis
 
 

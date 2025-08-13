@@ -16,7 +16,11 @@ PROJ_ETCD_HOST=${PROJ_ETCD_HOST:-127.0.0.1}                # etcd server host
 PROJ_ETCD_PORT=${PROJ_ETCD_PORT:-2379}                     # etcd client port
 PROJ_ETCD_PEER_PORT=${PROJ_ETCD_PEER_PORT:-2380}           # etcd peer port
 PROJ_ETCD_DATA_DIR=${PROJ_ETCD_DATA_DIR:-/var/lib/etcd}    # etcd data directory
-PROJ_ETCD_VERSION=${PROJ_ETCD_VERSION:-v3.5.12}            # etcd version
+# 加载通用配置和版本管理
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
+
+# 版本信息从统一配置文件加载：PROJ_ETCD_VERSION 在 versions.sh 中定义
 ETCD_DOCKER_MNAME=${NETWORK_NAME}-etcd
 
 # Function to install etcd natively
@@ -26,12 +30,12 @@ proj::etcd::install() {
   # 创建 etcd 数据目录
   proj::util::sudo "mkdir -p ${PROJ_ETCD_DATA_DIR}"
   proj::util::sudo "chmod 755 ${PROJ_ETCD_DATA_DIR}"
-  
+
   # 创建 etcd 用户
   if ! id -u etcd >/dev/null 2>&1; then
     proj::util::sudo "useradd --system --shell /bin/false etcd"
   fi
-  
+
   # 设置正确的目录所有权
   proj::util::sudo "chown -R etcd:etcd ${PROJ_ETCD_DATA_DIR}"
 
@@ -230,7 +234,7 @@ proj::etcd::status() {
       return 1
     }
   else
-    proj::log::warning "etcdctl not found, skipping health check"
+    proj::log::info "etcdctl not found, skipping health check"
   fi
 }
 

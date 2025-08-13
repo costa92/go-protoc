@@ -19,7 +19,11 @@ PROJ_OTELCOL_METRICS_PORT=${PROJ_OTELCOL_METRICS_PORT:-8888}     # Metrics port
 PROJ_OTELCOL_HEALTH_PORT=${PROJ_OTELCOL_HEALTH_PORT:-13133}      # Health check port
 PROJ_OTELCOL_DATA_DIR=${PROJ_OTELCOL_DATA_DIR:-/var/lib/otelcol} # OpenTelemetry Collector data directory
 PROJ_OTELCOL_CONFIG_DIR=${PROJ_OTELCOL_CONFIG_DIR:-/etc/otelcol} # OpenTelemetry Collector config directory
-PROJ_OTELCOL_VERSION=${PROJ_OTELCOL_VERSION:-0.91.0}             # OpenTelemetry Collector version
+# 加载通用配置和版本管理
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
+
+# 版本信息从统一配置文件加载：PROJ_OTELCOL_VERSION 在 versions.sh 中定义
 OTELCOL_DOCKER_MNAME=${NETWORK_NAME}-otelcol
 
 # Function to install OpenTelemetry Collector natively
