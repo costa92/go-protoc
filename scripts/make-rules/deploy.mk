@@ -92,3 +92,24 @@ _install.docker.kafka: ## Install docker install kafka
 .PHONY: _uninstall.docker.kafka
 _uninstall.docker.kafka: ## Uninstall docker install kafka
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::kafka::docker::uninstall
+
+
+##@ etcd Service
+# ==============================================================================
+# etcd installation methods
+# ==============================================================================
+.PHONY: _install.etcd
+_install.etcd:  ## Install etcd for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::etcd::install
+
+.PHONY: _uninstall.etcd
+_uninstall.etcd: ## Uninstall etcd for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::etcd::uninstall
+
+.PHONY: _install.docker.etcd
+_install.docker.etcd: ## Install docker install etcd
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::etcd::docker::install
+
+.PHONY: _uninstall.docker.etcd
+_uninstall.docker.etcd: ## Uninstall docker install etcd
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::etcd::docker::uninstall
