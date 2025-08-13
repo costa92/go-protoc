@@ -159,10 +159,33 @@ go test -tags=integration ./...   # Run integration tests
 - **Kafka**: `make run-kafka` or `docker-compose -f deployments/kafka/docker-compose.yml up`
 - **All services**: `make start-all` (starts Redis, Jaeger, Kafka simultaneously)
 
-### Monitoring Endpoints
+### Observability Stack (统一收集与分析)
+
+项目集成了完整的可观测性stack，提供统一的数据收集和分析能力：
+
+| 功能 | 工具 | 用途 | 接入方式 |
+|------|------|------|----------|
+| **全栈监控** | Grafana+Prometheus | 系统/应用指标可视化 | `make run-grafana` |
+| **链路追踪** | Jaeger + OpenTelemetry | 分布式请求追踪 | 已内置集成 |
+| **告警管理** | Alertmanager | 统一告警路由 | 与Prometheus集成 |
+| **日志采集** | OpenTelemetry Collector | 统一日志/指标/追踪收集 | `make run-otelcol` |
+| **仪表板** | Grafana Dashboards | 预置监控面板 | 启动后访问 `localhost:3000` |
+
+### 架构关系
+```
+应用程序 → [OpenTelemetry Collector] → [Prometheus] → [Grafana]
+     ↓                                ↓                ↓
+  生成追踪/日志/指标             存储时序数据      可视化分析
+                                         ↓
+                                   [Alertmanager] → 告警通知
+```
+
+### 监控端点
 - **Health**: `GET /health`
 - **Metrics**: `GET /metrics` (Prometheus)
-- **Tracing**: Integrated with OpenTelemetry (configurable Jaeger endpoint)
+- **Tracing**: `GET /jaeger` (Jaeger UI) - 分布式链路追踪
+- **Grafana**: `http://localhost:3000` - 统一监控面板
+- **Alertmanager**: `http://localhost:9093` - 告警管理界面
 - **Debug**: `GET /debug/pprof` (when enabled)
 
 ## Module Information

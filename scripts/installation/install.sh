@@ -23,4 +23,5 @@ source ${INSTALL_DIR}/grafana.sh
 source ${INSTALL_DIR}/prometheus.sh
 source ${INSTALL_DIR}/alertmanager.sh
 source ${INSTALL_DIR}/otelcol.sh
+source ${INSTALL_DIR}/victorialogs.sh
 

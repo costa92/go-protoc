@@ -218,3 +218,24 @@ _install.docker.otelcol: ## Install docker install OpenTelemetry Collector
 .PHONY: _uninstall.docker.otelcol
 _uninstall.docker.otelcol: ## Uninstall docker install OpenTelemetry Collector
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::otelcol::docker::uninstall
+
+
+##@ VictoriaLogs Service
+# ==============================================================================
+# VictoriaLogs installation methods
+# ==============================================================================
+.PHONY: _install.victorialogs
+_install.victorialogs:  ## Install VictoriaLogs for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::victorialogs::install
+
+.PHONY: _uninstall.victorialogs
+_uninstall.victorialogs: ## Uninstall VictoriaLogs for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::victorialogs::uninstall
+
+.PHONY: _install.docker.victorialogs
+_install.docker.victorialogs: ## Install docker install VictoriaLogs
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::victorialogs::docker::install
+
+.PHONY: _uninstall.docker.victorialogs
+_uninstall.docker.victorialogs: ## Uninstall docker install VictoriaLogs
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::victorialogs::docker::uninstall
