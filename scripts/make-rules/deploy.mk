@@ -197,3 +197,24 @@ _install.docker.alertmanager: ## Install docker install AlertManager
 .PHONY: _uninstall.docker.alertmanager
 _uninstall.docker.alertmanager: ## Uninstall docker install AlertManager
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::alertmanager::docker::uninstall
+
+
+##@ OpenTelemetry Collector Service
+# ==============================================================================
+# OpenTelemetry Collector installation methods
+# ==============================================================================
+.PHONY: _install.otelcol
+_install.otelcol:  ## Install OpenTelemetry Collector for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::otelcol::install
+
+.PHONY: _uninstall.otelcol
+_uninstall.otelcol: ## Uninstall OpenTelemetry Collector for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::otelcol::uninstall
+
+.PHONY: _install.docker.otelcol
+_install.docker.otelcol: ## Install docker install OpenTelemetry Collector
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::otelcol::docker::install
+
+.PHONY: _uninstall.docker.otelcol
+_uninstall.docker.otelcol: ## Uninstall docker install OpenTelemetry Collector
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::otelcol::docker::uninstall
