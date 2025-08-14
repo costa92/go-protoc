@@ -6,8 +6,8 @@ import (
 )
 
 // ProviderSet is db providers.
+// Note: This ProviderSet is now mainly for backward compatibility.
+// The preferred approach is to use options.XxxOptions.NewClient() methods directly.
 var ProviderSet = wire.NewSet(
-	NewMySQLWithTracing, // 使用带追踪的 MySQL 连接
-	NewRedisWithTracing, // 使用带追踪的 Redis 连接
 	wire.Bind(new(redis.UniversalClient), new(*redis.Client)), // 正确绑定接口和实现
 )

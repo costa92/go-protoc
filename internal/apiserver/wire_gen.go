@@ -15,6 +15,7 @@ import (
 	"github.com/costa92/go-protoc/v2/pkg/options"
 	"github.com/costa92/go-protoc/v2/pkg/server"
 	validation2 "github.com/costa92/go-protoc/v2/pkg/validation"
+	"gorm.io/gorm"
 )
 
 // Injectors from wire.go:
@@ -22,7 +23,7 @@ import (
 func InitializeWebServer(done <-chan struct{}, cfg *Config, mysqlOpts *db.MySQLOptions, jwtOpts *options.JWTOptions) (server.Server, error) {
 	registrar := ProvideRegistrar()
 	kratosAppConfig := ProvideKratosAppConfig(registrar)
-	gormDB, err := db.NewMySQLWithTracing(mysqlOpts)
+	gormDB, err := ProvideGormDB(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -44,4 +45,11 @@ func InitializeWebServer(done <-chan struct{}, cfg *Config, mysqlOpts *db.MySQLO
 		return nil, err
 	}
 	return serverServer, nil
+}
+
+// wire.go:
+
+// ProvideGormDB provides GORM database connection using options
+func ProvideGormDB(cfg *Config) (*gorm.DB, error) {
+	return cfg.MySQLOptions.NewDB()
 }

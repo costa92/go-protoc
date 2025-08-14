@@ -14,6 +14,13 @@ mysql:
   username: root # 数据库用户名
   password: proj(#)666 # 数据库密码
   log-level: 1 # 数据库日志级别，1 为最低，4 为最高
+  enable-trace: true # 启用 OpenTelemetry 追踪
+
+redis:
+  addr: "127.0.0.1:6379" # Redis 服务器地址
+  password: "" # Redis 密码（如果没有则留空）
+  database: 0 # Redis 数据库编号
+  enable-trace: true # 启用 OpenTelemetry 追踪
 
 jwt:
   key: "onex(#)666" # IMPORTANT: Change this in production to a strong, random key (6-32 chars)!

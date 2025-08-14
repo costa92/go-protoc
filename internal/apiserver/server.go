@@ -39,6 +39,7 @@ type Config struct {
 	HTTPOptions   *genericoptions.HTTPOptions
 	TLSOptions    *genericoptions.TLSOptions
 	MySQLOptions  *genericoptions.MySQLOptions
+	RedisOptions  *genericoptions.RedisOptions  // Added Redis Options
 	JWTOptions    *genericoptions.JWTOptions    // Added JWT Options
 	JaegerOptions *genericoptions.JaegerOptions // Added Jaeger Options
 }

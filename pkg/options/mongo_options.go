@@ -10,26 +10,30 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	
+	tracedb "github.com/costa92/go-protoc/v2/pkg/trace/db"
 )
 
 var _ IOptions = (*MongoOptions)(nil)
 
 // MongoOptions contains options for connecting to a MongoDB server.
 type MongoOptions struct {
-	URL        string        `json:"url" mapstructure:"url"`
-	Database   string        `json:"database" mapstructure:"database"`
-	Collection string        `json:"collection" mapstructure:"collection"`
-	Username   string        `json:"username" mapstructure:"username"`
-	Password   string        `json:"password" mapstructure:"password"`
-	Timeout    time.Duration `json:"timeout" mapstructure:"timeout"`
-	TLSOptions *TLSOptions   `json:"tls" mapstructure:"tls"`
+	URL         string        `json:"url" mapstructure:"url"`
+	Database    string        `json:"database" mapstructure:"database"`
+	Collection  string        `json:"collection" mapstructure:"collection"`
+	Username    string        `json:"username" mapstructure:"username"`
+	Password    string        `json:"password" mapstructure:"password"`
+	Timeout     time.Duration `json:"timeout" mapstructure:"timeout"`
+	TLSOptions  *TLSOptions   `json:"tls" mapstructure:"tls"`
+	EnableTrace bool          `json:"enable-trace" mapstructure:"enable-trace"` // tracing switch
 }
 
 // NewMongoOptions create a `zero` value instance.
 func NewMongoOptions() *MongoOptions {
 	return &MongoOptions{
-		Timeout:    30 * time.Second,
-		TLSOptions: NewTLSOptions(),
+		Timeout:     30 * time.Second,
+		TLSOptions:  NewTLSOptions(),
+		EnableTrace: false,
 	}
 }
 
@@ -66,11 +70,27 @@ func (o *MongoOptions) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 	fs.StringVar(&o.Collection, "mongo.collection", o.Collection, "The MongoDB collection name.")
 	fs.StringVar(&o.Username, "mongo.username", o.Username, "Username of the MongoDB database (optional).")
 	fs.StringVar(&o.Password, "mongo.password", o.Password, "Password of the MongoDB database (optional).")
+	fs.BoolVar(&o.EnableTrace, "mongo.enable-trace", o.EnableTrace, "MongoDB hook tracing (using open telemetry).")
 }
 
 // NewClient creates a new MongoDB client based on the provided options.
 func (o *MongoOptions) NewClient() (*mongo.Client, error) {
-	// Set client options
+	if o.EnableTrace {
+		// Use the traced MongoDB client from pkg/trace/db
+		return tracedb.NewTracedMongoClient(
+			context.Background(),
+			o.URL,
+			// Add any otelmongo options here if needed
+		)
+	}
+	
+	// Create a regular MongoDB client without tracing
+	return o.newRegularClient()
+}
+
+// newRegularClient creates a regular MongoDB client without tracing
+func (o *MongoOptions) newRegularClient() (*mongo.Client, error) {
+	// Import the necessary packages at the top if needed
 	opts := options.Client().ApplyURI(o.URL).SetReadPreference(readpref.Primary())
 	if o.Timeout > 0 {
 		opts.SetConnectTimeout(o.Timeout).SetSocketTimeout(o.Timeout).SetServerSelectionTimeout(o.Timeout)

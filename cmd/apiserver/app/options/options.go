@@ -18,6 +18,7 @@ type ServerOptions struct {
 	GRPCOptions   *genericoptions.GRPCOptions   `json:"grpc" mapstructure:"grpc"`
 	HTTPOptions   *genericoptions.HTTPOptions   `json:"http" mapstructure:"http"`
 	MySQLOptions  *genericoptions.MySQLOptions  `json:"mysql" mapstructure:"mysql"`
+	RedisOptions  *genericoptions.RedisOptions  `json:"redis" mapstructure:"redis"` // Added Redis Options
 	TLSOptions    *genericoptions.TLSOptions    `json:"tls" mapstructure:"tls"`
 	JWTOptions    *genericoptions.JWTOptions    `json:"jwt" mapstructure:"jwt"` // Added JWT Options
 	JaegerOptions *genericoptions.JaegerOptions `json:"jaeger" mapstructure:"jaeger"`
@@ -34,6 +35,7 @@ func NewServerOptions() *ServerOptions {
 		HTTPOptions:   genericoptions.NewHTTPOptions(),
 		TLSOptions:    genericoptions.NewTLSOptions(),
 		MySQLOptions:  genericoptions.NewMySQLOptions(),
+		RedisOptions:  genericoptions.NewRedisOptions(),  // Initialize Redis Options
 		JWTOptions:    genericoptions.NewJWTOptions(),    // Initialize JWT Options
 		JaegerOptions: genericoptions.NewJaegerOptions(), // Initialize Jaeger Options
 		Log:           log.NewOptions(),
@@ -44,6 +46,7 @@ func (o *ServerOptions) Flags() (fss cliflag.NamedFlagSets) {
 	o.GRPCOptions.AddFlags(fss.FlagSet("grpc"))
 	o.HTTPOptions.AddFlags(fss.FlagSet("http"))
 	o.MySQLOptions.AddFlags(fss.FlagSet("mysql"))
+	o.RedisOptions.AddFlags(fss.FlagSet("redis")) // Add Redis flags
 	o.JWTOptions.AddFlags(fss.FlagSet("jwt")) // Add JWT flags
 	o.JaegerOptions.AddFlags(fss.FlagSet("jaeger"))
 	o.Log.AddFlags(fss.FlagSet("log"))
@@ -60,6 +63,7 @@ func (o *ServerOptions) Validate() error {
 	errs = append(errs, o.GRPCOptions.Validate()...)
 	errs = append(errs, o.HTTPOptions.Validate()...)
 	errs = append(errs, o.MySQLOptions.Validate()...)
+	errs = append(errs, o.RedisOptions.Validate()...)
 	errs = append(errs, o.JWTOptions.Validate()...)
 	errs = append(errs, o.JaegerOptions.Validate()...)
 	errs = append(errs, o.Log.Validate()...)
@@ -81,6 +85,7 @@ func (o *ServerOptions) Config() (*apiserver.Config, error) {
 		HTTPOptions:   o.HTTPOptions,
 		TLSOptions:    o.TLSOptions,
 		MySQLOptions:  o.MySQLOptions,
+		RedisOptions:  o.RedisOptions,  // Pass Redis Options to apiserver.Config
 		JWTOptions:    o.JWTOptions,    // Pass JWT Options to apiserver.Config
 		JaegerOptions: o.JaegerOptions, // Pass Jaeger Options to apiserver.Config
 	}, nil

@@ -24,6 +24,7 @@ type MySQLOptions struct {
 	MaxOpenConnections    int           `json:"max-open-connections,omitempty" mapstructure:"max-open-connections"`
 	MaxConnectionLifeTime time.Duration `json:"max-connection-life-time,omitempty" mapstructure:"max-connection-life-time"`
 	LogLevel              int           `json:"log-level" mapstructure:"log-level"`
+	EnableTrace           bool          `json:"enable-trace" mapstructure:"enable-trace"` // tracing switch
 }
 
 // NewMySQLOptions create a `zero` value instance.
@@ -37,6 +38,7 @@ func NewMySQLOptions() *MySQLOptions {
 		MaxOpenConnections:    100,
 		MaxConnectionLifeTime: time.Duration(10) * time.Second,
 		LogLevel:              1, // Silent
+		EnableTrace:           false,
 	}
 }
 
@@ -64,6 +66,7 @@ func (o *MySQLOptions) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 		"Maximum connection life time allowed to connect to mysql.")
 	fs.IntVar(&o.LogLevel, join(prefixes...)+"mysql.log-mode", o.LogLevel, ""+
 		"Specify gorm log level.")
+	fs.BoolVar(&o.EnableTrace, join(prefixes...)+"mysql.enable-trace", o.EnableTrace, "MySQL hook tracing (using open telemetry).")
 }
 
 // DSN return DSN from MySQLOptions.
@@ -90,5 +93,8 @@ func (o *MySQLOptions) NewDB() (*gorm.DB, error) {
 		Logger:                log.Default().LogMode(gormlogger.LogLevel(o.LogLevel)),
 	}
 
+	if o.EnableTrace {
+		return db.NewMySQLWithTracing(opts)
+	}
 	return db.NewMySQL(opts)
 }

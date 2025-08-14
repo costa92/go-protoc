@@ -3,7 +3,6 @@ package options
 import (
 	"time"
 
-	"github.com/redis/go-redis/extra/rediscensus/v9"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/pflag"
 
@@ -94,15 +93,10 @@ func (o *RedisOptions) NewClient() (*redis.Client, error) {
 		PoolTimeout:  o.PoolTimeout,
 	}
 
-	rdb, err := db.NewRedis(opts)
-	if err != nil {
-		return nil, err
-	}
-
-	// hook tracing (using open telemetry)
+	// Always use tracing with the new unified approach
 	if o.EnableTrace {
-		rdb.AddHook(rediscensus.NewTracingHook())
+		return db.NewRedisWithTracing(opts)
 	}
-
-	return rdb, nil
+	
+	return db.NewRedis(opts)
 }

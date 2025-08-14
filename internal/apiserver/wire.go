@@ -15,18 +15,26 @@ import (
 	"github.com/costa92/go-protoc/v2/pkg/server"
 	genericvalidation "github.com/costa92/go-protoc/v2/pkg/validation"
 	"github.com/google/wire"
+	"gorm.io/gorm"
 )
+
+// ProvideGormDB provides GORM database connection using options
+func ProvideGormDB(cfg *Config) (*gorm.DB, error) {
+	return cfg.MySQLOptions.NewDB()
+}
 
 func InitializeWebServer(done <-chan struct{}, cfg *Config, mysqlOpts *db.MySQLOptions, jwtOpts *options.JWTOptions) (server.Server, error) {
 	wire.Build(
-		// provideJWTOptions is no longer needed as jwtOpts is a direct parameter
-		NewMiddlewares, // NewMiddlewares now expects jwtOpts, which Wire will pass from InitializeWebServer's params
+		// Database providers using options
+		ProvideGormDB,
+		
+		// Middleware and server components
+		NewMiddlewares,
 		ProvideKratosAppConfig,
 		ProvideKratosLogger,
 		ProvideRegistrar,
 		store.ProviderSet,
 		biz.ProviderSet,
-		db.ProviderSet,
 		handler.ProviderSet,
 		wire.NewSet(
 			validation.ProviderSet,
