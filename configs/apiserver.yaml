@@ -10,9 +10,9 @@ grpc:
 
 mysql:
   host: 127.0.0.1 # 数据库主机地址
-  database: krm # 数据库名称
+  database: onex # 数据库名称
   username: root # 数据库用户名
-  password: 123456 # 数据库密码
+  password: proj(#)666 # 数据库密码
   log-level: 1 # 数据库日志级别，1 为最低，4 为最高
 
 jwt:
@@ -20,3 +20,14 @@ jwt:
   expired: "2h"
   max-refresh: "2h"
   signing-method: "HS512"
+
+# Jaeger OpenTelemetry Tracing Configuration
+jaeger:
+  server: "127.0.0.1:14268" # Jaeger收集器HTTP端点 (不含协议前缀和路径)
+  service-name: "apiserver" # 服务名称，在Jaeger UI中显示
+  env: "development" # 环境标识：development, staging, production
+  sampler-type: "const" # 采样策略：const(固定), probabilistic(概率), rateLimiting(限流)
+  sampler-param: 1.0 # 采样参数：const时为0或1，probabilistic时为0.0-1.0的概率值
+  reporter-log-spans: true # 是否在日志中记录span信息
+  agent-host: "127.0.0.1" # Jaeger Agent主机地址（如果使用UDP）
+  agent-port: 6831 # Jaeger Agent端口（如果使用UDP）

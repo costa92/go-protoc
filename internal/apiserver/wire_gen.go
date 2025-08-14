@@ -22,7 +22,7 @@ import (
 func InitializeWebServer(done <-chan struct{}, cfg *Config, mysqlOpts *db.MySQLOptions, jwtOpts *options.JWTOptions) (server.Server, error) {
 	registrar := ProvideRegistrar()
 	kratosAppConfig := ProvideKratosAppConfig(registrar)
-	gormDB, err := db.NewMySQL(mysqlOpts)
+	gormDB, err := db.NewMySQLWithTracing(mysqlOpts)
 	if err != nil {
 		return nil, err
 	}

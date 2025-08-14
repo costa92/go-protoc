@@ -1,15 +1,10 @@
 package options
 
 import (
-	"context"
+	"strings"
 
+	"github.com/costa92/go-protoc/v2/pkg/trace"
 	"github.com/spf13/pflag"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/sdk/resource"
-	tracesdk "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 )
 
 var _ IOptions = (*JaegerOptions)(nil)
@@ -47,35 +42,21 @@ func (o *JaegerOptions) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 }
 
 func (o *JaegerOptions) SetTracerProvider(serviceName string) error {
-	// Create the Jaeger exporter
-	opts := make([]otlptracegrpc.Option, 0)
-	opts = append(opts, otlptracegrpc.WithEndpoint(o.Server), otlptracegrpc.WithInsecure())
-	exporter, err := otlptracegrpc.New(context.Background(), opts...)
-	if err != nil {
-		return err
+	// 构造正确的 Jaeger 收集器端点 URL
+	jaegerURL := o.Server
+	if !strings.HasPrefix(jaegerURL, "http://") && !strings.HasPrefix(jaegerURL, "https://") {
+		jaegerURL = "http://" + jaegerURL
+	}
+	if !strings.HasSuffix(jaegerURL, "/api/traces") {
+		jaegerURL = jaegerURL + "/api/traces"
 	}
 
-	res, err := resource.New(context.Background(), resource.WithAttributes(
-		semconv.ServiceNameKey.String(serviceName),
-		attribute.String("env", o.Env),
-		attribute.String("exporter", "jaeger"),
-	))
-	if err != nil {
-		return err
+	// 使用统一的追踪管理器初始化
+	cfg := trace.TracerConfig{
+		ServiceName: serviceName,
+		Endpoint:    jaegerURL,
+		Environment: o.Env,
 	}
 
-	// batch span processor to aggregate spans before export.
-	bsp := tracesdk.NewBatchSpanProcessor(exporter)
-	tp := tracesdk.NewTracerProvider(
-		// Set the sampling rate based on the parent span to 100%
-		tracesdk.WithSampler(tracesdk.ParentBased(tracesdk.TraceIDRatioBased(1.0))),
-		// Always be sure to batch in production.
-		tracesdk.WithSpanProcessor(bsp),
-		// Record information about this application in an Resource.
-		tracesdk.WithResource(res),
-	)
-
-	otel.SetTracerProvider(tp)
-
-	return nil
+	return trace.InitializeGlobalTracer(cfg)
 }

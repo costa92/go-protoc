@@ -7,7 +7,7 @@ import (
 
 // ProviderSet is db providers.
 var ProviderSet = wire.NewSet(
-	NewMySQL,
-	NewRedis,
+	NewMySQLWithTracing, // 使用带追踪的 MySQL 连接
+	NewRedisWithTracing, // 使用带追踪的 Redis 连接
 	wire.Bind(new(redis.UniversalClient), new(*redis.Client)), // 正确绑定接口和实现
 )
