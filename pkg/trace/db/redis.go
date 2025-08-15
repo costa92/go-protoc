@@ -20,26 +20,26 @@ const (
 // NewTracedRedisClient creates a new Redis client with OpenTelemetry tracing enabled.
 func NewTracedRedisClient(opts *redis.Options, tracingOpts ...redisotel.TracingOption) (*redis.Client, error) {
 	client := redis.NewClient(opts)
-	
+
 	// Enable tracing using the official instrumentation
 	if err := redisotel.InstrumentTracing(client, tracingOpts...); err != nil {
 		client.Close()
 		return nil, fmt.Errorf("failed to instrument Redis tracing: %w", err)
 	}
-	
+
 	return client, nil
 }
 
 // NewTracedRedisClusterClient creates a new Redis cluster client with OpenTelemetry tracing enabled.
 func NewTracedRedisClusterClient(opts *redis.ClusterOptions, tracingOpts ...redisotel.TracingOption) (*redis.ClusterClient, error) {
 	client := redis.NewClusterClient(opts)
-	
+
 	// Enable tracing using the official instrumentation
 	if err := redisotel.InstrumentTracing(client, tracingOpts...); err != nil {
 		client.Close()
 		return nil, fmt.Errorf("failed to instrument Redis cluster tracing: %w", err)
 	}
-	
+
 	return client, nil
 }
 

@@ -26,22 +26,27 @@ type RedisOptions struct {
 	PoolSize     int           `json:"pool-size" mapstructure:"pool-size"`
 	// tracing switch
 	EnableTrace bool `json:"enable-trace" mapstructure:"enable-trace"`
+	// metrics switch
+	EnableMetrics bool   `json:"enable-metrics" mapstructure:"enable-metrics"`
+	MetricsName   string `json:"metrics-name" mapstructure:"metrics-name"`
 }
 
 // NewRedisOptions create a `zero` value instance.
 func NewRedisOptions() *RedisOptions {
 	return &RedisOptions{
-		Addr:         "127.0.0.1:6379",
-		Username:     "",
-		Password:     "",
-		Database:     0,
-		MaxRetries:   3,
-		MinIdleConns: 0,
-		DialTimeout:  5 * time.Second,
-		ReadTimeout:  3 * time.Second,
-		WriteTimeout: 3 * time.Second,
-		PoolSize:     10,
-		EnableTrace:  false,
+		Addr:          "127.0.0.1:6379",
+		Username:      "",
+		Password:      "",
+		Database:      0,
+		MaxRetries:    3,
+		MinIdleConns:  0,
+		DialTimeout:   5 * time.Second,
+		ReadTimeout:   3 * time.Second,
+		WriteTimeout:  3 * time.Second,
+		PoolSize:      10,
+		EnableTrace:   false,
+		EnableMetrics: false,
+		MetricsName:   "",
 	}
 }
 
@@ -76,27 +81,52 @@ func (o *RedisOptions) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 		"Amount of time client waits for connection if all connections are busy before returning an error.")
 	fs.IntVar(&o.PoolSize, "redis.pool-size", o.PoolSize, "Maximum number of socket connections.")
 	fs.BoolVar(&o.EnableTrace, "redis.enable-trace", o.EnableTrace, "Redis hook tracing (using open telemetry).")
+	fs.BoolVar(&o.EnableMetrics, "redis.enable-metrics", o.EnableMetrics, "Enable Redis connection pool metrics collection.")
+	fs.StringVar(&o.MetricsName, "redis.metrics-name", o.MetricsName, "Redis metrics name for identification.")
 }
 
 func (o *RedisOptions) NewClient() (*redis.Client, error) {
 	opts := &db.RedisOptions{
-		Addr:         o.Addr,
-		Username:     o.Username,
-		Password:     o.Password,
-		Database:     o.Database,
-		MaxRetries:   o.MaxRetries,
-		MinIdleConns: o.MinIdleConns,
-		DialTimeout:  o.DialTimeout,
-		ReadTimeout:  o.ReadTimeout,
-		WriteTimeout: o.WriteTimeout,
-		PoolSize:     o.PoolSize,
-		PoolTimeout:  o.PoolTimeout,
+		Addr:          o.Addr,
+		Username:      o.Username,
+		Password:      o.Password,
+		Database:      o.Database,
+		MaxRetries:    o.MaxRetries,
+		MinIdleConns:  o.MinIdleConns,
+		DialTimeout:   o.DialTimeout,
+		ReadTimeout:   o.ReadTimeout,
+		WriteTimeout:  o.WriteTimeout,
+		PoolSize:      o.PoolSize,
+		PoolTimeout:   o.PoolTimeout,
+		EnableMetrics: o.EnableMetrics,
+		MetricsName:   o.MetricsName,
 	}
 
 	// Always use tracing with the new unified approach
 	if o.EnableTrace {
 		return db.NewRedisWithTracing(opts)
 	}
-	
+
 	return db.NewRedis(opts)
+}
+
+// NewMonitoredClient create monitored redis client with the given config.
+func (o *RedisOptions) NewMonitoredClient() (*db.MonitoredRedis, error) {
+	opts := &db.RedisOptions{
+		Addr:          o.Addr,
+		Username:      o.Username,
+		Password:      o.Password,
+		Database:      o.Database,
+		MaxRetries:    o.MaxRetries,
+		MinIdleConns:  o.MinIdleConns,
+		DialTimeout:   o.DialTimeout,
+		ReadTimeout:   o.ReadTimeout,
+		WriteTimeout:  o.WriteTimeout,
+		PoolSize:      o.PoolSize,
+		PoolTimeout:   o.PoolTimeout,
+		EnableMetrics: o.EnableMetrics,
+		MetricsName:   o.MetricsName,
+	}
+
+	return db.NewRedisWithMetrics(opts)
 }

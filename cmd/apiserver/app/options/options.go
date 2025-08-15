@@ -47,7 +47,7 @@ func (o *ServerOptions) Flags() (fss cliflag.NamedFlagSets) {
 	o.HTTPOptions.AddFlags(fss.FlagSet("http"))
 	o.MySQLOptions.AddFlags(fss.FlagSet("mysql"))
 	o.RedisOptions.AddFlags(fss.FlagSet("redis")) // Add Redis flags
-	o.JWTOptions.AddFlags(fss.FlagSet("jwt")) // Add JWT flags
+	o.JWTOptions.AddFlags(fss.FlagSet("jwt"))     // Add JWT flags
 	o.JaegerOptions.AddFlags(fss.FlagSet("jaeger"))
 	o.Log.AddFlags(fss.FlagSet("log"))
 

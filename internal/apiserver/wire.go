@@ -23,11 +23,31 @@ func ProvideGormDB(cfg *Config) (*gorm.DB, error) {
 	return cfg.MySQLOptions.NewDB()
 }
 
+// ProvideMonitoredDB provides monitored GORM database connection
+func ProvideMonitoredDB(cfg *Config) (*db.MonitoredDB, error) {
+	// 启用数据库监控
+	cfg.MySQLOptions.EnableMetrics = true
+	if cfg.MySQLOptions.MetricsName == "" {
+		cfg.MySQLOptions.MetricsName = "apiserver_mysql"
+	}
+
+	monitoredDB, err := db.NewMySQLWithMetrics(cfg.MySQLOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	// 注册到全局收集器
+	collector := db.GetGlobalCollector()
+	collector.RegisterDatabase(cfg.MySQLOptions.MetricsName, monitoredDB.DB)
+
+	return monitoredDB, nil
+}
+
 func InitializeWebServer(done <-chan struct{}, cfg *Config, mysqlOpts *db.MySQLOptions, jwtOpts *options.JWTOptions) (server.Server, error) {
 	wire.Build(
 		// Database providers using options
 		ProvideGormDB,
-		
+
 		// Middleware and server components
 		NewMiddlewares,
 		ProvideKratosAppConfig,

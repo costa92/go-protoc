@@ -10,7 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	
+
 	tracedb "github.com/costa92/go-protoc/v2/pkg/trace/db"
 )
 
@@ -83,7 +83,7 @@ func (o *MongoOptions) NewClient() (*mongo.Client, error) {
 			// Add any otelmongo options here if needed
 		)
 	}
-	
+
 	// Create a regular MongoDB client without tracing
 	return o.newRegularClient()
 }

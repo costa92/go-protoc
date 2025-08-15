@@ -20,6 +20,10 @@ type RedisOptions struct {
 	WriteTimeout time.Duration
 	PoolTimeout  time.Duration
 	PoolSize     int
+	// +optional
+	EnableMetrics bool
+	// +optional
+	MetricsName string
 }
 
 // NewRedis create a new redis db instance with the given options.
@@ -49,6 +53,32 @@ func NewRedis(opts *RedisOptions) (*redis.Client, error) {
 	}
 
 	return rdb, nil
+}
+
+// NewRedisWithMetrics create a new redis client instance with metrics monitoring.
+func NewRedisWithMetrics(opts *RedisOptions) (*MonitoredRedis, error) {
+	client, err := NewRedis(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if opts.EnableMetrics {
+		metrics := GetGlobalMetrics()
+		metricsName := opts.MetricsName
+		if metricsName == "" {
+			metricsName = "redis_default"
+		}
+
+		monitoredRedis := NewMonitoredRedis(client, metrics, metricsName)
+
+		// 初始收集一次指标
+		monitoredRedis.CollectMetrics()
+
+		return monitoredRedis, nil
+	}
+
+	// 如果未启用监控，返回包装的未监控实例
+	return &MonitoredRedis{Client: client, redisName: "redis_default"}, nil
 }
 
 // setRedisDefaults set available default values for some fields.
@@ -82,5 +112,8 @@ func setRedisDefaults(opts *RedisOptions) {
 	if opts.PoolTimeout == 0 {
 		// 优化: 减少连接池等待超时
 		opts.PoolTimeout = 2 * time.Second
+	}
+	if opts.MetricsName == "" && opts.EnableMetrics {
+		opts.MetricsName = "redis_default"
 	}
 }

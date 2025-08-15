@@ -22,6 +22,10 @@ type MySQLOptions struct {
 	MaxConnectionLifeTime time.Duration
 	// +optional
 	Logger logger.Interface
+	// +optional
+	EnableMetrics bool
+	// +optional
+	MetricsName string
 }
 
 // DSN return DSN from MySQLOptions.
@@ -67,6 +71,34 @@ func NewMySQL(opts *MySQLOptions) (*gorm.DB, error) {
 	return db, nil
 }
 
+// NewMySQLWithMetrics create a new gorm db instance with metrics monitoring.
+func NewMySQLWithMetrics(opts *MySQLOptions) (*MonitoredDB, error) {
+	db, err := NewMySQL(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if opts.EnableMetrics {
+		metrics := GetGlobalMetrics()
+		metricsName := opts.MetricsName
+		if metricsName == "" {
+			metricsName = opts.Database
+		}
+
+		monitoredDB := NewMonitoredDB(db, metrics, metricsName)
+
+		// 初始收集一次指标
+		if err := monitoredDB.CollectMetrics(); err != nil {
+			return nil, fmt.Errorf("failed to collect initial metrics: %w", err)
+		}
+
+		return monitoredDB, nil
+	}
+
+	// 如果未启用监控，返回包装的未监控实例
+	return &MonitoredDB{DB: db, databaseName: opts.Database}, nil
+}
+
 // setMySQLDefaults set available default values for some fields.
 func setMySQLDefaults(opts *MySQLOptions) {
 	if opts.Addr == "" {
@@ -86,6 +118,12 @@ func setMySQLDefaults(opts *MySQLOptions) {
 	}
 	if opts.Logger == nil {
 		opts.Logger = logger.Default
+	}
+	if opts.MetricsName == "" && opts.EnableMetrics {
+		opts.MetricsName = opts.Database
+		if opts.MetricsName == "" {
+			opts.MetricsName = "mysql_default"
+		}
 	}
 }
 

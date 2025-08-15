@@ -40,7 +40,7 @@ func NewRedisWithTracing(opts *RedisOptions) (*redis.Client, error) {
 		PoolTimeout:  opts.PoolTimeout,
 		PoolSize:     opts.PoolSize,
 	}
-	
+
 	// Create traced Redis client using the official instrumentation
 	client, err := tracedb.NewTracedRedisClient(redisOpts, redisotel.WithDBStatement(true))
 	if err != nil {

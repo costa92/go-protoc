@@ -154,22 +154,22 @@ func shouldSkipLogging(err *ErrorX) bool {
 	if err.Code >= 500 {
 		return false
 	}
-	
+
 	// 生成错误键
 	errorKey := fmt.Sprintf("%d:%s", err.Code, err.Reason)
-	
+
 	errorSampleMutex.Lock()
 	defer errorSampleMutex.Unlock()
-	
+
 	// 定期清理计数器（每小时清理一次）
 	if time.Since(lastCleanupTime) > time.Hour {
 		errorSampleCounter = make(map[string]int64)
 		lastCleanupTime = time.Now()
 	}
-	
+
 	count := errorSampleCounter[errorKey]
 	errorSampleCounter[errorKey] = count + 1
-	
+
 	// 采样策略：前10次记录，之后每100次记录一次
 	if count < 10 {
 		return false

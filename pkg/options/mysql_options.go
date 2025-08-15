@@ -24,7 +24,9 @@ type MySQLOptions struct {
 	MaxOpenConnections    int           `json:"max-open-connections,omitempty" mapstructure:"max-open-connections"`
 	MaxConnectionLifeTime time.Duration `json:"max-connection-life-time,omitempty" mapstructure:"max-connection-life-time"`
 	LogLevel              int           `json:"log-level" mapstructure:"log-level"`
-	EnableTrace           bool          `json:"enable-trace" mapstructure:"enable-trace"` // tracing switch
+	EnableTrace           bool          `json:"enable-trace" mapstructure:"enable-trace"`     // tracing switch
+	EnableMetrics         bool          `json:"enable-metrics" mapstructure:"enable-metrics"` // metrics switch
+	MetricsName           string        `json:"metrics-name" mapstructure:"metrics-name"`     // metrics name for identification
 }
 
 // NewMySQLOptions create a `zero` value instance.
@@ -39,6 +41,8 @@ func NewMySQLOptions() *MySQLOptions {
 		MaxConnectionLifeTime: time.Duration(10) * time.Second,
 		LogLevel:              1, // Silent
 		EnableTrace:           false,
+		EnableMetrics:         false,
+		MetricsName:           "",
 	}
 }
 
@@ -67,6 +71,8 @@ func (o *MySQLOptions) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 	fs.IntVar(&o.LogLevel, join(prefixes...)+"mysql.log-mode", o.LogLevel, ""+
 		"Specify gorm log level.")
 	fs.BoolVar(&o.EnableTrace, join(prefixes...)+"mysql.enable-trace", o.EnableTrace, "MySQL hook tracing (using open telemetry).")
+	fs.BoolVar(&o.EnableMetrics, join(prefixes...)+"mysql.enable-metrics", o.EnableMetrics, "Enable MySQL connection pool metrics collection.")
+	fs.StringVar(&o.MetricsName, join(prefixes...)+"mysql.metrics-name", o.MetricsName, "MySQL metrics name for identification.")
 }
 
 // DSN return DSN from MySQLOptions.
@@ -91,10 +97,30 @@ func (o *MySQLOptions) NewDB() (*gorm.DB, error) {
 		MaxOpenConnections:    o.MaxOpenConnections,
 		MaxConnectionLifeTime: o.MaxConnectionLifeTime,
 		Logger:                log.Default().LogMode(gormlogger.LogLevel(o.LogLevel)),
+		EnableMetrics:         o.EnableMetrics,
+		MetricsName:           o.MetricsName,
 	}
 
 	if o.EnableTrace {
 		return db.NewMySQLWithTracing(opts)
 	}
 	return db.NewMySQL(opts)
+}
+
+// NewMonitoredDB create monitored mysql store with the given config.
+func (o *MySQLOptions) NewMonitoredDB() (*db.MonitoredDB, error) {
+	opts := &db.MySQLOptions{
+		Addr:                  o.Addr,
+		Username:              o.Username,
+		Password:              o.Password,
+		Database:              o.Database,
+		MaxIdleConnections:    o.MaxIdleConnections,
+		MaxOpenConnections:    o.MaxOpenConnections,
+		MaxConnectionLifeTime: o.MaxConnectionLifeTime,
+		Logger:                log.Default().LogMode(gormlogger.LogLevel(o.LogLevel)),
+		EnableMetrics:         o.EnableMetrics,
+		MetricsName:           o.MetricsName,
+	}
+
+	return db.NewMySQLWithMetrics(opts)
 }

@@ -54,7 +54,7 @@ func getErrorCodeString(code int32) string {
 		return str
 	}
 	errorCodeMutex.RUnlock()
-	
+
 	// 不在缓存中，生成并缓存
 	str := strconv.FormatInt(int64(code), 10)
 	errorCodeMutex.Lock()

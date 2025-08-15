@@ -31,7 +31,7 @@ func Server(logger krtlog.Logger) middleware.Middleware {
 				code = se.Code
 				reason = se.Reason
 			}
-			
+
 			// 优化: 只对错误请求或高级别日志进行详细记录
 			latency := time.Since(startTime).Seconds()
 			if err != nil || latency > 0.5 { // 只记录错误请求或慢请求(>500ms)

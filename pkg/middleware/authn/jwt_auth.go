@@ -34,7 +34,7 @@ var (
 func initPathMatcher() {
 	once.Do(func() {
 		pathMatcher = &PathTrie{children: make(map[byte]*PathTrie)}
-		
+
 		// 优化: 预定义的公共路径列表
 		publicPaths := []string{
 			"/login",
@@ -43,7 +43,7 @@ func initPathMatcher() {
 			"/debug/pprof",
 			"/openapi/",
 		}
-		
+
 		for _, path := range publicPaths {
 			pathMatcher.Insert(path)
 		}
@@ -87,7 +87,7 @@ func (pt *PathTrie) IsPublicPath(path string) bool {
 func ServerJWTAuth(jwtOpts *options.JWTOptions) middleware.Middleware {
 	// 优化: 初始化路径匹配器
 	initPathMatcher()
-	
+
 	return func(handler middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, req interface{}) (interface{}, error) {
 			// Access the HTTP request to check the path

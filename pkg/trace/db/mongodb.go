@@ -33,22 +33,22 @@ func NewMongoMonitorWithOptions() *event.CommandMonitor {
 func NewTracedMongoClient(ctx context.Context, uri string, mongoOpts ...otelmongo.Option) (*mongo.Client, error) {
 	// Set up the monitor
 	monitor := NewMongoMonitor(mongoOpts...)
-	
+
 	// Configure client options with the monitor
 	clientOpts := options.Client().ApplyURI(uri).SetMonitor(monitor)
-	
+
 	// Connect to MongoDB
 	client, err := mongo.Connect(ctx, clientOpts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to MongoDB: %w", err)
 	}
-	
+
 	// Test the connection
 	if err := client.Ping(ctx, nil); err != nil {
 		client.Disconnect(ctx)
 		return nil, fmt.Errorf("failed to ping MongoDB: %w", err)
 	}
-	
+
 	return client, nil
 }
 
@@ -73,14 +73,14 @@ func (c *TracedMongoCollection) WithTracing(ctx context.Context, operation strin
 	spanName := fmt.Sprintf("mongodb.%s", operation)
 	tracer := trace.GetTracer(MongoDBTracerName)
 	ctx, span := tracer.Start(ctx, spanName, trace.WithSpanKind(ottrace.SpanKindClient))
-	
+
 	span.SetAttributes(
 		attribute.String("db.system", "mongodb"),
 		attribute.String("db.operation", operation),
 		attribute.String("db.name", c.database),
 		attribute.String("db.mongodb.collection", c.collection),
 	)
-	
+
 	return ctx, span
 }
 
