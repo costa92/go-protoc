@@ -239,3 +239,23 @@ _install.docker.victorialogs: ## Install docker install VictoriaLogs
 .PHONY: _uninstall.docker.victorialogs
 _uninstall.docker.victorialogs: ## Uninstall docker install VictoriaLogs
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::victorialogs::docker::uninstall
+
+##@ Sentry Service
+# ==============================================================================
+# Sentry installation methods
+# ==============================================================================
+.PHONY: _install.sentry
+_install.sentry:  ## Install Sentry for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::sentry::install
+
+.PHONY: _uninstall.sentry
+_uninstall.sentry: ## Uninstall Sentry for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::sentry::uninstall
+
+.PHONY: _install.docker.sentry
+_install.docker.sentry: ## Install docker install Sentry
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::sentry::docker::install
+
+.PHONY: _uninstall.docker.sentry
+_uninstall.docker.sentry: ## Uninstall docker install Sentry
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::sentry::docker::uninstall

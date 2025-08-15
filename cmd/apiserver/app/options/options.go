@@ -22,6 +22,7 @@ type ServerOptions struct {
 	TLSOptions         *genericoptions.TLSOptions         `json:"tls" mapstructure:"tls"`
 	JWTOptions         *genericoptions.JWTOptions         `json:"jwt" mapstructure:"jwt"` // Added JWT Options
 	JaegerOptions      *genericoptions.JaegerOptions      `json:"jaeger" mapstructure:"jaeger"`
+	SentryOptions      *genericoptions.SentryOptions      `json:"sentry" mapstructure:"sentry"`             // Added Sentry Options
 	PoolMonitorOptions *genericoptions.PoolMonitorOptions `json:"pool-monitor" mapstructure:"pool-monitor"` // Added Pool Monitor Options
 	Log                *log.Options                       `json:"log" mapstructure:"log"`
 	FeatureGates       map[string]bool                    `json:"feature-gates"`
@@ -39,6 +40,7 @@ func NewServerOptions() *ServerOptions {
 		RedisOptions:       genericoptions.NewRedisOptions(),       // Initialize Redis Options
 		JWTOptions:         genericoptions.NewJWTOptions(),         // Initialize JWT Options
 		JaegerOptions:      genericoptions.NewJaegerOptions(),      // Initialize Jaeger Options
+		SentryOptions:      genericoptions.NewSentryOptions(),      // Initialize Sentry Options
 		PoolMonitorOptions: genericoptions.NewPoolMonitorOptions(), // Initialize Pool Monitor Options
 		Log:                log.NewOptions(),
 	}
@@ -51,6 +53,7 @@ func (o *ServerOptions) Flags() (fss cliflag.NamedFlagSets) {
 	o.RedisOptions.AddFlags(fss.FlagSet("redis")) // Add Redis flags
 	o.JWTOptions.AddFlags(fss.FlagSet("jwt"))     // Add JWT flags
 	o.JaegerOptions.AddFlags(fss.FlagSet("jaeger"))
+	o.SentryOptions.AddFlags(fss.FlagSet("sentry"))            // Add Sentry flags
 	o.PoolMonitorOptions.AddFlags(fss.FlagSet("pool-monitor")) // Add Pool Monitor flags
 	o.Log.AddFlags(fss.FlagSet("log"))
 
@@ -69,6 +72,7 @@ func (o *ServerOptions) Validate() error {
 	errs = append(errs, o.RedisOptions.Validate()...)
 	errs = append(errs, o.JWTOptions.Validate()...)
 	errs = append(errs, o.JaegerOptions.Validate()...)
+	errs = append(errs, o.SentryOptions.Validate()...)
 	errs = append(errs, o.PoolMonitorOptions.Validate()...)
 	errs = append(errs, o.Log.Validate()...)
 
@@ -92,6 +96,7 @@ func (o *ServerOptions) Config() (*apiserver.Config, error) {
 		RedisOptions:       o.RedisOptions,       // Pass Redis Options to apiserver.Config
 		JWTOptions:         o.JWTOptions,         // Pass JWT Options to apiserver.Config
 		JaegerOptions:      o.JaegerOptions,      // Pass Jaeger Options to apiserver.Config
+		SentryOptions:      o.SentryOptions,      // Pass Sentry Options to apiserver.Config
 		PoolMonitorOptions: o.PoolMonitorOptions, // Pass Pool Monitor Options to apiserver.Config
 	}, nil
 }

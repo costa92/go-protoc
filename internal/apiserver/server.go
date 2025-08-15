@@ -42,6 +42,7 @@ type Config struct {
 	RedisOptions       *genericoptions.RedisOptions       // Added Redis Options
 	JWTOptions         *genericoptions.JWTOptions         // Added JWT Options
 	JaegerOptions      *genericoptions.JaegerOptions      // Added Jaeger Options
+	SentryOptions      *genericoptions.SentryOptions      // Added Sentry Options
 	MetricsOptions     *genericoptions.MetricsOptions     // Added Metrics Options (K8s style)
 	PoolMonitorOptions *genericoptions.PoolMonitorOptions // Added Pool Monitor Options
 }

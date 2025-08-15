@@ -374,6 +374,9 @@ linters-settings:
         # 测试库
         - github.com/stretchr/testify             # 测试断言库
         
+        # 错误监控和报告
+        - github.com/getsentry/sentry-go          # Sentry错误监控
+        
         # UI和表格
         - github.com/gosuri/uitable                # 表格显示
         
