@@ -36,12 +36,16 @@ func initPathMatcher() {
 		pathMatcher = &PathTrie{children: make(map[byte]*PathTrie)}
 
 		// 优化: 预定义的公共路径列表
+		// 注意：如需将 "/v1/user/{id}" 加入白名单，应根据实际路由注册的路径进行调整。
+		// Kratos 路由注册时，"/v1/users/{id}" 实际会被映射为 "/v1/users/" 前缀 + 变量部分。
+		// 因此，白名单应写为 "/v1/users/"，以便前缀匹配所有 "/v1/users/{id}" 路径。
 		publicPaths := []string{
 			"/login",
 			"/healthz",
 			"/metrics",
 			"/debug/pprof",
 			"/openapi/",
+			"/v1/users/", // 用于匹配 "/v1/users/{id}" 路径
 		}
 
 		for _, path := range publicPaths {

@@ -11,7 +11,7 @@ fmt: ## Format go source code.
 
 .PHONY: run-api
 run-api: ## Run the API server.
-	go run cmd/apiserver/main.go
+	go run cmd/apiserver/main.go --config=configs/apiserver.yaml
 
 .PHONY: generate
 generate: ## Generate code from protobuf definitions.
