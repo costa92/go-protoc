@@ -16,6 +16,9 @@ type Config struct {
 	Namespace       string                `json:"namespace" mapstructure:"namespace"`
 	ServiceName     string                `json:"service_name" mapstructure:"service_name"`
 
+	// 采样配置 - 优化: 添加采样率控制降低监控开销
+	Sampling SamplingConfig `json:"sampling" mapstructure:"sampling"`
+
 	// HTTP配置
 	HTTP HTTPConfig `json:"http" mapstructure:"http"`
 

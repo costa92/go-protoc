@@ -105,14 +105,25 @@ func ProvideKratosAppConfig(registrar registry.Registrar) server.KratosAppConfig
 }
 
 func NewMiddlewares(logger krtlog.Logger, val validate.RequestValidator, jwtOpts *genericoptions.JWTOptions) []middleware.Middleware {
-	// 优化: 调整中间件顺序，将轻量级中间件前置
-	return []middleware.Middleware{
-		tracing.Server(),             // 优化: 先启动追踪，性能开销最小
-		authn.ServerJWTAuth(jwtOpts), // 优化: 认证放在前面，早期过滤无效请求
-		logging.Server(logger),       // 优化: 只对通过认证的请求详细记录日志
-		i18nmw.Translator(i18n.WithLanguage(language.English), i18n.WithFS(locales.Locales)), // i18n
-		validate.Validator(val), // 验证放在最后，只验证有效的已认证请求
-	}
+	// 优化: 调整中间件顺序，按性能影响和过滤效果排序
+	middlewares := make([]middleware.Middleware, 0, 5) // 预分配容量
+
+	// 1. 验证中间件: 最轻量级，能快速拒绝格式错误的请求
+	middlewares = append(middlewares, validate.Validator(val))
+
+	// 2. 认证中间件: 过滤未授权请求，避免后续处理开销
+	middlewares = append(middlewares, authn.ServerJWTAuth(jwtOpts))
+
+	// 3. 追踪中间件: 只对通过认证的请求启动追踪
+	middlewares = append(middlewares, tracing.Server())
+
+	// 4. 国际化中间件: 为有效请求提供本地化支持
+	middlewares = append(middlewares, i18nmw.Translator(i18n.WithLanguage(language.English), i18n.WithFS(locales.Locales)))
+
+	// 5. 日志中间件: 最后记录，只记录完整的请求处理流程
+	middlewares = append(middlewares, logging.Server(logger))
+
+	return middlewares
 }
 
 func ProvideKratosLogger() krtlog.Logger {

@@ -59,6 +59,26 @@ _install.docker.mariadb: ## Install docker install mariadb
 _uninstall.docker.mariadb: ## Uninstall docker install Mariadb
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::mariadb::docker::uninstall
 
+##@ MySQL Service
+# ==============================================================================
+# MySQL installation methods
+# ==============================================================================
+.PHONY: _install.mysql
+_install.mysql:  ## Install MySQL for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/mysql.sh proj::mysql::install
+
+.PHONY: _uninstall.mysql
+_uninstall.mysql: ## Uninstall MySQL for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/mysql.sh proj::mysql::uninstall
+
+.PHONY: _install.docker.mysql
+_install.docker.mysql: ## Install docker install MySQL
+	@$(PROJ_ROOT_DIR)/scripts/installation/mysql.sh proj::mysql::docker::install
+
+.PHONY: _uninstall.docker.mysql
+_uninstall.docker.mysql: ## Uninstall docker install MySQL
+	@$(PROJ_ROOT_DIR)/scripts/installation/mysql.sh proj::mysql::docker::uninstall
+
 ##@ MongoDB Service
 # ==============================================================================
 # MongoDB installation methods

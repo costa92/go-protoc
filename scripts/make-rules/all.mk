@@ -15,6 +15,9 @@ include scripts/make-rules/golang.mk
 # Include documentation commands.
 include scripts/make-rules/docs.mk
 
+# Include database management commands.
+include scripts/make-rules/database.mk
+
 # Conditionally include service makefile if it exists.
 # This allows for optional, user-defined service management commands.
 ifneq ($(wildcard scripts/make-rules/service.mk),)

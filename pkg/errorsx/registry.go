@@ -21,7 +21,7 @@ type Registry struct {
 // NewRegistry 创建新的错误注册器
 func NewRegistry() *Registry {
 	return &Registry{
-		errors: make(map[string]*ErrorTemplate),
+		errors: make(map[string]*ErrorTemplate, 50), // 预分配50个错误模板容量
 	}
 }
 

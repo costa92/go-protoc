@@ -16,6 +16,7 @@ INSTALL_DIR=${PROJ_ROOT_DIR}/scripts/installation
 source ${INSTALL_DIR}/versions.sh
 source ${INSTALL_DIR}/redis.sh
 source ${INSTALL_DIR}/mariadb.sh
+source ${INSTALL_DIR}/mysql.sh
 source ${INSTALL_DIR}/mongo.sh
 source ${INSTALL_DIR}/kafka.sh
 source ${INSTALL_DIR}/etcd.sh

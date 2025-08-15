@@ -29,10 +29,12 @@ func (fi frequencyInfoSlice) Less(i, j int) bool {
 
 // Creates an slice of slice values not included in the other given slice.
 func Diff(base, exclude []string) (result []string) {
-	excludeMap := make(map[string]bool)
+	excludeMap := make(map[string]bool, len(exclude)) // 预分配容量
 	for _, s := range exclude {
 		excludeMap[s] = true
 	}
+	// 预分配结果切片容量
+	result = make([]string, 0, len(base))
 	for _, s := range base {
 		if !excludeMap[s] {
 			result = append(result, s)
@@ -44,10 +46,12 @@ func Diff(base, exclude []string) (result []string) {
 
 // Creates an slice of slice values included in the other given slice.
 func Include(base, include []string) (result []string) {
-	baseMap := make(map[string]bool)
+	baseMap := make(map[string]bool, len(base)) // 预分配容量
 	for _, s := range base {
 		baseMap[s] = true
 	}
+	// 预分配结果切片容量
+	result = make([]string, 0, len(include))
 	for _, s := range include {
 		if baseMap[s] {
 			result = append(result, s)
@@ -58,10 +62,12 @@ func Include(base, include []string) (result []string) {
 }
 
 func Unique(ss []string) (result []string) {
-	smap := make(map[string]bool)
+	smap := make(map[string]bool, len(ss)) // 预分配容量
 	for _, s := range ss {
 		smap[s] = true
 	}
+	// 预分配结果切片容量
+	result = make([]string, 0, len(smap))
 	for s := range smap {
 		result = append(result, s)
 	}
@@ -105,6 +111,8 @@ func Reverse(s string) string {
 
 // Filter filters a list for a string.
 func Filter(list []string, strToFilter string) (newList []string) {
+	// 预分配切片容量
+	newList = make([]string, 0, len(list))
 	for _, item := range list {
 		if item != strToFilter {
 			newList = append(newList, item)
@@ -135,7 +143,7 @@ func Contains(list []string, strToSearch string) bool {
 }
 
 func FrequencySort(list []string) []string {
-	cnt := map[string]int{}
+	cnt := make(map[string]int, len(list)) // 预分配容量
 
 	for _, s := range list {
 		cnt[s]++

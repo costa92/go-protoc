@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"runtime"
 	"time"
 
 	"github.com/costa92/go-protoc/v2/pkg/monitor"
@@ -73,35 +74,66 @@ func NewRedis(opts *RedisOptions) (*redis.Client, error) {
 }
 
 // setRedisDefaults set available default values for some fields.
+// 优化: 根据CPU核数动态调整Redis连接池配置
 func setRedisDefaults(opts *RedisOptions) {
 	if opts.Addr == "" {
 		opts.Addr = "127.0.0.1:6379"
 	}
+
+	// 获取CPU核数用于动态配置
+	numCPU := runtime.NumCPU()
+
 	if opts.PoolSize == 0 {
-		// 优化: 增加连接池大小以支持更高并发
-		opts.PoolSize = 200
+		// 优化: 根据CPU核数设置连接池大小，支持更高并发
+		// 公式: CPU核数 * 15，最小30，最大300
+		opts.PoolSize = calculateOptimalRedisValue(numCPU*15, 30, 300)
 	}
 	if opts.MinIdleConns == 0 {
-		// 优化: 增加最小空闲连接数，减少连接建立开销
-		opts.MinIdleConns = 50
+		// 优化: 根据连接池大小设置最小空闲连接数
+		// 公式: 连接池大小的20%，最小5，最大50
+		idealIdle := opts.PoolSize / 5
+		opts.MinIdleConns = calculateOptimalRedisValue(idealIdle, 5, 50)
 	}
 	if opts.MaxRetries == 0 {
 		opts.MaxRetries = 3
 	}
 	if opts.DialTimeout == 0 {
-		// 优化: 减少连接超时时间
-		opts.DialTimeout = 2 * time.Second
+		// 优化: 根据系统负载调整连接超时时间
+		if opts.PoolSize > 100 {
+			// 高并发场景: 较短的连接超时
+			opts.DialTimeout = 1 * time.Second
+		} else {
+			// 低并发场景: 较长的连接超时，确保连接成功
+			opts.DialTimeout = 3 * time.Second
+		}
 	}
 	if opts.ReadTimeout == 0 {
-		// 优化: 减少读超时时间，提高响应速度
-		opts.ReadTimeout = 1 * time.Second
+		// 优化: 设置合理的读超时时间
+		opts.ReadTimeout = 2 * time.Second
 	}
 	if opts.WriteTimeout == 0 {
-		// 优化: 减少写超时时间，提高响应速度
-		opts.WriteTimeout = 1 * time.Second
+		// 优化: 设置合理的写超时时间
+		opts.WriteTimeout = 2 * time.Second
 	}
 	if opts.PoolTimeout == 0 {
-		// 优化: 减少连接池等待超时
-		opts.PoolTimeout = 2 * time.Second
+		// 优化: 根据连接池大小调整等待超时
+		if opts.PoolSize > 100 {
+			// 大连接池: 较短的等待时间，快速失败
+			opts.PoolTimeout = 1 * time.Second
+		} else {
+			// 小连接池: 较长的等待时间，提高成功率
+			opts.PoolTimeout = 3 * time.Second
+		}
 	}
+}
+
+// calculateOptimalRedisValue 计算Redis优化值，确保在合理范围内
+func calculateOptimalRedisValue(calculated, min, max int) int {
+	if calculated < min {
+		return min
+	}
+	if calculated > max {
+		return max
+	}
+	return calculated
 }

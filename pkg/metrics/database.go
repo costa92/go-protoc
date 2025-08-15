@@ -18,6 +18,7 @@ type DatabaseCollector struct {
 	registry prometheus.Registerer
 	enabled  atomic.Bool
 	running  atomic.Bool
+	sampler  Sampler // 优化: 添加采样器降低监控开销
 
 	// 数据库连接池指标
 	poolConnections *prometheus.GaugeVec
@@ -56,6 +57,7 @@ func NewDatabaseCollector(config *Config) *DatabaseCollector {
 	collector := &DatabaseCollector{
 		config:   config,
 		registry: config.Registry,
+		sampler:  NewDefaultSampler(&config.Sampling), // 优化: 初始化采样器
 	}
 
 	collector.initMetrics()
@@ -354,6 +356,18 @@ func (d *DatabaseCollector) collectSingleConnectionStats(conn *DatabaseConnectio
 // RecordQuery 记录查询
 func (d *DatabaseCollector) RecordQuery(database, operation, table string, duration time.Duration, success bool) {
 	if !d.enabled.Load() {
+		return
+	}
+
+	// 优化: 使用采样器减少监控开销
+	sampleType := SampleTypeDatabase
+	if !success {
+		sampleType = SampleTypeError // 错误使用更高的采样率
+	} else if duration > d.config.Database.SlowQuery {
+		sampleType = SampleTypeSlowQuery // 慢查询使用更高的采样率
+	}
+
+	if !d.sampler.ShouldSample(sampleType) {
 		return
 	}
 

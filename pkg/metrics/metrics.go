@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/costa92/go-protoc/v2/pkg/routine"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -207,11 +208,20 @@ func Shutdown(ctx context.Context) error {
 	shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	// 在另一个goroutine中执行停止操作
+	// 使用受管理的goroutine执行停止操作
 	done := make(chan error, 1)
-	go func() {
+
+	// 启动一个临时的routine管理器来处理关闭操作
+	tempManager := routine.NewManager(1, 10*time.Second)
+	defer tempManager.StopAndWait()
+
+	err := tempManager.GoWithTimeout(10*time.Second, func(ctx context.Context) {
 		done <- manager.Stop()
-	}()
+	})
+
+	if err != nil {
+		return manager.Stop() // 直接停止
+	}
 
 	// 等待停止完成或超时
 	select {

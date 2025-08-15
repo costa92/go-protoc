@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"runtime"
 	"time"
 
 	"database/sql"
@@ -91,25 +92,50 @@ func NewMySQL(opts *MySQLOptions) (*gorm.DB, error) {
 }
 
 // setMySQLDefaults set available default values for some fields.
+// 优化: 根据CPU核数和系统负载动态调整连接池配置
 func setMySQLDefaults(opts *MySQLOptions) {
 	if opts.Addr == "" {
 		opts.Addr = "127.0.0.1:3306"
 	}
+
+	// 获取CPU核数用于动态配置
+	numCPU := runtime.NumCPU()
+
 	if opts.MaxIdleConnections == 0 {
-		// 优化: 降低空闲连接数，减少资源占用
-		opts.MaxIdleConnections = 25
+		// 优化: 根据CPU核数设置空闲连接数，减少资源占用同时保证性能
+		// 公式: CPU核数 * 5，最小10，最大50
+		opts.MaxIdleConnections = calculateOptimalValue(numCPU*5, 10, 50)
 	}
 	if opts.MaxOpenConnections == 0 {
-		// 优化: 增加最大连接数，支持更高并发
-		opts.MaxOpenConnections = 200
+		// 优化: 根据CPU核数设置最大连接数，支持更高并发
+		// 公式: CPU核数 * 25，最小50，最大500
+		opts.MaxOpenConnections = calculateOptimalValue(numCPU*25, 50, 500)
 	}
 	if opts.MaxConnectionLifeTime == 0 {
-		// 优化: 增加连接生命周期，减少连接重建开销
-		opts.MaxConnectionLifeTime = time.Duration(30) * time.Minute
+		// 优化: 设置合理的连接生命周期，平衡性能和资源使用
+		// 高负载环境使用较短的生命周期，低负载环境使用较长的生命周期
+		if opts.MaxOpenConnections > 200 {
+			// 高并发场景: 较短的连接生命周期，避免连接堆积
+			opts.MaxConnectionLifeTime = 10 * time.Minute
+		} else {
+			// 低并发场景: 较长的连接生命周期，减少重建开销
+			opts.MaxConnectionLifeTime = 30 * time.Minute
+		}
 	}
 	if opts.Logger == nil {
 		opts.Logger = logger.Default
 	}
+}
+
+// calculateOptimalValue 计算优化值，确保在合理范围内
+func calculateOptimalValue(calculated, min, max int) int {
+	if calculated < min {
+		return min
+	}
+	if calculated > max {
+		return max
+	}
+	return calculated
 }
 
 func MustRawDB(db *gorm.DB) *sql.DB {

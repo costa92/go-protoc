@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"sync"
 
 	"github.com/costa92/go-protoc/v2/pkg/store/where"
 	"github.com/google/wire"
@@ -11,12 +10,7 @@ import (
 
 var ProviderSet = wire.NewSet(NewStore, wire.Bind(new(IStore), new(*datastore)))
 
-var (
-	once sync.Once
-	// S is a global variable for convenient access to the initialized datastore
-	// instance from other packages.
-	S *datastore
-)
+// 移除全局单例变量，避免内存泄漏和并发问题
 
 type IStore interface {
 	DB(ctx context.Context, wheres ...where.Where) *gorm.DB
@@ -38,15 +32,10 @@ type datastore struct {
 // Ensure datastore implements the IStore.
 var _ IStore = (*datastore)(nil)
 
-// NewStore initializes a singleton instance of type IStore.
-// It ensures that the datastore is only created once using sync.Once.
+// NewStore creates a new datastore instance.
+// 优化: 移除单例模式，每次创建新实例，通过依赖注入管理生命周期
 func NewStore(db *gorm.DB) *datastore {
-	// Initialize the singleton datastore instance only once.
-	once.Do(func() {
-		S = &datastore{db}
-	})
-
-	return S
+	return &datastore{core: db}
 }
 
 // DB filters the database instance based on the input conditions (wheres).

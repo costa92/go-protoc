@@ -42,6 +42,44 @@
 - `make run-mariadb` / `make stop-mariadb` - MariaDB 数据库服务  
 - `make run-mongodb` / `make stop-mongodb` - MongoDB 文档数据库
 
+#### MySQL数据库管理（新增）
+项目新增了完整的MySQL数据库管理功能，支持自动化的数据库设置、迁移和维护：
+
+**快速开始**：
+- `make db-setup` - 一键完整数据库设置（启动 + 迁移）
+- `make db-start` - 启动MySQL容器
+- `make db-migrate` - 执行数据库迁移
+- `make db-help` - 查看所有数据库命令
+
+**数据库操作**：
+- `make db-connect` - 通过MySQL CLI连接数据库
+- `make db-shell` - 在Docker容器中打开MySQL shell
+- `make db-status` - 检查容器状态
+- `make db-logs` - 查看数据库日志
+
+**迁移管理**：
+- `make db-migrate-dry` - 查看迁移计划（干运行）
+- `make db-create-migration NAME=migration_name` - 创建新迁移文件
+
+**备份与恢复**：
+- `make db-backup` - 创建数据库备份
+- `make db-restore BACKUP_FILE=backup.sql` - 从备份恢复
+
+**维护命令**：
+- `make db-reset` - 重置数据库（删除所有数据）
+- `make db-clean` - 删除容器和卷（永久删除数据）
+
+**数据库配置**：
+- 数据库: `onex`
+- 主机: `127.0.0.1:3306`
+- 用户名: `root`
+- 密码: `proj(#)666`
+
+**默认用户表结构**：
+- `users` - 主用户表（用户名、邮箱、密码等基本信息）
+- `user_profiles` - 用户配置表（个人简介、偏好设置等）
+- `user_roles` - 用户角色表（权限管理）
+
 #### 消息队列服务
 - `make run-kafka` / `make stop-kafka` - Kafka 消息服务
 

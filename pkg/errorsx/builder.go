@@ -22,7 +22,7 @@ func NewBuilder(code int32, reason string) *Builder {
 	return &Builder{
 		code:     code,
 		reason:   reason,
-		metadata: make(map[string]any),
+		metadata: make(map[string]any, 4), // 预分配4个元数据字段
 	}
 }
 
@@ -41,7 +41,7 @@ func (b *Builder) WithMessage(message string) *Builder {
 // WithMetadata 添加元数据
 func (b *Builder) WithMetadata(data map[string]any) *Builder {
 	if b.metadata == nil {
-		b.metadata = make(map[string]any)
+		b.metadata = make(map[string]any, len(data)+4) // 预分配当前数据长度+4个额外字段
 	}
 	for k, v := range data {
 		b.metadata[k] = v
@@ -57,6 +57,11 @@ func (b *Builder) WithCause(err error) *Builder {
 
 // Build 构建错误对象
 func (b *Builder) Build() *ErrorX {
+	// 确保metadata不为nil
+	if b.metadata == nil {
+		b.metadata = make(map[string]any, 4) // 预分配4个元数据字段
+	}
+
 	err := &ErrorX{
 		Code:     b.code,
 		Reason:   b.reason,

@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/costa92/go-protoc/v2/pkg/routine"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 )
@@ -23,9 +24,10 @@ type Manager struct {
 	mu         sync.RWMutex
 
 	// 生命周期管理
-	ctx    context.Context
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
+	ctx            context.Context
+	cancel         context.CancelFunc
+	wg             sync.WaitGroup
+	routineManager *routine.Manager // 添加goroutine管理器
 
 	// 健康检查
 	healthChecker HealthChecker
@@ -40,11 +42,12 @@ func NewManager(config *Config, opts ...ManagerOption) *Manager {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	manager := &Manager{
-		config:     config,
-		registry:   NewDefaultRegistry(config.Registry),
-		collectors: make(map[MetricType]Collector),
-		ctx:        ctx,
-		cancel:     cancel,
+		config:         config,
+		registry:       NewDefaultRegistry(config.Registry),
+		collectors:     make(map[MetricType]Collector, 5), // 预分配5个收集器类型
+		ctx:            ctx,
+		cancel:         cancel,
+		routineManager: routine.NewManager(10, 30*time.Second), // 最多10个goroutine，30秒超时
 	}
 
 	// 应用选项
@@ -131,8 +134,14 @@ func (m *Manager) Start() error {
 
 	// 启动健康检查
 	if m.healthChecker != nil {
-		m.wg.Add(1)
-		go m.runHealthCheck()
+		err := m.routineManager.Worker(func(ctx context.Context) error {
+			m.runHealthCheck(ctx)
+			return nil
+		})
+		if err != nil {
+			m.Stop()
+			return fmt.Errorf("failed to start health check: %w", err)
+		}
 	}
 
 	return nil
@@ -151,8 +160,11 @@ func (m *Manager) Stop() error {
 		collector.Stop()
 	}
 
-	// 停止健康检查
+	// 停止健康检查和其他goroutine
 	m.cancel()
+	if m.routineManager != nil {
+		_ = m.routineManager.StopWithTimeout(5 * time.Second) // 5秒超时
+	}
 	m.wg.Wait()
 
 	return nil
@@ -268,7 +280,11 @@ func (m *Manager) UnregisterTarget(metricType MetricType, name string) error {
 
 // GetStatus 获取管理器状态
 func (m *Manager) GetStatus() map[string]interface{} {
-	collectorsStatus := make(map[string]interface{})
+	m.mu.RLock()
+	numCollectors := len(m.collectors)
+	m.mu.RUnlock()
+
+	collectorsStatus := make(map[string]interface{}, numCollectors) // 预分配收集器数量
 
 	m.mu.RLock()
 	for metricType, collector := range m.collectors {
@@ -291,14 +307,14 @@ func (m *Manager) GetStatus() map[string]interface{} {
 }
 
 // runHealthCheck 运行健康检查
-func (m *Manager) runHealthCheck() {
-	defer m.wg.Done()
-
+func (m *Manager) runHealthCheck(ctx context.Context) {
 	ticker := time.NewTicker(m.config.HealthCheck.Interval)
 	defer ticker.Stop()
 
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case <-m.ctx.Done():
 			return
 		case <-ticker.C:

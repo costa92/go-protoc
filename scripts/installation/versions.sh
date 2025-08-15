@@ -17,6 +17,7 @@ set -eEuo pipefail
 # 数据库相关 (Database)
 export REDIS_VERSION=${REDIS_VERSION:-7.2.4}
 export MARIADB_VERSION=${MARIADB_VERSION:-11.2.2}
+export MYSQL_VERSION=${MYSQL_VERSION:-8.0}
 export MONGODB_VERSION=${MONGODB_VERSION:-7.0.5}
 
 # 分布式系统 (Distributed Systems)
@@ -75,7 +76,8 @@ proj::versions::show_all() {
   echo "=== 第三方组件版本信息 ==="
   echo "数据库组件:"
   echo "  Redis:        $REDIS_VERSION"
-  echo "  MariaDB:      $MARIADB_VERSION"  
+  echo "  MariaDB:      $MARIADB_VERSION"
+  echo "  MySQL:        $MYSQL_VERSION"
   echo "  MongoDB:      $MONGODB_VERSION"
   echo ""
   echo "分布式系统:"
@@ -102,6 +104,7 @@ proj::versions::validate_all() {
   
   proj::versions::validate_version "$REDIS_VERSION" "Redis"
   proj::versions::validate_version "$MARIADB_VERSION" "MariaDB"
+  proj::versions::validate_version "$MYSQL_VERSION" "MySQL"
   proj::versions::validate_version "$MONGODB_VERSION" "MongoDB"
   proj::versions::validate_version "$ETCD_VERSION" "etcd"
   proj::versions::validate_version "$KAFKA_VERSION" "Kafka"

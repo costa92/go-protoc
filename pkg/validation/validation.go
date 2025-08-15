@@ -46,8 +46,9 @@ func (v *Validator) Validate(ctx context.Context, request any) error {
 // extractValidationMethods extracts and returns a map of validation functions
 // from the provided custom validator.
 func extractValidationMethods(customValidator any) map[string]reflect.Value {
-	funcs := make(map[string]reflect.Value)
 	validatorType := reflect.TypeOf(customValidator)
+	numMethods := validatorType.NumMethod()
+	funcs := make(map[string]reflect.Value, numMethods) // 预分配方法数量
 	validatorValue := reflect.ValueOf(customValidator)
 
 	for i := 0; i < validatorType.NumMethod(); i++ {
