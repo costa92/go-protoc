@@ -22,49 +22,13 @@ type Logger interface {
 	With(key string, value interface{}) Logger
 }
 
-// MetricsCollector 指标收集器接口
-type MetricsCollector interface {
-	// Start 启动收集器
-	Start() error
+// DatabaseConnection 数据库连接接口
+type DatabaseConnection interface {
+	// Close 关闭连接
+	Close() error
 
-	// Stop 停止收集器
-	Stop() error
-
-	// IsRunning 检查是否正在运行
-	IsRunning() bool
-
-	// RegisterDatabase 注册数据库连接
-	RegisterDatabase(name, endpoint string, db interface{}) error
-
-	// RegisterRedis 注册Redis连接
-	RegisterRedis(name, endpoint string, client interface{}) error
-
-	// UnregisterConnection 取消注册连接
-	UnregisterConnection(name string) error
-
-	// GetStatus 获取收集器状态
-	GetStatus() map[string]interface{}
-}
-
-// ConnectionManager 连接管理器接口
-type ConnectionManager interface {
-	// CreateConnection 创建连接
-	CreateConnection(connType ConnectionType, config interface{}) (interface{}, error)
-
-	// RegisterConnection 注册连接
-	RegisterConnection(name string, conn interface{}) error
-
-	// UnregisterConnection 取消注册连接
-	UnregisterConnection(name string) error
-
-	// GetConnection 获取连接
-	GetConnection(name string) (interface{}, error)
-
-	// ListConnections 列出所有连接
-	ListConnections() []string
-
-	// HealthCheck 健康检查
-	HealthCheck(ctx context.Context) error
+	// Ping 测试连接
+	Ping(ctx context.Context) error
 }
 
 // ConfigValidator 配置验证器接口
@@ -96,3 +60,6 @@ type LifecycleManager interface {
 	// GetState 获取状态
 	GetState() string
 }
+
+// 注意：PoolMonitor 接口已移至 pkg/monitor 包以避免循环导入
+// 使用: import "github.com/costa92/go-protoc/v2/pkg/monitor"

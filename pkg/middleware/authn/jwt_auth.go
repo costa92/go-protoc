@@ -113,7 +113,7 @@ func ServerJWTAuth(jwtOpts *options.JWTOptions) middleware.Middleware {
 			}
 
 			parts := strings.SplitN(authHeader, " ", 2)
-			if !(len(parts) == 2 && strings.ToLower(parts[0]) == "bearer") {
+			if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
 				message := i18n.FromContext(ctx).T(locales.JWTTokenFormatInvalid)
 				return nil, v1.ErrorJWTTokenFormatInvalid("%s", message)
 			}
@@ -155,12 +155,12 @@ func ServerJWTAuth(jwtOpts *options.JWTOptions) middleware.Middleware {
 			}
 
 			// Token is valid. Store UserID (and other claims if needed) in context.
-			if claims.CustomClaims.UserID == "" {
+			if claims.UserID == "" {
 				// Depending on requirements, an empty UserID in a valid token might be an error.
 				message := i18n.FromContext(ctx).T(locales.JWTTokenInvalid)
 				return nil, v1.ErrorJWTTokenInvalid("%s", message)
 			}
-			newCtx := authn.SetUserIDInContext(ctx, claims.CustomClaims.UserID)
+			newCtx := authn.SetUserIDInContext(ctx, claims.UserID)
 
 			return handler(newCtx, req)
 		}

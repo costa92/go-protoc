@@ -229,11 +229,45 @@ go test -tags=integration ./...   # 运行集成测试
 
 ### 监控端点
 - **健康检查**: `GET /health`
-- **指标**: `GET /metrics` (Prometheus)
+- **指标**: `GET /metrics` (Prometheus) - 包含连接池监控指标
 - **链路追踪**: `GET /jaeger` (Jaeger UI) - 分布式链路追踪
 - **Grafana**: `http://localhost:3000` - 统一监控面板
 - **Alertmanager**: `http://localhost:9093` - 告警管理界面
 - **调试**: `GET /debug/pprof` (启用时)
+
+### 连接池监控功能
+
+项目实现了**依赖注入式连接池监控**，完美平衡了单一职责和监控需求：
+
+#### 设计特点
+- ✅ **完全解耦**: `pkg/db` 专注数据库连接，`pkg/metrics` 专门负责监控
+- ✅ **可选启用**: 通过 Wire 依赖注入，可选择性开启监控功能
+- ✅ **零侵入**: 不启用监控时，数据库包没有任何监控开销
+- ✅ **向后兼容**: 原有数据库使用方式完全不变
+
+#### 使用方式
+
+**启用监控 (推荐)**:
+```bash
+# 监控功能已通过 Wire 自动装配到项目中
+make run-api  # 启动时会显示: "Connection pool metrics collection is enabled through dependency injection"
+```
+
+**监控指标**:
+- `database_pool_connections` - MySQL/PostgreSQL连接池状态
+- `redis_pool_connections` - Redis连接池状态  
+- `database_queries_total` - 数据库查询统计
+- `redis_commands_total` - Redis命令统计
+
+**查看指标**:
+```bash
+curl http://localhost:8080/metrics | grep -E "(database_|redis_)"
+```
+
+#### 架构关系
+```
+Wire依赖注入 → PoolMonitor → pkg/db (可选监控) → pkg/metrics (指标收集)
+```
 
 ## 模块信息
 - **Go 版本**: 需要 1.24.0+

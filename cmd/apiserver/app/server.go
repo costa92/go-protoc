@@ -10,7 +10,6 @@ import (
 	"github.com/costa92/go-protoc/v2/internal/pkg/contextx"
 	"github.com/costa92/go-protoc/v2/internal/pkg/known"
 	"github.com/costa92/go-protoc/v2/pkg/app"
-	"github.com/costa92/go-protoc/v2/pkg/db"
 	"github.com/costa92/go-protoc/v2/pkg/log"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 )
@@ -57,14 +56,6 @@ func run(opts *options.ServerOptions) app.RunFunc {
 			return fmt.Errorf("failed to create server: %w", err)
 		}
 
-		// 在服务停止时清理监控资源
-		defer func() {
-			if err := db.ShutdownGlobalMonitoring(); err != nil {
-				log.Warnf("Failed to stop metrics collection: %v", err)
-			}
-			log.Infow("Metrics collection stopped")
-		}()
-
 		// Run the server with signal context for graceful shutdown
 		return server.Run(ctx)
 	}
@@ -72,30 +63,23 @@ func run(opts *options.ServerOptions) app.RunFunc {
 
 // startMetricsCollection 启动连接池监控
 func startMetricsCollection(cfg *apiserver.Config) error {
-	// 检查是否启用了任何监控
-	mysqlEnabled := cfg.MySQLOptions != nil && cfg.MySQLOptions.EnableMetrics
-	// 可以在这里添加对其他数据源的检查
+	if cfg.PoolMonitorOptions != nil && cfg.PoolMonitorOptions.Enabled {
+		log.Infow("Connection pool metrics collection is enabled through dependency injection")
+		log.Infow("Metrics will be automatically collected by the PoolMonitor when database connections are established")
 
-	if !mysqlEnabled {
+		if cfg.PoolMonitorOptions.Database.Enabled {
+			log.Infow("Database pool monitoring enabled",
+				"slow_query_threshold", cfg.PoolMonitorOptions.Database.SlowQuery,
+				"collect_interval", cfg.PoolMonitorOptions.CollectInterval)
+		}
+
+		if cfg.PoolMonitorOptions.Redis.Enabled {
+			log.Infow("Redis pool monitoring enabled",
+				"collect_interval", cfg.PoolMonitorOptions.CollectInterval)
+		}
+	} else {
 		log.Infow("Connection pool metrics collection is disabled")
-		return nil
 	}
-
-	log.Infow("Starting connection pool metrics collection...")
-
-	// 启动全局监控
-	config := db.NewMetricsConfig()
-	config.Enabled = true
-	config.Database.Enabled = true
-	config.Database.Name = "default"
-	
-	if err := db.InitializeGlobalMonitoring(config); err != nil {
-		return fmt.Errorf("failed to start global metrics collection: %w", err)
-	}
-
-	collector := db.GetGlobalOptimizedCollector()
-	status := collector.GetStatus()
-	log.Infow("Metrics collection started", "interval", status["collect_interval"])
 
 	return nil
 }

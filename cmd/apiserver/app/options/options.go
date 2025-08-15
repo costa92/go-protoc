@@ -15,15 +15,16 @@ const (
 )
 
 type ServerOptions struct {
-	GRPCOptions   *genericoptions.GRPCOptions   `json:"grpc" mapstructure:"grpc"`
-	HTTPOptions   *genericoptions.HTTPOptions   `json:"http" mapstructure:"http"`
-	MySQLOptions  *genericoptions.MySQLOptions  `json:"mysql" mapstructure:"mysql"`
-	RedisOptions  *genericoptions.RedisOptions  `json:"redis" mapstructure:"redis"` // Added Redis Options
-	TLSOptions    *genericoptions.TLSOptions    `json:"tls" mapstructure:"tls"`
-	JWTOptions    *genericoptions.JWTOptions    `json:"jwt" mapstructure:"jwt"` // Added JWT Options
-	JaegerOptions *genericoptions.JaegerOptions `json:"jaeger" mapstructure:"jaeger"`
-	Log           *log.Options                  `json:"log" mapstructure:"log"`
-	FeatureGates  map[string]bool               `json:"feature-gates"`
+	GRPCOptions        *genericoptions.GRPCOptions        `json:"grpc" mapstructure:"grpc"`
+	HTTPOptions        *genericoptions.HTTPOptions        `json:"http" mapstructure:"http"`
+	MySQLOptions       *genericoptions.MySQLOptions       `json:"mysql" mapstructure:"mysql"`
+	RedisOptions       *genericoptions.RedisOptions       `json:"redis" mapstructure:"redis"` // Added Redis Options
+	TLSOptions         *genericoptions.TLSOptions         `json:"tls" mapstructure:"tls"`
+	JWTOptions         *genericoptions.JWTOptions         `json:"jwt" mapstructure:"jwt"` // Added JWT Options
+	JaegerOptions      *genericoptions.JaegerOptions      `json:"jaeger" mapstructure:"jaeger"`
+	PoolMonitorOptions *genericoptions.PoolMonitorOptions `json:"pool-monitor" mapstructure:"pool-monitor"` // Added Pool Monitor Options
+	Log                *log.Options                       `json:"log" mapstructure:"log"`
+	FeatureGates       map[string]bool                    `json:"feature-gates"`
 }
 
 // Ensure ServerOptions implements the app.NamedFlagSetOptions interface.
@@ -31,14 +32,15 @@ var _ app.NamedFlagSetOptions = (*ServerOptions)(nil)
 
 func NewServerOptions() *ServerOptions {
 	return &ServerOptions{
-		GRPCOptions:   genericoptions.NewGRPCOptions(),
-		HTTPOptions:   genericoptions.NewHTTPOptions(),
-		TLSOptions:    genericoptions.NewTLSOptions(),
-		MySQLOptions:  genericoptions.NewMySQLOptions(),
-		RedisOptions:  genericoptions.NewRedisOptions(),  // Initialize Redis Options
-		JWTOptions:    genericoptions.NewJWTOptions(),    // Initialize JWT Options
-		JaegerOptions: genericoptions.NewJaegerOptions(), // Initialize Jaeger Options
-		Log:           log.NewOptions(),
+		GRPCOptions:        genericoptions.NewGRPCOptions(),
+		HTTPOptions:        genericoptions.NewHTTPOptions(),
+		TLSOptions:         genericoptions.NewTLSOptions(),
+		MySQLOptions:       genericoptions.NewMySQLOptions(),
+		RedisOptions:       genericoptions.NewRedisOptions(),       // Initialize Redis Options
+		JWTOptions:         genericoptions.NewJWTOptions(),         // Initialize JWT Options
+		JaegerOptions:      genericoptions.NewJaegerOptions(),      // Initialize Jaeger Options
+		PoolMonitorOptions: genericoptions.NewPoolMonitorOptions(), // Initialize Pool Monitor Options
+		Log:                log.NewOptions(),
 	}
 }
 
@@ -49,6 +51,7 @@ func (o *ServerOptions) Flags() (fss cliflag.NamedFlagSets) {
 	o.RedisOptions.AddFlags(fss.FlagSet("redis")) // Add Redis flags
 	o.JWTOptions.AddFlags(fss.FlagSet("jwt"))     // Add JWT flags
 	o.JaegerOptions.AddFlags(fss.FlagSet("jaeger"))
+	o.PoolMonitorOptions.AddFlags(fss.FlagSet("pool-monitor")) // Add Pool Monitor flags
 	o.Log.AddFlags(fss.FlagSet("log"))
 
 	fs := fss.FlagSet("misc")
@@ -66,6 +69,7 @@ func (o *ServerOptions) Validate() error {
 	errs = append(errs, o.RedisOptions.Validate()...)
 	errs = append(errs, o.JWTOptions.Validate()...)
 	errs = append(errs, o.JaegerOptions.Validate()...)
+	errs = append(errs, o.PoolMonitorOptions.Validate()...)
 	errs = append(errs, o.Log.Validate()...)
 
 	return utilerrors.NewAggregate(errs)
@@ -81,12 +85,13 @@ func (o *ServerOptions) Config() (*apiserver.Config, error) {
 		return nil, err
 	}
 	return &apiserver.Config{
-		GRPCOptions:   o.GRPCOptions,
-		HTTPOptions:   o.HTTPOptions,
-		TLSOptions:    o.TLSOptions,
-		MySQLOptions:  o.MySQLOptions,
-		RedisOptions:  o.RedisOptions,  // Pass Redis Options to apiserver.Config
-		JWTOptions:    o.JWTOptions,    // Pass JWT Options to apiserver.Config
-		JaegerOptions: o.JaegerOptions, // Pass Jaeger Options to apiserver.Config
+		GRPCOptions:        o.GRPCOptions,
+		HTTPOptions:        o.HTTPOptions,
+		TLSOptions:         o.TLSOptions,
+		MySQLOptions:       o.MySQLOptions,
+		RedisOptions:       o.RedisOptions,       // Pass Redis Options to apiserver.Config
+		JWTOptions:         o.JWTOptions,         // Pass JWT Options to apiserver.Config
+		JaegerOptions:      o.JaegerOptions,      // Pass Jaeger Options to apiserver.Config
+		PoolMonitorOptions: o.PoolMonitorOptions, // Pass Pool Monitor Options to apiserver.Config
 	}, nil
 }

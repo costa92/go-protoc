@@ -91,10 +91,11 @@ func AddFlags(fs *pflag.FlagSet) {
 // PrintAndExitIfRequested 将检查是否传递了 `--version` 标志，如果是，则打印版本并退出.
 func PrintAndExitIfRequested() {
 	// 检查版本标志的值并打印相应的信息
-	if *versionFlag == VersionRaw {
+	switch *versionFlag {
+	case VersionRaw:
 		fmt.Printf("%s\n", Get().Text())
 		os.Exit(0)
-	} else if *versionFlag == VersionEnabled {
+	case VersionEnabled:
 		fmt.Printf("%s\n", Get().String())
 		os.Exit(0)
 	}

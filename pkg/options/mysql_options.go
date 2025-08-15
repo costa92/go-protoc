@@ -10,6 +10,7 @@ import (
 
 	"github.com/costa92/go-protoc/v2/pkg/db"
 	"github.com/costa92/go-protoc/v2/pkg/log"
+	"github.com/costa92/go-protoc/v2/pkg/monitor"
 )
 
 var _ IOptions = (*MySQLOptions)(nil)
@@ -24,9 +25,6 @@ type MySQLOptions struct {
 	MaxOpenConnections    int           `json:"max-open-connections,omitempty" mapstructure:"max-open-connections"`
 	MaxConnectionLifeTime time.Duration `json:"max-connection-life-time,omitempty" mapstructure:"max-connection-life-time"`
 	LogLevel              int           `json:"log-level" mapstructure:"log-level"`
-	EnableTrace           bool          `json:"enable-trace" mapstructure:"enable-trace"`     // tracing switch
-	EnableMetrics         bool          `json:"enable-metrics" mapstructure:"enable-metrics"` // metrics switch
-	MetricsName           string        `json:"metrics-name" mapstructure:"metrics-name"`     // metrics name for identification
 }
 
 // NewMySQLOptions create a `zero` value instance.
@@ -40,15 +38,22 @@ func NewMySQLOptions() *MySQLOptions {
 		MaxOpenConnections:    100,
 		MaxConnectionLifeTime: time.Duration(10) * time.Second,
 		LogLevel:              1, // Silent
-		EnableTrace:           false,
-		EnableMetrics:         false,
-		MetricsName:           "",
 	}
 }
 
 // Validate verifies flags passed to MySQLOptions.
 func (o *MySQLOptions) Validate() []error {
 	errs := []error{}
+
+	if o.Addr == "" {
+		errs = append(errs, fmt.Errorf("mysql addr cannot be empty"))
+	}
+	if o.Username == "" {
+		errs = append(errs, fmt.Errorf("mysql username cannot be empty"))
+	}
+	if o.Database == "" {
+		errs = append(errs, fmt.Errorf("mysql database cannot be empty"))
+	}
 
 	return errs
 }
@@ -62,7 +67,7 @@ func (o *MySQLOptions) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 		"Password for access to mysql, should be used pair with password.")
 	fs.StringVar(&o.Database, join(prefixes...)+"mysql.database", o.Database, ""+
 		"Database name for the server to use.")
-	fs.IntVar(&o.MaxIdleConnections, join(prefixes...)+"mysql.max-idle-connections", o.MaxOpenConnections, ""+
+	fs.IntVar(&o.MaxIdleConnections, join(prefixes...)+"mysql.max-idle-connections", o.MaxIdleConnections, ""+
 		"Maximum idle connections allowed to connect to mysql.")
 	fs.IntVar(&o.MaxOpenConnections, join(prefixes...)+"mysql.max-open-connections", o.MaxOpenConnections, ""+
 		"Maximum open connections allowed to connect to mysql.")
@@ -70,9 +75,6 @@ func (o *MySQLOptions) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 		"Maximum connection life time allowed to connect to mysql.")
 	fs.IntVar(&o.LogLevel, join(prefixes...)+"mysql.log-mode", o.LogLevel, ""+
 		"Specify gorm log level.")
-	fs.BoolVar(&o.EnableTrace, join(prefixes...)+"mysql.enable-trace", o.EnableTrace, "MySQL hook tracing (using open telemetry).")
-	fs.BoolVar(&o.EnableMetrics, join(prefixes...)+"mysql.enable-metrics", o.EnableMetrics, "Enable MySQL connection pool metrics collection.")
-	fs.StringVar(&o.MetricsName, join(prefixes...)+"mysql.metrics-name", o.MetricsName, "MySQL metrics name for identification.")
 }
 
 // DSN return DSN from MySQLOptions.
@@ -97,18 +99,13 @@ func (o *MySQLOptions) NewDB() (*gorm.DB, error) {
 		MaxOpenConnections:    o.MaxOpenConnections,
 		MaxConnectionLifeTime: o.MaxConnectionLifeTime,
 		Logger:                log.Default().LogMode(gormlogger.LogLevel(o.LogLevel)),
-		EnableMetrics:         o.EnableMetrics,
-		MetricsName:           o.MetricsName,
 	}
 
-	if o.EnableTrace {
-		return db.NewMySQLWithTracing(opts)
-	}
 	return db.NewMySQL(opts)
 }
 
-// NewMonitoredDB create monitored mysql store with the given config.
-func (o *MySQLOptions) NewMonitoredDB() (*db.MonitoredDB, error) {
+// NewDBWithMonitor create mysql store with the given config and monitor.
+func (o *MySQLOptions) NewDBWithMonitor(poolMonitor monitor.PoolMonitor) (*gorm.DB, error) {
 	opts := &db.MySQLOptions{
 		Addr:                  o.Addr,
 		Username:              o.Username,
@@ -118,9 +115,8 @@ func (o *MySQLOptions) NewMonitoredDB() (*db.MonitoredDB, error) {
 		MaxOpenConnections:    o.MaxOpenConnections,
 		MaxConnectionLifeTime: o.MaxConnectionLifeTime,
 		Logger:                log.Default().LogMode(gormlogger.LogLevel(o.LogLevel)),
-		EnableMetrics:         o.EnableMetrics,
-		MetricsName:           o.MetricsName,
+		Monitor:               poolMonitor,
 	}
 
-	return db.NewMySQLWithMetrics(opts)
+	return db.NewMySQL(opts)
 }

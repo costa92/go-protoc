@@ -117,7 +117,7 @@ func (err *ErrorX) Error() string {
 	builder.WriteString(err.Message)
 	if len(err.Metadata) > 0 {
 		builder.WriteString(" metadata = ")
-		builder.WriteString(fmt.Sprintf("%v", err.Metadata))
+		fmt.Fprintf(builder, "%v", err.Metadata)
 	}
 	return builder.String()
 }

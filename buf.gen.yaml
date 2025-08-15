@@ -33,10 +33,10 @@ plugins:
     opt:
       - lang=go                  # 必需字段：指定目标语言
       - paths=source_relative
-  - local: protoc-gen-deepcopy
-    out: pkg/api
-    opt:
-      - paths=source_relative
+  # - local: protoc-gen-deepcopy
+  #   out: pkg/api
+  #   opt:
+  #     - paths=source_relative
   - local: protoc-gen-go-errors
     out: pkg/api
     opt:

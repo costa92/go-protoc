@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/costa92/go-protoc/v2/pkg/monitor"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -20,10 +21,8 @@ type RedisOptions struct {
 	WriteTimeout time.Duration
 	PoolTimeout  time.Duration
 	PoolSize     int
-	// +optional
-	EnableMetrics bool
-	// +optional
-	MetricsName string
+	// +optional 可选的连接池监控器
+	Monitor monitor.PoolMonitor
 }
 
 // NewRedis create a new redis db instance with the given options.
@@ -52,33 +51,25 @@ func NewRedis(opts *RedisOptions) (*redis.Client, error) {
 		return nil, err
 	}
 
-	return rdb, nil
-}
-
-// NewRedisWithMetrics create a new redis client instance with metrics monitoring.
-func NewRedisWithMetrics(opts *RedisOptions) (*MonitoredRedis, error) {
-	client, err := NewRedis(opts)
-	if err != nil {
-		return nil, err
-	}
-
-	if opts.EnableMetrics {
-		metrics := GetGlobalMetrics()
-		metricsName := opts.MetricsName
-		if metricsName == "" {
-			metricsName = "redis_default"
+	// 如果提供了监控器，注册Redis连接进行监控
+	if opts.Monitor != nil {
+		// 使用地址作为监控标识
+		monitorName := opts.Addr
+		if monitorName == "" {
+			monitorName = "redis_default"
 		}
 
-		monitoredRedis := NewMonitoredRedis(client, metrics, metricsName)
-
-		// 初始收集一次指标
-		monitoredRedis.CollectMetrics()
-
-		return monitoredRedis, nil
+		// 注册到监控器 - 监控器会自动开始收集连接池统计
+		if redisMonitor, ok := opts.Monitor.(monitor.RedisMonitor); ok {
+			if err := redisMonitor.RegisterRedis(monitorName, rdb); err != nil {
+				// 监控注册失败不应该影响Redis连接创建
+				// 只记录错误但继续返回Redis连接
+				// 注意：这里没有logger，可以考虑添加到RedisOptions中或使用全局logger
+			}
+		}
 	}
 
-	// 如果未启用监控，返回包装的未监控实例
-	return &MonitoredRedis{Client: client, redisName: "redis_default"}, nil
+	return rdb, nil
 }
 
 // setRedisDefaults set available default values for some fields.
@@ -112,8 +103,5 @@ func setRedisDefaults(opts *RedisOptions) {
 	if opts.PoolTimeout == 0 {
 		// 优化: 减少连接池等待超时
 		opts.PoolTimeout = 2 * time.Second
-	}
-	if opts.MetricsName == "" && opts.EnableMetrics {
-		opts.MetricsName = "redis_default"
 	}
 }

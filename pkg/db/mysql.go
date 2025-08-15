@@ -6,6 +6,7 @@ import (
 
 	"database/sql"
 
+	"github.com/costa92/go-protoc/v2/pkg/monitor"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -22,10 +23,8 @@ type MySQLOptions struct {
 	MaxConnectionLifeTime time.Duration
 	// +optional
 	Logger logger.Interface
-	// +optional
-	EnableMetrics bool
-	// +optional
-	MetricsName string
+	// +optional 可选的连接池监控器
+	Monitor monitor.PoolMonitor
 }
 
 // DSN return DSN from MySQLOptions.
@@ -68,35 +67,27 @@ func NewMySQL(opts *MySQLOptions) (*gorm.DB, error) {
 	// SetMaxIdleConns sets the maximum number of connections in the idle connection pool.
 	sqlDB.SetMaxIdleConns(opts.MaxIdleConnections)
 
+	// 如果提供了监控器，注册数据库连接进行监控
+	if opts.Monitor != nil {
+		// 使用数据库名称作为监控标识，如果为空则使用默认名称
+		monitorName := opts.Database
+		if monitorName == "" {
+			monitorName = "mysql_default"
+		}
+
+		// 注册到监控器 - 监控器会自动开始收集连接池统计
+		if dbMonitor, ok := opts.Monitor.(monitor.DatabaseMonitor); ok {
+			if err := dbMonitor.RegisterDatabase(monitorName, db); err != nil {
+				// 监控注册失败不应该影响数据库连接创建
+				// 只记录错误但继续返回数据库连接
+				if opts.Logger != nil {
+					opts.Logger.Error(nil, "Failed to register database monitor", "error", err, "database", monitorName)
+				}
+			}
+		}
+	}
+
 	return db, nil
-}
-
-// NewMySQLWithMetrics create a new gorm db instance with metrics monitoring.
-func NewMySQLWithMetrics(opts *MySQLOptions) (*MonitoredDB, error) {
-	db, err := NewMySQL(opts)
-	if err != nil {
-		return nil, err
-	}
-
-	if opts.EnableMetrics {
-		metrics := GetGlobalMetrics()
-		metricsName := opts.MetricsName
-		if metricsName == "" {
-			metricsName = opts.Database
-		}
-
-		monitoredDB := NewMonitoredDB(db, metrics, metricsName)
-
-		// 初始收集一次指标
-		if err := monitoredDB.CollectMetrics(); err != nil {
-			return nil, fmt.Errorf("failed to collect initial metrics: %w", err)
-		}
-
-		return monitoredDB, nil
-	}
-
-	// 如果未启用监控，返回包装的未监控实例
-	return &MonitoredDB{DB: db, databaseName: opts.Database}, nil
 }
 
 // setMySQLDefaults set available default values for some fields.
@@ -118,12 +109,6 @@ func setMySQLDefaults(opts *MySQLOptions) {
 	}
 	if opts.Logger == nil {
 		opts.Logger = logger.Default
-	}
-	if opts.MetricsName == "" && opts.EnableMetrics {
-		opts.MetricsName = opts.Database
-		if opts.MetricsName == "" {
-			opts.MetricsName = "mysql_default"
-		}
 	}
 }
 

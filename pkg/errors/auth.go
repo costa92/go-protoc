@@ -39,7 +39,7 @@ var (
 	ErrTwoFactorInvalid = errorsx.New(401, "TWO_FACTOR_INVALID", "Invalid two-factor authentication code").WithI18nKey("errors.auth.two_factor_invalid")
 
 	// ErrLoginAttemptExceeded 登录尝试次数超限
-	ErrLoginAttemptExceeded = errorsx.New(429, "LOGIN_ATTEMPT_EXCEEDED", "Too many login attempts").WithI18nKey("errors.auth.login_attempt_exceeded")
+	ErrLoginAttemptExceeded = errorsx.New(429, "LOGIN_ATTEMPT_EXCEEDED", "Login attempt limit exceeded").WithI18nKey("errors.auth.login_attempt_exceeded")
 
 	// ErrPasswordResetRequired 需要重置密码
 	ErrPasswordResetRequired = errorsx.New(403, "PASSWORD_RESET_REQUIRED", "Password reset required").WithI18nKey("errors.auth.password_reset_required")

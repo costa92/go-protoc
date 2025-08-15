@@ -79,6 +79,21 @@ func Register(reason string, code int32, i18nKey string) {
 	})
 }
 
+// TemplateExists 检查全局注册器中是否存在指定的错误模板
+func TemplateExists(reason string) bool {
+	return GlobalRegistry.Exists(reason)
+}
+
+// GetTemplate 从全局注册器获取错误模板
+func GetTemplate(reason string) (*ErrorTemplate, bool) {
+	return GlobalRegistry.Get(reason)
+}
+
+// ListTemplates 列出全局注册器中的所有错误模板
+func ListTemplates() map[string]*ErrorTemplate {
+	return GlobalRegistry.List()
+}
+
 // MustCreate 使用全局注册器创建错误构建器
 func MustCreate(reason string) *Builder {
 	template := GlobalRegistry.MustGet(reason)

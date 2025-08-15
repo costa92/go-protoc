@@ -1,4 +1,4 @@
-package main
+package examples
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/costa92/go-protoc/v2/pkg/db"
-	"github.com/costa92/go-protoc/v2/pkg/options"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -15,7 +14,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 )
 
-func main() {
+func ExampleTracingDemo() {
 	// 初始化 OpenTelemetry
 	if err := initTracing(); err != nil {
 		log.Fatal("Failed to initialize tracing:", err)
@@ -63,7 +62,7 @@ func initTracing() error {
 
 func testDatabaseTracing() {
 	ctx := context.Background()
-	
+
 	// 创建根 span
 	tracer := otel.Tracer("tracing-test")
 	ctx, span := tracer.Start(ctx, "test-database-operations")
@@ -73,16 +72,16 @@ func testDatabaseTracing() {
 
 	// 测试 MySQL 追踪
 	testMySQL(ctx)
-	
+
 	// 测试 Redis 追踪
 	testRedis(ctx)
-	
+
 	fmt.Println("Database tracing test completed. Check Jaeger UI at http://localhost:16686")
 }
 
 func testMySQL(ctx context.Context) {
 	fmt.Println("Testing MySQL tracing...")
-	
+
 	// 创建 MySQL 连接配置
 	mysqlOpts := &db.MySQLOptions{
 		Addr:                  "127.0.0.1:3306",
@@ -94,8 +93,8 @@ func testMySQL(ctx context.Context) {
 		MaxConnectionLifeTime: time.Hour,
 	}
 
-	// 创建带追踪的 MySQL 连接
-	mysqlDB, err := db.NewMySQLWithTracing(mysqlOpts)
+	// 创建 MySQL 连接
+	mysqlDB, err := db.NewMySQL(mysqlOpts)
 	if err != nil {
 		fmt.Printf("MySQL connection failed (expected in demo): %v\n", err)
 		return
@@ -111,7 +110,7 @@ func testMySQL(ctx context.Context) {
 	defer span.End()
 
 	// 使用上下文执行查询
-	result := db.WithContext(ctx, mysqlDB).Raw("SELECT 1 as test")
+	result := mysqlDB.WithContext(ctx).Raw("SELECT 1 as test")
 	if result.Error != nil {
 		fmt.Printf("MySQL query failed (expected in demo): %v\n", result.Error)
 	} else {
@@ -121,7 +120,7 @@ func testMySQL(ctx context.Context) {
 
 func testRedis(ctx context.Context) {
 	fmt.Println("Testing Redis tracing...")
-	
+
 	// 创建 Redis 连接配置
 	redisOpts := &db.RedisOptions{
 		Addr:     "127.0.0.1:6379",
@@ -129,8 +128,8 @@ func testRedis(ctx context.Context) {
 		Database: 0,
 	}
 
-	// 创建带追踪的 Redis 连接
-	redisClient, err := db.NewRedisWithTracing(redisOpts)
+	// 创建 Redis 连接
+	redisClient, err := db.NewRedis(redisOpts)
 	if err != nil {
 		fmt.Printf("Redis connection failed (expected in demo): %v\n", err)
 		return

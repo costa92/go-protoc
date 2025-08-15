@@ -35,13 +35,15 @@ var (
 )
 
 type Config struct {
-	GRPCOptions   *genericoptions.GRPCOptions
-	HTTPOptions   *genericoptions.HTTPOptions
-	TLSOptions    *genericoptions.TLSOptions
-	MySQLOptions  *genericoptions.MySQLOptions
-	RedisOptions  *genericoptions.RedisOptions  // Added Redis Options
-	JWTOptions    *genericoptions.JWTOptions    // Added JWT Options
-	JaegerOptions *genericoptions.JaegerOptions // Added Jaeger Options
+	GRPCOptions        *genericoptions.GRPCOptions
+	HTTPOptions        *genericoptions.HTTPOptions
+	TLSOptions         *genericoptions.TLSOptions
+	MySQLOptions       *genericoptions.MySQLOptions
+	RedisOptions       *genericoptions.RedisOptions       // Added Redis Options
+	JWTOptions         *genericoptions.JWTOptions         // Added JWT Options
+	JaegerOptions      *genericoptions.JaegerOptions      // Added Jaeger Options
+	MetricsOptions     *genericoptions.MetricsOptions     // Added Metrics Options (K8s style)
+	PoolMonitorOptions *genericoptions.PoolMonitorOptions // Added Pool Monitor Options
 }
 
 type Server struct {

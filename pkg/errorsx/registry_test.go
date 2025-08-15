@@ -122,7 +122,7 @@ func TestRegistry_TemplateExists(t *testing.T) {
 	registry := errorsx.NewRegistry()
 
 	// 检查不存在的模板
-	assert.False(t, errorsx.TemplateExists("NON_EXISTENT"))
+	assert.False(t, registry.Exists("NON_EXISTENT"))
 
 	// 注册模板
 	template := &errorsx.ErrorTemplate{
@@ -179,7 +179,7 @@ func TestRegistry_MustCreate(t *testing.T) {
 	registry.Register(template.Reason, template)
 
 	// 使用模板创建错误（不应该 panic）
-	errorX := errorsx.MustCreate("CONFLICT").Build()
+	errorX := registry.MustCreate("CONFLICT").Build()
 	assert.Equal(t, int32(409), errorX.Code)
 	assert.Equal(t, "CONFLICT", errorX.Reason)
 

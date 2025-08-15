@@ -15,38 +15,12 @@ import (
 	"github.com/costa92/go-protoc/v2/pkg/server"
 	genericvalidation "github.com/costa92/go-protoc/v2/pkg/validation"
 	"github.com/google/wire"
-	"gorm.io/gorm"
 )
-
-// ProvideGormDB provides GORM database connection using options
-func ProvideGormDB(cfg *Config) (*gorm.DB, error) {
-	return cfg.MySQLOptions.NewDB()
-}
-
-// ProvideMonitoredDB provides monitored GORM database connection
-func ProvideMonitoredDB(cfg *Config) (*db.MonitoredDB, error) {
-	// 启用数据库监控
-	cfg.MySQLOptions.EnableMetrics = true
-	if cfg.MySQLOptions.MetricsName == "" {
-		cfg.MySQLOptions.MetricsName = "apiserver_mysql"
-	}
-
-	monitoredDB, err := db.NewMySQLWithMetrics(cfg.MySQLOptions)
-	if err != nil {
-		return nil, err
-	}
-
-	// 注册到全局收集器
-	collector := db.GetGlobalCollector()
-	collector.RegisterDatabase(cfg.MySQLOptions.MetricsName, monitoredDB.DB)
-
-	return monitoredDB, nil
-}
 
 func InitializeWebServer(done <-chan struct{}, cfg *Config, mysqlOpts *db.MySQLOptions, jwtOpts *options.JWTOptions) (server.Server, error) {
 	wire.Build(
-		// Database providers using options
-		ProvideGormDB,
+		// Apiserver providers (including pool monitor and database)
+		ProviderSet,
 
 		// Middleware and server components
 		NewMiddlewares,

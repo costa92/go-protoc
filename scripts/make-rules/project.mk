@@ -28,3 +28,23 @@ apidiff: tools.verify.go-apidiff ## Run the go-apidiff to verify any API differe
 .PHONY: tidy
 tidy: ## Tidy go module dependencies.
 	@$(GO) mod tidy
+
+.PHONY: lint
+lint: tools.verify.golangci-lint ## Run golangci-lint to check code quality.
+	@golangci-lint run
+
+.PHONY: lint-fix
+lint-fix: tools.verify.golangci-lint ## Run golangci-lint and automatically fix issues where possible.
+	@golangci-lint run --fix
+
+.PHONY: lint-fast
+lint-fast: tools.verify.golangci-lint ## Run golangci-lint with reduced linters for quick feedback.
+	@golangci-lint run --disable=gocritic,gosec,staticcheck
+
+.PHONY: lint-new
+lint-new: tools.verify.golangci-lint ## Run golangci-lint only on new or changed files.
+	@golangci-lint run --new-from-rev=HEAD~1
+
+.PHONY: lint-diff
+lint-diff: tools.verify.golangci-lint ## Run golangci-lint on files changed in current branch compared to master.
+	@golangci-lint run --new-from-rev=origin/master

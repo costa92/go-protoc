@@ -1,217 +1,485 @@
-# 统一追踪管理器
+# Trace Package
 
-这个包提供了一个统一的追踪管理器，用于管理 OpenTelemetry 追踪的初始化和使用。
+分布式链路追踪包，基于OpenTelemetry实现，提供统一的链路追踪解决方案，支持数据库、Redis、HTTP等组件的自动追踪。
 
-## 🎯 **设计原则**
+## 📋 目录
 
-1. **统一初始化** - 在应用启动时只初始化一次全局追踪器
-2. **共享配置** - 所有组件共享相同的追踪配置（采样率、导出器等）
-3. **简化使用** - 提供简单的 API 获取追踪器实例
-4. **类型安全** - 使用统一的错误处理和日志记录
+- [功能特性](#功能特性)
+- [快速开始](#快速开始)
+- [架构设计](#架构设计)
+- [数据库追踪](#数据库追踪)
+- [配置选项](#配置选项)
+- [API参考](#api参考)
+- [最佳实践](#最佳实践)
+- [故障排除](#故障排除)
 
-## 📚 **使用方法**
+## 🎯 功能特性
 
-### 1. 初始化全局追踪器
+### 核心特性
+- 🔍 **分布式追踪**: 基于OpenTelemetry的标准化追踪
+- 🗄️ **数据库追踪**: MySQL、PostgreSQL、MongoDB自动追踪
+- 📡 **多样化导出**: 支持Jaeger、Zipkin等追踪系统
+- 🚀 **零侵入集成**: 通过插件和中间件自动集成
+- ⚡ **高性能**: 批量处理、采样控制、异步导出
+- 🔧 **配置灵活**: 支持动态配置和环境变量
 
-在应用启动时（通常在 main 函数或服务初始化时）调用一次：
+### 支持的组件
+- **GORM**: MySQL、PostgreSQL数据库追踪
+- **MongoDB**: MongoDB操作追踪
+- **Redis**: Redis命令追踪
+- **HTTP**: HTTP请求/响应追踪
+- **gRPC**: gRPC调用追踪
 
-```go
-import "github.com/costa92/go-protoc/v2/pkg/trace"
+## 🚀 快速开始
 
-// 在应用启动时初始化
-cfg := trace.TracerConfig{
-    ServiceName: "apiserver",
-    Endpoint:    "http://127.0.0.1:14268/api/traces",
-    Environment: "development",
-}
-
-err := trace.InitializeGlobalTracer(cfg)
-if err != nil {
-    log.Fatalf("初始化追踪器失败: %v", err)
-}
-```
-
-### 2. 在组件中获取追踪器
-
-各个组件（MySQL、Redis、HTTP 等）通过 `GetTracer` 获取追踪器：
-
-```go
-// 获取通用追踪器
-tracer := trace.GetTracer("mysql")
-
-// 或者获取全局追踪器
-tracer := trace.GetTracer("")
-
-// 创建 span
-ctx, span := tracer.Start(ctx, "mysql.query", trace.WithSpanKind(ottrace.SpanKindClient))
-defer span.End()
-```
-
-### 3. 使用便利函数
-
-包提供了一些便利函数简化使用：
+### 全局追踪器初始化
 
 ```go
-// 直接启动 span
-ctx, span := trace.StartSpan(ctx, "my-operation",
-    trace.WithAttributes(
-        attribute.String("db.system", "mysql"),
-        attribute.String("operation", "select"),
-    ),
-    trace.WithSpanKind(ottrace.SpanKindClient),
+package main
+
+import (
+    "context"
+    "log"
+    
+    "github.com/costa92/go-protoc/v2/pkg/trace"
 )
-defer span.End()
-```
 
-### 4. 检查初始化状态
+func main() {
+    // 1. 配置追踪器
+    config := trace.TracerConfig{
+        ServiceName: "my-service",
+        Endpoint:    "http://localhost:14268/api/traces",
+        Environment: "development",
+    }
 
-```go
-if !trace.IsInitialized() {
-    log.Warn("追踪器未初始化，将使用空操作追踪器")
+    // 2. 初始化全局追踪器
+    err := trace.InitializeGlobalTracer(config)
+    if err != nil {
+        log.Fatal("初始化追踪器失败:", err)
+    }
+
+    // 3. 确保在程序退出时关闭
+    defer func() {
+        ctx := context.Background()
+        trace.Shutdown(ctx)
+    }()
+
+    // 4. 开始使用追踪
+    ctx := context.Background()
+    ctx, span := trace.StartSpan(ctx, "main-operation")
+    defer span.End()
+
+    // 业务逻辑...
+    doSomething(ctx)
+}
+
+func doSomething(ctx context.Context) {
+    // 创建子span
+    ctx, span := trace.StartSpan(ctx, "do-something",
+        trace.WithAttributes(
+            attribute.String("operation", "business-logic"),
+            attribute.Int("user_id", 123),
+        ),
+    )
+    defer span.End()
+
+    // 模拟业务操作
+    time.Sleep(100 * time.Millisecond)
 }
 ```
 
-### 5. 优雅关闭
-
-在应用关闭时调用：
+### HTTP服务追踪
 
 ```go
-ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-defer cancel()
+func setupHTTPTracing() {
+    // 使用中间件
+    http.HandleFunc("/api/users", func(w http.ResponseWriter, r *http.Request) {
+        ctx, span := trace.StartSpan(r.Context(), "get-users",
+            trace.WithSpanKind(trace.SpanKindServer),
+            trace.WithAttributes(
+                attribute.String("http.method", r.Method),
+                attribute.String("http.url", r.URL.String()),
+            ),
+        )
+        defer span.End()
 
-if err := trace.Shutdown(ctx); err != nil {
-    log.Errorf("关闭追踪器失败: %v", err)
+        // 处理请求
+        users := getUsersFromDB(ctx)
+        
+        // 设置响应属性
+        span.SetAttributes(
+            attribute.Int("user.count", len(users)),
+            attribute.Int("http.status_code", 200),
+        )
+
+        json.NewEncoder(w).Encode(users)
+    })
 }
 ```
 
-## 🔧 **配置参数**
+## 🗄️ 数据库追踪
 
-### TracerConfig
-
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| ServiceName | string | ✅ | 服务名称，在 Jaeger UI 中显示 |
-| Endpoint | string | ✅ | Jaeger 收集器端点 URL |
-| Environment | string | ✅ | 环境标识（dev/staging/prod） |
-
-## 💡 **最佳实践**
-
-### 1. 组件命名规范
-
-为不同组件使用有意义的追踪器名称：
+### MySQL/PostgreSQL (GORM)
 
 ```go
-const (
-    MySQLTracerName = "gorm.mysql"
-    RedisTracerName = "redis"
-    HTTPTracerName  = "http.client"
+package main
+
+import (
+    "github.com/costa92/go-protoc/v2/pkg/trace/db"
+    "gorm.io/gorm"
 )
-```
 
-### 2. Span 命名规范
+func setupMySQLTracing() {
+    // 1. 创建追踪插件
+    plugin := db.NewMySQLPlugin()
+    
+    // 2. 配置GORM
+    gormDB, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+    if err != nil {
+        panic(err)
+    }
+    
+    // 3. 安装插件
+    err = gormDB.Use(plugin)
+    if err != nil {
+        panic(err)
+    }
 
-使用清晰的 span 名称：
-
-```go
-// ✅ 好的命名
-"mysql.query"
-"mysql.transaction"
-"redis.get"
-"redis.pipeline"
-"http.request"
-
-// ❌ 避免的命名
-"db"
-"operation"
-"request"
-```
-
-### 3. 属性设置
-
-设置有用的 span 属性：
-
-```go
-span.SetAttributes(
-    attribute.String("db.system", "mysql"),
-    attribute.String("db.operation", "SELECT"),
-    attribute.String("db.sql.table", "users"),
-    attribute.Int64("db.rows_affected", 1),
-)
-```
-
-### 4. 错误处理
-
-正确处理错误：
-
-```go
-if err != nil {
-    span.RecordError(err)
-    span.SetStatus(codes.Error, err.Error())
-    return err
+    // 4. 使用带追踪的数据库操作
+    ctx := context.Background()
+    
+    // 自动追踪数据库操作
+    var users []User
+    err = gormDB.WithContext(ctx).Find(&users).Error
+    if err != nil {
+        log.Error("查询失败", err)
+    }
 }
-span.SetStatus(codes.Ok, "")
+
+// 事务追踪
+func tracedTransaction(ctx context.Context, db *gorm.DB) error {
+    return db.ExecuteInTransaction(ctx, db, func(tx *gorm.DB) error {
+        // 创建用户
+        user := &User{Name: "John", Email: "john@example.com"}
+        if err := tx.Create(user).Error; err != nil {
+            return err
+        }
+        
+        // 创建用户配置
+        profile := &UserProfile{UserID: user.ID, Avatar: "avatar.jpg"}
+        if err := tx.Create(profile).Error; err != nil {
+            return err
+        }
+        
+        return nil
+    })
+}
 ```
 
-## 🚀 **迁移指南**
+### MongoDB追踪
 
-### 从旧版本迁移
-
-#### 旧版本 (每个组件独立初始化)
 ```go
-// MySQL
-var tracer = otel.Tracer("gorm.mysql")
+func setupMongoTracing() {
+    // 1. 创建MongoDB追踪器
+    tracer := db.NewMongoTracer("myapp-mongo")
+    
+    // 2. 创建带追踪的客户端
+    client, err := mongo.Connect(context.Background(), options.Client().
+        ApplyURI("mongodb://localhost:27017").
+        SetMonitor(tracer.CommandMonitor()))
+    if err != nil {
+        panic(err)
+    }
+
+    // 3. 使用带追踪的操作
+    collection := client.Database("myapp").Collection("users")
+    
+    ctx := context.Background()
+    
+    // 插入文档（自动追踪）
+    _, err = collection.InsertOne(ctx, bson.M{
+        "name":  "John",
+        "email": "john@example.com",
+    })
+    
+    // 查询文档（自动追踪）
+    var user bson.M
+    err = collection.FindOne(ctx, bson.M{"name": "John"}).Decode(&user)
+}
+```
+
+### Redis追踪
+
+```go
+func setupRedisTracing() {
+    // 1. 创建Redis追踪器
+    tracer := db.NewRedisTracer("myapp-redis")
+    
+    // 2. 创建带追踪的Redis客户端
+    client := redis.NewClient(&redis.Options{
+        Addr: "localhost:6379",
+    })
+    
+    // 3. 安装追踪钩子
+    client.AddHook(tracer)
+
+    // 4. 使用带追踪的Redis操作
+    ctx := context.Background()
+    
+    // SET操作（自动追踪）
+    err := client.Set(ctx, "user:123", "john", time.Hour).Err()
+    if err != nil {
+        log.Error("Redis SET失败", err)
+    }
+    
+    // GET操作（自动追踪）
+    val, err := client.Get(ctx, "user:123").Result()
+    if err != nil {
+        log.Error("Redis GET失败", err)
+    }
+}
+```
+
+## ⚙️ 配置选项
+
+### 基础配置
+
+```go
+// 追踪器配置
+type TracerConfig struct {
+    ServiceName string // 服务名称
+    Endpoint    string // 导出端点
+    Environment string // 环境标识
+}
+
+// 详细配置
+type AdvancedTracerConfig struct {
+    ServiceName  string
+    ServiceVersion string
+    Environment  string
+    
+    // Jaeger配置
+    JaegerEndpoint string
+    JaegerUser     string
+    JaegerPassword string
+    
+    // 采样配置
+    SamplingRate float64
+    
+    // 批处理配置
+    BatchTimeout   time.Duration
+    BatchSize      int
+    ExportTimeout  time.Duration
+    
+    // 资源属性
+    ResourceAttributes map[string]string
+}
+```
+
+### 环境变量配置
+
+```bash
+# 基础配置
+export OTEL_SERVICE_NAME="my-service"
+export OTEL_SERVICE_VERSION="1.0.0"
+export OTEL_ENVIRONMENT="production"
+
+# Jaeger配置
+export JAEGER_ENDPOINT="http://localhost:14268/api/traces"
+export JAEGER_USER="admin"
+export JAEGER_PASSWORD="password"
+
+# 采样配置
+export OTEL_TRACES_SAMPLER="traceidratio"
+export OTEL_TRACES_SAMPLER_ARG="1.0"
+
+# 导出配置
+export OTEL_TRACES_EXPORTER="jaeger"
+export OTEL_EXPORTER_JAEGER_TIMEOUT="10s"
+```
+
+## 📚 API参考
+
+### 全局追踪器
+
+```go
+// 初始化和管理
+func InitializeGlobalTracer(cfg TracerConfig) error
+func GetTracer(name string) trace.Tracer
+func IsInitialized() bool
+func Shutdown(ctx context.Context) error
+
+// Span操作
+func StartSpan(ctx context.Context, name string, opts ...trace.SpanStartOption) (context.Context, trace.Span)
+func WithAttributes(attrs ...attribute.KeyValue) trace.SpanStartOption
+func WithSpanKind(kind trace.SpanKind) trace.SpanStartOption
+```
+
+### 数据库追踪
+
+```go
+// MySQL/PostgreSQL (GORM)
+func NewMySQLPlugin(opts ...gormOtel.Option) gorm.Plugin
+func NewMySQLPluginWithOptions() gorm.Plugin
+func WithContext(ctx context.Context, db *gorm.DB) *gorm.DB
+func StartTransaction(ctx context.Context, db *gorm.DB) *gorm.DB
+func ExecuteInTransaction(ctx context.Context, db *gorm.DB, fn func(*gorm.DB) error) error
+func TracedQuery(ctx context.Context, db *gorm.DB, operation string, fn func(*gorm.DB) error) error
+
+// MongoDB
+func NewMongoTracer(serviceName string) *MongoTracer
+func (t *MongoTracer) CommandMonitor() *event.CommandMonitor
 
 // Redis  
-var redisTracer = otel.Tracer("redis")
+func NewRedisTracer(serviceName string) *RedisTracer
+func (t *RedisTracer) BeforeProcess(ctx context.Context, cmd redis.Cmder) (context.Context, error)
+func (t *RedisTracer) AfterProcess(ctx context.Context, cmd redis.Cmder) error
 ```
 
-#### 新版本 (统一管理)
+## 🏆 最佳实践
+
+### 1. Span命名约定
+
 ```go
-// 在应用启动时初始化一次
-trace.InitializeGlobalTracer(cfg)
+// 好的命名
+"GET /api/users"           // HTTP请求
+"mysql.users.select"       // 数据库操作
+"redis.get"               // Redis操作
+"auth.validate_token"     // 业务操作
 
-// 在组件中获取
-tracer := trace.GetTracer("gorm.mysql")
-redisTracer := trace.GetTracer("redis")
+// 避免的命名  
+"operation"               // 太泛化
+"func1"                  // 无意义
+"very_long_operation_name_that_describes_everything" // 过长
 ```
 
-## 🐛 **故障排查**
+### 2. 属性设置
+
+```go
+// 推荐的属性
+span.SetAttributes(
+    // 业务属性
+    attribute.String("user.id", userID),
+    attribute.String("operation", "create_order"),
+    
+    // 技术属性
+    attribute.String("db.system", "mysql"),
+    attribute.String("db.table", "orders"),
+    
+    // 性能属性
+    attribute.Int("result.count", len(results)),
+    attribute.Float64("processing.duration", processingTime),
+)
+
+// 避免高基数属性
+span.SetAttributes(
+    // Bad: 会产生太多唯一值
+    attribute.String("user.email", email),
+    attribute.String("request.full_url", fullURL),
+)
+```
+
+### 3. 错误处理
+
+```go
+func tracedOperation(ctx context.Context) error {
+    ctx, span := trace.StartSpan(ctx, "traced-operation")
+    defer span.End()
+
+    result, err := doSomething(ctx)
+    if err != nil {
+        // 记录错误信息
+        span.SetStatus(codes.Error, err.Error())
+        span.SetAttributes(
+            attribute.String("error.type", fmt.Sprintf("%T", err)),
+            attribute.String("error.message", err.Error()),
+        )
+        return err
+    }
+
+    // 记录成功信息
+    span.SetStatus(codes.Ok, "operation completed successfully")
+    span.SetAttributes(
+        attribute.Int("result.size", len(result)),
+    )
+    
+    return nil
+}
+```
+
+## 🔧 故障排除
 
 ### 常见问题
 
-1. **追踪器未初始化**
-   ```
-   [Trace] 警告: 全局追踪器未初始化，返回空追踪器
-   ```
-   **解决方案**: 确保在应用启动时调用了 `InitializeGlobalTracer`
+#### 1. 追踪数据未显示
 
-2. **重复初始化**
-   ```
-   error: global tracer already initialized
-   ```
-   **解决方案**: 只在应用启动时初始化一次
+**症状**: Jaeger UI中看不到追踪数据
 
-3. **连接 Jaeger 失败**
-   ```
-   创建 Jaeger 导出器失败: connection refused
-   ```
-   **解决方案**: 检查 Jaeger 服务是否运行，端点 URL 是否正确
+**排查步骤**:
+```go
+// 检查初始化状态
+if !trace.IsInitialized() {
+    log.Error("全局追踪器未初始化")
+}
 
-### 调试日志
+// 检查配置
+config := trace.GetCurrentConfig()
+log.Info("追踪配置", "config", config)
 
-初始化时会输出详细日志：
+// 测试连接
+err := trace.TestConnection()
+if err != nil {
+    log.Error("追踪导出器连接失败", err)
+}
+
+// 强制导出
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
+err = trace.ForceFlush(ctx)
+if err != nil {
+    log.Error("强制导出失败", err)
+}
 ```
-[Trace] 正在初始化全局追踪器...
-[Trace] 服务名称: apiserver
-[Trace] 端点 URL: http://127.0.0.1:14268/api/traces
-[Trace] 环境: development
-[Trace] 全局追踪器初始化成功! 采样率: 100%
-[Trace] 请访问 Jaeger UI: http://localhost:16686
+
+#### 2. 性能影响过大
+
+**症状**: 应用性能显著下降
+
+**解决方案**:
+```go
+// 降低采样率
+config.SamplingRate = 0.01 // 1%采样
+
+// 优化批处理
+config.BatchSize = 1024
+config.BatchTimeout = 10 * time.Second
+
+// 异步导出
+config.AsyncExport = true
+
+// 排除低价值路径
+config.ExcludePatterns = []string{
+    "/health",
+    "/metrics", 
+    "/debug/*",
+}
 ```
 
-## 📈 **性能说明**
+---
 
-- **初始化开销**: 只在启动时发生一次
-- **运行时开销**: 最小化，使用全局 TracerProvider
-- **内存使用**: 共享追踪器实例，减少内存占用
-- **采样率**: 默认 100%，生产环境建议调整
+## 🤝 贡献指南
+
+1. **问题报告**: 请在GitHub Issues中详细描述追踪问题
+2. **功能请求**: 提交新的追踪需求和使用场景
+3. **代码贡献**: Fork项目并提交Pull Request
+4. **文档改进**: 帮助完善追踪文档和示例
+
+## 📄 许可证
+
+本项目采用MIT许可证，详见LICENSE文件。
+
+---
+
+**版本**: v2.0.0  
+**最后更新**: 2025-01-15  
+**维护者**: Go-Protoc Team
