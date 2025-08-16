@@ -33,7 +33,8 @@ func InitializeWebServer(done <-chan struct{}, cfg *Config, mysqlOpts *db.MySQLO
 	logger := ProvideKratosLogger()
 	validator := validation.New(datastore)
 	validationValidator := validation2.NewValidator(validator)
-	v := NewMiddlewares(logger, validationValidator, jwtOpts)
+	jaegerOptions := ProvideJaegerOptions(cfg)
+	v := NewMiddlewares(logger, validationValidator, jwtOpts, jaegerOptions)
 	serverConfig := &ServerConfig{
 		cfg:         cfg,
 		appConfig:   kratosAppConfig,

@@ -13,6 +13,7 @@ import (
 	"github.com/costa92/go-protoc/v2/pkg/core"
 	"github.com/costa92/go-protoc/v2/pkg/db"
 	"github.com/costa92/go-protoc/v2/pkg/i18n"
+	"github.com/costa92/go-protoc/v2/pkg/log"
 	"github.com/costa92/go-protoc/v2/pkg/middleware/authn" // JWT Auth Middleware
 	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
 	"github.com/costa92/go-protoc/v2/pkg/server"
@@ -45,6 +46,7 @@ type Config struct {
 	SentryOptions      *genericoptions.SentryOptions      // Added Sentry Options
 	MetricsOptions     *genericoptions.MetricsOptions     // Added Metrics Options (K8s style)
 	PoolMonitorOptions *genericoptions.PoolMonitorOptions // Added Pool Monitor Options
+	LogOptions         *log.Options                       // Added Log Options
 }
 
 type Server struct {
@@ -59,6 +61,13 @@ type ServerConfig struct {
 }
 
 func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
+	// 初始化日志库 - 根据配置设置日志等级
+	if cfg.LogOptions != nil {
+		log.Init(cfg.LogOptions)
+		log.Infow("Logger initialized", "level", cfg.LogOptions.Level, "format", cfg.LogOptions.Format)
+		log.Debugw("Debug logging enabled", "caller_skip", 2, "enable_color", cfg.LogOptions.EnableColor)
+	}
+
 	if err := cfg.JaegerOptions.SetTracerProvider(Name); err != nil {
 		return nil, err
 	}
@@ -104,7 +113,7 @@ func ProvideKratosAppConfig(registrar registry.Registrar) server.KratosAppConfig
 	}
 }
 
-func NewMiddlewares(logger krtlog.Logger, val validate.RequestValidator, jwtOpts *genericoptions.JWTOptions) []middleware.Middleware {
+func NewMiddlewares(logger krtlog.Logger, val validate.RequestValidator, jwtOpts *genericoptions.JWTOptions, jaegerOpts *genericoptions.JaegerOptions) []middleware.Middleware {
 	// 优化: 调整中间件顺序，按性能影响和过滤效果排序
 	middlewares := make([]middleware.Middleware, 0, 5) // 预分配容量
 
@@ -114,8 +123,10 @@ func NewMiddlewares(logger krtlog.Logger, val validate.RequestValidator, jwtOpts
 	// 2. 认证中间件: 过滤未授权请求，避免后续处理开销
 	middlewares = append(middlewares, authn.ServerJWTAuth(jwtOpts))
 
-	// 3. 追踪中间件: 只对通过认证的请求启动追踪
-	middlewares = append(middlewares, tracing.Server())
+	// 3. 追踪中间件: 仅在启用时加载，只对通过认证的请求启动追踪
+	if jaegerOpts != nil && jaegerOpts.Enabled {
+		middlewares = append(middlewares, tracing.Server())
+	}
 
 	// 4. 国际化中间件: 为有效请求提供本地化支持
 	middlewares = append(middlewares, i18nmw.Translator(i18n.WithLanguage(language.English), i18n.WithFS(locales.Locales)))

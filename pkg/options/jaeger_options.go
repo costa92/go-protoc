@@ -9,8 +9,10 @@ import (
 
 var _ IOptions = (*JaegerOptions)(nil)
 
-// JaegerOptions defines options for consul client.
+// JaegerOptions defines options for Jaeger tracing client.
 type JaegerOptions struct {
+	// Enabled determines whether Jaeger tracing is enabled
+	Enabled     bool   `json:"enabled,omitempty" mapstructure:"enabled"`
 	// Server is the url of the Jaeger server
 	Server      string `json:"server,omitempty" mapstructure:"server"`
 	ServiceName string `json:"service-name,omitempty" mapstructure:"service-name"`
@@ -20,8 +22,9 @@ type JaegerOptions struct {
 // NewJaegerOptions create a `zero` value instance.
 func NewJaegerOptions() *JaegerOptions {
 	return &JaegerOptions{
-		Server: "http://127.0.0.1:14268/api/traces",
-		Env:    "dev",
+		Enabled: false, // 默认关闭，需要显式开启
+		Server:  "127.0.0.1:6831",
+		Env:     "dev",
 	}
 }
 
@@ -32,8 +35,10 @@ func (o *JaegerOptions) Validate() []error {
 	return errs
 }
 
-// AddFlags adds flags related to mysql storage for a specific APIServer to the specified FlagSet.
+// AddFlags adds flags related to Jaeger tracing for a specific APIServer to the specified FlagSet.
 func (o *JaegerOptions) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+	fs.BoolVar(&o.Enabled, "jaeger.enabled", o.Enabled, ""+
+		"Enable or disable Jaeger tracing.")
 	fs.StringVar(&o.Server, "jaeger.server", o.Server, ""+
 		"Server is the url of the Jaeger server.")
 	fs.StringVar(&o.ServiceName, "jaeger.service-name", o.ServiceName, ""+
@@ -42,19 +47,22 @@ func (o *JaegerOptions) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
 }
 
 func (o *JaegerOptions) SetTracerProvider(serviceName string) error {
-	// 构造正确的 Jaeger 收集器端点 URL
-	jaegerURL := o.Server
-	if !strings.HasPrefix(jaegerURL, "http://") && !strings.HasPrefix(jaegerURL, "https://") {
-		jaegerURL = "http://" + jaegerURL
+	// 如果未启用追踪，直接返回
+	if !o.Enabled {
+		trace.SetNoOpTracer()
+		return nil
 	}
-	if !strings.HasSuffix(jaegerURL, "/api/traces") {
-		jaegerURL = jaegerURL + "/api/traces"
+
+	// 构造正确的 OTLP 端点 URL
+	otlpURL := o.Server
+	if !strings.HasPrefix(otlpURL, "http://") && !strings.HasPrefix(otlpURL, "https://") {
+		otlpURL = "http://" + otlpURL
 	}
 
 	// 使用统一的追踪管理器初始化
 	cfg := trace.TracerConfig{
 		ServiceName: serviceName,
-		Endpoint:    jaegerURL,
+		Endpoint:    otlpURL,
 		Environment: o.Env,
 	}
 

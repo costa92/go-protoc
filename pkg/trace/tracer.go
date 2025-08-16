@@ -40,12 +40,13 @@ func InitializeGlobalTracer(cfg TracerConfig) error {
 	// 添加调试日志
 	fmt.Printf("[Trace] 正在初始化全局追踪器...\n")
 	fmt.Printf("[Trace] 服务名称: %s\n", cfg.ServiceName)
-	fmt.Printf("[Trace] 端点 URL: %s\n", cfg.Endpoint)
+	fmt.Printf("[Trace] 使用 Agent 端点: 127.0.0.1:6831\n")
 	fmt.Printf("[Trace] 环境: %s\n", cfg.Environment)
 
-	// Create the Jaeger exporter
-	exporter, err := jaeger.New(jaeger.WithCollectorEndpoint(
-		jaeger.WithEndpoint(cfg.Endpoint),
+	// Create Jaeger exporter using agent endpoint (UDP)
+	exporter, err := jaeger.New(jaeger.WithAgentEndpoint(
+		jaeger.WithAgentHost("127.0.0.1"),
+		jaeger.WithAgentPort("6831"),
 	))
 	if err != nil {
 		return fmt.Errorf("创建 Jaeger 导出器失败: %w", err)
@@ -80,6 +81,7 @@ func InitializeGlobalTracer(cfg TracerConfig) error {
 	initialized = true
 
 	fmt.Printf("[Trace] 全局追踪器初始化成功! 采样率: 100%%\n")
+	fmt.Printf("[Trace] 使用 UDP Agent 协议发送到 Jaeger\n")
 	fmt.Printf("[Trace] 请访问 Jaeger UI: http://localhost:16686\n")
 
 	return nil
@@ -125,6 +127,19 @@ func WithAttributes(attrs ...attribute.KeyValue) trace.SpanStartOption {
 // WithSpanKind is a helper function to set span kind.
 func WithSpanKind(kind trace.SpanKind) trace.SpanStartOption {
 	return trace.WithSpanKind(kind)
+}
+
+// SetNoOpTracer sets a no-op tracer provider for when tracing is disabled.
+func SetNoOpTracer() {
+	mu.Lock()
+	defer mu.Unlock()
+	
+	// 设置空操作追踪器
+	otel.SetTracerProvider(trace.NewNoopTracerProvider())
+	globalTracer = trace.NewNoopTracerProvider().Tracer("")
+	initialized = true
+	
+	fmt.Printf("[Trace] Jaeger 追踪已禁用，使用空操作追踪器\n")
 }
 
 // Shutdown gracefully shuts down the tracer provider.

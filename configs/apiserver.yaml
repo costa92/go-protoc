@@ -30,7 +30,8 @@ jwt:
 
 # Jaeger OpenTelemetry Tracing Configuration
 jaeger:
-  server: "127.0.0.1:14268" # Jaeger收集器HTTP端点 (不含协议前缀和路径)
+  enabled: true # 是否启用 Jaeger 追踪功能（默认关闭，需要显式开启）
+  server: "127.0.0.1:6831" # Jaeger Agent UDP端点 (6831是Agent UDP端口)
   service-name: "apiserver" # 服务名称，在Jaeger UI中显示
   env: "development" # 环境标识：development, staging, production
   sampler-type: "const" # 采样策略：const(固定), probabilistic(概率), rateLimiting(限流)
@@ -38,3 +39,12 @@ jaeger:
   reporter-log-spans: true # 是否在日志中记录span信息
   agent-host: "127.0.0.1" # Jaeger Agent主机地址（如果使用UDP）
   agent-port: 6831 # Jaeger Agent端口（如果使用UDP）
+
+# Log Configuration
+log:
+  level: "info" # 日志级别：debug, info, warn, error, dpanic, panic, fatal
+  format: "console" # 日志格式：console, json
+  disable-caller: false # 是否禁用调用者信息
+  disable-stacktrace: false # 是否禁用堆栈跟踪
+  enable-color: true # 是否启用彩色输出
+  output-paths: ["stdout"] # 日志输出路径

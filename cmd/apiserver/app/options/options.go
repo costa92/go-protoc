@@ -98,5 +98,6 @@ func (o *ServerOptions) Config() (*apiserver.Config, error) {
 		JaegerOptions:      o.JaegerOptions,      // Pass Jaeger Options to apiserver.Config
 		SentryOptions:      o.SentryOptions,      // Pass Sentry Options to apiserver.Config
 		PoolMonitorOptions: o.PoolMonitorOptions, // Pass Pool Monitor Options to apiserver.Config
+		LogOptions:         o.Log,                // Pass Log Options to apiserver.Config
 	}, nil
 }
