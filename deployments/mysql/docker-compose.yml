@@ -6,10 +6,10 @@ services:
     container_name: go-protoc-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: proj(#)666
-      MYSQL_DATABASE: onex
-      MYSQL_USER: appuser
-      MYSQL_PASSWORD: proj(#)666
+      MYSQL_ROOT_PASSWORD: ${PROJ_MYSQL_ADMIN_PASSWORD:-proj(#)666}
+      MYSQL_DATABASE: ${PROJ_MYSQL_DATABASE:-protoc}
+      MYSQL_USER: ${PROJ_MYSQL_USERNAME:-appuser}
+      MYSQL_PASSWORD: ${PROJ_MYSQL_PASSWORD:-proj(#)666}
     ports:
       - "3307:3306"
     volumes:

@@ -1,5 +1,5 @@
 -- 创建数据库
-CREATE DATABASE protoc;
+CREATE DATABASE IF NOT EXISTS protoc;
 
 -- Migration: 001_create_users_table.sql
 -- Description: 创建用户表，支持完整的用户管理功能
