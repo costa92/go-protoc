@@ -135,6 +135,24 @@ func NewLogger(opts *Options, options ...Option) *zapLogger {
 	}
 
 	// 如果启用了VictoriaLogs，创建一个tee logger来同时写入VictoriaLogs
+	if opts.VictoriaLogs != nil {
+		// 临时调试：输出 VictoriaLogs 完整配置状态
+		tempLogger, _ := zap.NewDevelopment()
+		tempLogger.Info("VictoriaLogs configuration status",
+			zap.Bool("enabled", opts.VictoriaLogs.Enabled),
+			zap.String("endpoint", opts.VictoriaLogs.Endpoint),
+			zap.String("service", opts.VictoriaLogs.Service),
+			zap.String("version", opts.VictoriaLogs.Version),
+			zap.String("environment", opts.VictoriaLogs.Environment),
+			zap.Int("buffer_size", opts.VictoriaLogs.BufferSize),
+			zap.Int("batch_size", opts.VictoriaLogs.BatchSize),
+			zap.Int("flush_interval", opts.VictoriaLogs.FlushInterval),
+			zap.Int("timeout", opts.VictoriaLogs.Timeout))
+	} else {
+		tempLogger, _ := zap.NewDevelopment()
+		tempLogger.Error("VictoriaLogs configuration is nil")
+	}
+	
 	if opts.VictoriaLogs != nil && opts.VictoriaLogs.Enabled {
 		victoriaWriter := NewVictoriaLogsWriter(VictoriaLogsOptions{
 			Endpoint:      opts.VictoriaLogs.Endpoint,
