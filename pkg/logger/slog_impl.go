@@ -76,6 +76,20 @@ func NewSlogLogger(opts *LogsOptions) (*SlogLogger, error) {
 		callerSkip: opts.CallerSkip,
 	})
 
+	// 自动添加 logger 类型标识
+	logger = logger.With("type", "slog")
+
+	// 如果有初始字段配置，也添加进去
+	if opts.InitialFields != nil {
+		var args []interface{}
+		for k, v := range opts.InitialFields {
+			args = append(args, k, v)
+		}
+		if len(args) > 0 {
+			logger = logger.With(args...)
+		}
+	}
+
 	return &SlogLogger{
 		logger: logger,
 		opts:   opts,

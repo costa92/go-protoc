@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/costa92/go-protoc/v2/pkg/log"
+	"github.com/costa92/go-protoc/v2/pkg/logger"
 	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
 	"github.com/go-kratos/kratos/contrib/registry/consul/v2"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
@@ -65,6 +66,21 @@ func NewKratosLogger(id, name, version string) krtlog.Logger {
 		"service.name", name,
 		"service.version", version,
 	)
+}
+
+// NewKratosLoggerWithGeneric creates a Kratos-compatible logger using the generic logger package.
+func NewKratosLoggerWithGeneric(l logger.Logger, id, name, version string) krtlog.Logger {
+	return logger.NewKratosLogger(l, id, name, version)
+}
+
+// NewKratosLoggerFromOptions creates a Kratos-compatible logger using logger options.
+func NewKratosLoggerFromOptions(opts *logger.LogsOptions, id, name, version string) krtlog.Logger {
+	l, err := logger.NewLogger(opts)
+	if err != nil {
+		// Fallback to default logger if creation fails
+		l = logger.GetDefaultLogger()
+	}
+	return logger.NewKratosLogger(l, id, name, version)
 }
 
 func NewEtcdRegistrar(opts *genericoptions.EtcdOptions) registry.Registrar {

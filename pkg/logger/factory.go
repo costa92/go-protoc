@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"context"
 	"fmt"
 	"sync/atomic"
 )
@@ -105,4 +106,18 @@ func Errorw(msg string, keysAndValues ...interface{}) {
 
 func Fatalw(msg string, keysAndValues ...interface{}) {
 	getGlobalLogger().Fatalw(msg, keysAndValues...)
+}
+
+func With(keysAndValues ...interface{}) Logger {
+	// 对于返回新logger的函数，直接使用原始logger，不预设caller skip
+	// 让返回的logger在实际调用时正确显示调用位置
+	baseLogger := GetDefaultLogger()
+	return baseLogger.With(keysAndValues...)
+}
+
+func WithCtx(ctx context.Context, keysAndValues ...interface{}) Logger {
+	// 对于返回新logger的函数，直接使用原始logger，不预设caller skip
+	// 让返回的logger在实际调用时正确显示调用位置
+	baseLogger := GetDefaultLogger()
+	return baseLogger.WithCtx(ctx, keysAndValues...)
 }

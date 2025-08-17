@@ -55,8 +55,13 @@ func NewZapLogger(opts *LogsOptions) (*ZapLogger, error) {
 		config.ErrorOutputPaths = opts.ErrorOutputPaths
 	}
 
+	// 合并初始字段，自动添加 logger 类型标识
+	config.InitialFields = make(map[string]interface{})
+	config.InitialFields["type"] = "zap"
 	if opts.InitialFields != nil {
-		config.InitialFields = opts.InitialFields
+		for k, v := range opts.InitialFields {
+			config.InitialFields[k] = v
+		}
 	}
 
 	if opts.Sampling != nil {
@@ -102,6 +107,22 @@ func NewZapLogger(opts *LogsOptions) (*ZapLogger, error) {
 	
 	if opts.Development {
 		logger = logger.WithOptions(zap.Development())
+	}
+
+	// 自动添加 logger 类型标识
+	logger = logger.With(zap.String("type", "zap"))
+
+	// 如果有初始字段配置，也添加进去
+	if config.InitialFields != nil && len(config.InitialFields) > 0 {
+		var fields []zap.Field
+		for k, v := range config.InitialFields {
+			if k != "type" { // 避免覆盖我们设置的 type 字段
+				fields = append(fields, zap.Any(k, v))
+			}
+		}
+		if len(fields) > 0 {
+			logger = logger.With(fields...)
+		}
 	}
 
 	return &ZapLogger{
