@@ -2904,3 +2904,244 @@
 {"level":"info","timestamp":"2025-08-17 20:43:03.568","caller":"log/log.go:208","message":"Start to listening the incoming requests","protocol":"kratos"}
 {"level":"info","timestamp":"2025-08-17 20:43:03.570","caller":"log/global.go:75","message":"","ts":"2025-08-17T20:43:03+08:00","caller":"http/server.go:330","service.id":"costalongdeMacBook-Pro.local","service.name":"apiserver","service.version":"v0.0.0-master+$Format:%h$","msg":"[HTTP] server listening on: [::]:8080"}
 {"level":"info","timestamp":"2025-08-17 20:43:03.570","caller":"log/global.go:75","message":"","ts":"2025-08-17T20:43:03+08:00","caller":"grpc/server.go:220","service.id":"costalongdeMacBook-Pro.local","service.name":"apiserver","service.version":"v0.0.0-master+$Format:%h$","msg":"[gRPC] server listening on: [::]:9090"}
+{"level":"info","timestamp":"2025-08-17 20:45:46.815","message":"Starting application","name":"apiserver","version":"{\"gitVersion\":\"v0.0.0-master+$Format:%h$\",\"gitCommit\":\"$Format:%H$\",\"gitTreeState\":\"\",\"buildDate\":\"1970-01-01T00:00:00Z\",\"goVersion\":\"go1.25rc2\",\"compiler\":\"gc\",\"platform\":\"darwin/arm64\"}"}
+{"level":"info","timestamp":"2025-08-17 20:45:46.815","message":"Golang settings","GOGC":"","GOMAXPROCS":"","GOTRACEBACK":""}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: pool-monitor.database.slow-query=1s"}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: sentry.profiles-sample-rate=0.1"}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: grpc.network=tcp"}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: sentry.release="}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: mysql.database=protoc"}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: pool-monitor.collect-interval=30s"}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: feature-gates="}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: redis.read-timeout=3s"}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: sentry.enable-profiling=false"}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: redis.username="}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: log.victoria-logs.batch-size=100"}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: log.victoria-logs.version=v2.0.0"}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: redis.password="}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: jaeger.sampler-type=const"}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: sentry.server-name="}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: sentry.max-breadcrumbs=100"}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: sentry.enable-tracing=true"}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: redis.max-retries=3"}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: pool-monitor.redis.enabled=true"}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: version=false"}
+{"level":"debug","timestamp":"2025-08-17 20:45:46.815","message":"CFG: log.enable-color=false"}
+{"level":"info","timestamp":"2025-08-17 20:46:41.827","message":"Starting application","name":"apiserver","version":"{\"gitVersion\":\"v0.0.0-master+$Format:%h$\",\"gitCommit\":\"$Format:%H$\",\"gitTreeState\":\"\",\"buildDate\":\"1970-01-01T00:00:00Z\",\"goVersion\":\"go1.25rc2\",\"compiler\":\"gc\",\"platform\":\"darwin/arm64\"}"}
+{"level":"info","timestamp":"2025-08-17 20:46:41.827","message":"Golang settings","GOGC":"","GOMAXPROCS":"","GOTRACEBACK":""}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: sentry.dsn="}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: log.victoria-logs.batch-size=100"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: redis.pool-size=10"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: log.victoria-logs.service=apiserver"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: pool-monitor.database.enabled=true"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: http.addr=0.0.0.0:8080"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: jwt.max-refresh=2h"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: pool-monitor.redis.enabled=true"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: sentry.profiles-sample-rate=0.1"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: sentry.ignore-errors=[]"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: log.format=json"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: mysql.database=protoc"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: redis.read-timeout=3s"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: log.victoria-logs.timezone=UTC"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: sentry.debug=false"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: redis.username="}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: sentry.sample-rate=1"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: http.timeout=10s"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.827","message":"CFG: jaeger.agent-host=127.0.0.1"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: jaeger.agent-port=6831"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: sentry.traces-sample-rate=0.1"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: log.victoria-logs.enabled=true"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: mysql.max-connection-life-time=10s"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: log.victoria-logs.timeout=10"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: mysql.password=proj(#)666"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: mysql.enable-trace=true"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: redis.enable-trace=true"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: redis.max-retries=3"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: v=0"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: jaeger.sampler-type=const"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: sentry.enable-tracing=true"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: mysql.username=root"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: jaeger.service-name=apiserver"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: jaeger.server=127.0.0.1:6831"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: sentry.release="}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: redis.addr=127.0.0.1:6379"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: sentry.environment=development"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: log.victoria-logs.flush-interval=5"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: config=configs/apiserver.yaml"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: jaeger.reporter-log-spans=true"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: mysql.log-level=1"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: pool-monitor.namespace=apiserver"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: version=false"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: jwt.expired=2h"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: jaeger.env=development"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: log.victoria-logs.version=v2.0.0"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: redis.write-timeout=3s"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: mysql.log-mode=1"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: log.victoria-logs.buffer-size=1000"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: jwt.signing-method=HS512"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: http.network=tcp"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: redis.dial-timeout=5s"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: jaeger.enabled=true"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: pool-monitor.collect-interval=30s"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: mysql.max-idle-connections=100"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: log.level=debug"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: mysql.host=127.0.0.1"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: sentry.max-breadcrumbs=100"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: grpc.timeout=10s"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: log.disable-stacktrace=false"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: sentry.enable-profiling=false"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: sentry.enabled=false"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: redis.password="}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: vmodule="}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: jaeger.sampler-param=1"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: grpc.network=tcp"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: help=false"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: feature-gates="}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: sentry.send-default-pii=false"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: log-flush-frequency=5s"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: pool-monitor.enabled=true"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: pool-monitor.database.slow-query=1s"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: redis.min-idle-conns=0"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: log.enable-color=false"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: grpc.addr=0.0.0.0:9090"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: mysql.max-open-connections=100"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: jwt.key=onex(#)666"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: log.victoria-logs.endpoint=http://127.0.0.1:9428"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: redis.database=0"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: sentry.server-name="}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: sentry.flush-timeout=5s"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: redis.pool-timeout=4s"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: sentry.attach-stacktrace=true"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: log.victoria-logs.environment=development"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.828","message":"CFG: log.disable-caller=false"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.829","message":"CFG: log.output-paths=[stdout logs/app.log]"}
+{"level":"info","timestamp":"2025-08-17 20:46:41.829","message":"Connection pool metrics collection is enabled through dependency injection"}
+{"level":"info","timestamp":"2025-08-17 20:46:41.829","message":"Metrics will be automatically collected by the PoolMonitor when database connections are established"}
+{"level":"info","timestamp":"2025-08-17 20:46:41.829","message":"Database pool monitoring enabled","slow_query_threshold":1000,"collect_interval":30000}
+{"level":"info","timestamp":"2025-08-17 20:46:41.829","message":"Redis pool monitoring enabled","collect_interval":30000}
+{"level":"info","timestamp":"2025-08-17 20:46:41.829","message":"Logger configuration","level":"debug","format":"json"}
+{"level":"debug","timestamp":"2025-08-17 20:46:41.829","message":"Debug logging enabled","caller_skip":2,"enable_color":false}
+{"level":"info","timestamp":"2025-08-17 20:46:41.829","message":"Validating service connections before startup..."}
+{"level":"info","timestamp":"2025-08-17 20:46:41.829","message":"Testing MySQL connection..."}
+{"level":"info","timestamp":"2025-08-17 20:46:41.844","message":"MySQL connection test passed"}
+{"level":"info","timestamp":"2025-08-17 20:46:41.844","message":"Testing Redis connection..."}
+{"level":"info","timestamp":"2025-08-17 20:46:41.849","message":"Redis connection test passed"}
+{"level":"info","timestamp":"2025-08-17 20:46:41.849","message":"Testing Jaeger connection..."}
+{"level":"info","timestamp":"2025-08-17 20:46:41.849","message":"Jaeger connection test passed"}
+{"level":"info","timestamp":"2025-08-17 20:46:41.849","message":"All service connections validated successfully"}
+{"level":"info","timestamp":"2025-08-17 20:46:41.965","message":"Start to listening the incoming requests","protocol":"kratos"}
+{"level":"info","timestamp":"2025-08-17 20:46:41.965","message":"","ts":"2025-08-17T20:46:41+08:00","caller":"http/server.go:330","service.id":"costalongdeMacBook-Pro.local","service.name":"apiserver","service.version":"v0.0.0-master+$Format:%h$","msg":"[HTTP] server listening on: [::]:8080"}
+{"level":"info","timestamp":"2025-08-17 20:46:41.965","message":"","ts":"2025-08-17T20:46:41+08:00","caller":"grpc/server.go:220","service.id":"costalongdeMacBook-Pro.local","service.name":"apiserver","service.version":"v0.0.0-master+$Format:%h$","msg":"[gRPC] server listening on: [::]:9090"}
+{"level":"info","timestamp":"2025-08-17 20:46:48.359","message":"Shutting down server..."}
+{"level":"info","timestamp":"2025-08-17 20:46:48.359","message":"Gracefully stop kratos application"}
+{"level":"info","timestamp":"2025-08-17 20:46:48.359","message":"","ts":"2025-08-17T20:46:48+08:00","caller":"http/server.go:345","service.id":"costalongdeMacBook-Pro.local","service.name":"apiserver","service.version":"v0.0.0-master+$Format:%h$","msg":"[HTTP] server stopping"}
+{"level":"info","timestamp":"2025-08-17 20:46:48.359","message":"Server exited successfully."}
+{"level":"info","timestamp":"2025-08-17 20:48:52.977","message":"Starting application","name":"apiserver","version":"{\"gitVersion\":\"v0.0.0-master+$Format:%h$\",\"gitCommit\":\"$Format:%H$\",\"gitTreeState\":\"\",\"buildDate\":\"1970-01-01T00:00:00Z\",\"goVersion\":\"go1.25rc2\",\"compiler\":\"gc\",\"platform\":\"darwin/arm64\"}"}
+{"level":"info","timestamp":"2025-08-17 20:48:52.978","message":"Golang settings","GOGC":"","GOMAXPROCS":"","GOTRACEBACK":""}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: log.victoria-logs.service=apiserver"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: jaeger.env=development"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: jaeger.agent-host=127.0.0.1"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: log.victoria-logs.timezone=UTC"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: redis.write-timeout=3s"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: redis.dial-timeout=5s"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: redis.addr=127.0.0.1:6379"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: sentry.flush-timeout=5s"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: log.disable-caller=false"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: sentry.release="}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: redis.pool-timeout=4s"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: http.addr=0.0.0.0:8080"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: sentry.profiles-sample-rate=0.1"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: jwt.max-refresh=2h"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: log.victoria-logs.flush-interval=5"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: sentry.attach-stacktrace=true"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: mysql.database=protoc"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: mysql.max-open-connections=100"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: jwt.signing-method=HS512"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: redis.database=0"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: jaeger.server=127.0.0.1:6831"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: jaeger.agent-port=6831"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: redis.read-timeout=3s"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: version=false"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: sentry.max-breadcrumbs=100"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: mysql.username=root"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: jaeger.enabled=true"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: log.victoria-logs.buffer-size=1000"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: log.output-paths=[stdout logs/app.log]"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: log-flush-frequency=5s"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: mysql.enable-trace=true"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.978","message":"CFG: log.format=json"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: jaeger.service-name=apiserver"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: log.victoria-logs.environment=development"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: pool-monitor.redis.enabled=true"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: config=configs/apiserver.yaml"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: sentry.ignore-errors=[]"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: redis.max-retries=3"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: sentry.server-name="}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: sentry.enable-profiling=false"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: log.victoria-logs.version=v2.0.0"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: log.enable-color=false"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: grpc.timeout=10s"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: jwt.key=onex(#)666"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: log.victoria-logs.endpoint=http://127.0.0.1:9428"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: jaeger.reporter-log-spans=true"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: jwt.expired=2h"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: log.victoria-logs.enabled=true"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: sentry.send-default-pii=false"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: sentry.debug=false"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: redis.min-idle-conns=0"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: mysql.max-idle-connections=100"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: redis.password="}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: mysql.host=127.0.0.1"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: pool-monitor.database.enabled=true"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: pool-monitor.namespace=apiserver"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: redis.username="}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: jaeger.sampler-param=1"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: http.timeout=10s"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: grpc.network=tcp"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: log.disable-stacktrace=false"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: help=false"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: mysql.password=proj(#)666"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: sentry.enable-tracing=true"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: pool-monitor.collect-interval=30s"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: v=0"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: sentry.environment=development"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: pool-monitor.enabled=true"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: sentry.traces-sample-rate=0.1"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: log.victoria-logs.batch-size=100"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: mysql.log-level=1"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: redis.enable-trace=true"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: log.victoria-logs.timeout=10"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: sentry.dsn="}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: pool-monitor.database.slow-query=1s"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: mysql.log-mode=1"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: jaeger.sampler-type=const"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: grpc.addr=0.0.0.0:9090"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: sentry.sample-rate=1"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: sentry.enabled=false"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: redis.pool-size=10"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: log.level=debug"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: http.network=tcp"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: feature-gates="}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.979","message":"CFG: vmodule="}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.980","message":"CFG: mysql.max-connection-life-time=10s"}
+{"level":"info","timestamp":"2025-08-17 20:48:52.980","message":"Connection pool metrics collection is enabled through dependency injection"}
+{"level":"info","timestamp":"2025-08-17 20:48:52.980","message":"Metrics will be automatically collected by the PoolMonitor when database connections are established"}
+{"level":"info","timestamp":"2025-08-17 20:48:52.980","message":"Database pool monitoring enabled","slow_query_threshold":1000,"collect_interval":30000}
+{"level":"info","timestamp":"2025-08-17 20:48:52.980","message":"Redis pool monitoring enabled","collect_interval":30000}
+{"level":"info","timestamp":"2025-08-17 20:48:52.980","message":"Logger configuration","level":"debug","format":"json"}
+{"level":"debug","timestamp":"2025-08-17 20:48:52.980","message":"Debug logging enabled","caller_skip":2,"enable_color":false}
+{"level":"info","timestamp":"2025-08-17 20:48:52.980","message":"Validating service connections before startup..."}
+{"level":"info","timestamp":"2025-08-17 20:48:52.980","message":"Testing MySQL connection..."}
+{"level":"info","timestamp":"2025-08-17 20:48:52.991","message":"MySQL connection test passed"}
+{"level":"info","timestamp":"2025-08-17 20:48:52.991","message":"Testing Redis connection..."}
+{"level":"info","timestamp":"2025-08-17 20:48:52.995","message":"Redis connection test passed"}
+{"level":"info","timestamp":"2025-08-17 20:48:52.995","message":"Testing Jaeger connection..."}
+{"level":"info","timestamp":"2025-08-17 20:48:52.995","message":"Jaeger connection test passed"}
+{"level":"info","timestamp":"2025-08-17 20:48:52.995","message":"All service connections validated successfully"}
+{"level":"info","timestamp":"2025-08-17 20:48:53.106","message":"Start to listening the incoming requests","protocol":"kratos"}
+{"level":"info","timestamp":"2025-08-17 20:48:53.107","message":"","ts":"2025-08-17T20:48:53+08:00","caller":"http/server.go:330","service.id":"costalongdeMacBook-Pro.local","service.name":"apiserver","service.version":"v0.0.0-master+$Format:%h$","msg":"[HTTP] server listening on: [::]:8080"}
+{"level":"info","timestamp":"2025-08-17 20:48:53.107","message":"","ts":"2025-08-17T20:48:53+08:00","caller":"grpc/server.go:220","service.id":"costalongdeMacBook-Pro.local","service.name":"apiserver","service.version":"v0.0.0-master+$Format:%h$","msg":"[gRPC] server listening on: [::]:9090"}
+{"level":"info","timestamp":"2025-08-17 20:49:52.571","message":"Shutting down server..."}
+{"level":"info","timestamp":"2025-08-17 20:49:52.571","message":"","ts":"2025-08-17T20:49:52+08:00","caller":"http/server.go:345","service.id":"costalongdeMacBook-Pro.local","service.name":"apiserver","service.version":"v0.0.0-master+$Format:%h$","msg":"[HTTP] server stopping"}
+{"level":"info","timestamp":"2025-08-17 20:49:52.572","message":"Gracefully stop kratos application"}
+{"level":"info","timestamp":"2025-08-17 20:49:52.572","message":"Server exited successfully."}

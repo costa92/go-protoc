@@ -51,7 +51,7 @@ func NewOptions() *Options {
 		Format:      "console",
 		OutputPaths: []string{"stdout"},
 		VictoriaLogs: &VictoriaLogsConfig{
-			Enabled:       false, // 恢复原始默认值，通过配置文件启用
+			Enabled:       true, // 默认启用，可通过配置文件控制
 			Endpoint:      "http://127.0.0.1:9428",
 			Service:       "apiserver",
 			Version:       "v2.0.0",
