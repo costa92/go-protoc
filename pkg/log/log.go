@@ -168,15 +168,6 @@ func NewLogger(opts *Options, options ...Option) *zapLogger {
 		opt(logger)
 	}
 
-	// 调试：输出已配置的context extractors
-	if len(logger.contextExtractors) > 0 {
-		logger.z.Debug("Context extractors configured", zap.Int("count", len(logger.contextExtractors)), zap.String("logger_addr", fmt.Sprintf("%p", logger)))
-		for fieldName := range logger.contextExtractors {
-			logger.z.Debug("Context extractor registered", zap.String("field", fieldName), zap.String("logger_addr", fmt.Sprintf("%p", logger)))
-		}
-	} else {
-		logger.z.Debug("No context extractors configured", zap.String("logger_addr", fmt.Sprintf("%p", logger)))
-	}
 
 	return logger
 }
@@ -246,16 +237,10 @@ func W(ctx context.Context) Logger {
 func (l *zapLogger) W(ctx context.Context) Logger {
 	lc := l.clone()
 
-	// 调试：显示正在使用的logger地址和extractor数量
-	lc.z.Debug("W() method called", zap.String("logger_addr", fmt.Sprintf("%p", l)), zap.Int("extractor_count", len(l.contextExtractors)))
 
 	for fieldName, extractor := range l.contextExtractors {
 		if val := extractor(ctx); val != "" {
 			lc.z = lc.z.With(zap.String(fieldName, val))
-			// 调试输出：记录成功提取的context字段
-			lc.z.Debug("Context field extracted", zap.String("field", fieldName), zap.String("value", val))
-		} else {
-			lc.z.Debug("Context field empty", zap.String("field", fieldName))
 		}
 	}
 
