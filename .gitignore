@@ -3,4 +3,4 @@
 ._output/
 .idea
 ._thirdparty/*
-.bin/*
+bin/*
