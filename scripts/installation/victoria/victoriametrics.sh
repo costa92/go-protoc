@@ -23,7 +23,7 @@ PROJ_VICTORIAMETRICS_PORT=${PROJ_VICTORIAMETRICS_PORT:-8428}
 VICTORIAMETRICS_DOCKER_NAME=${NETWORK_NAME}-victoriametrics
 
 # VictoriaMetrics 数据目录
-VICTORIAMETRICS_DATA_DIR=${PROJ_ROOT_DIR}/data/victoriametrics
+VICTORIAMETRICS_DATA_DIR=${PROJ_THIRDPARTY_INSTALL_DIR}/victoriametrics
 
 # Function to install VictoriaMetrics natively
 proj::victoriametrics::install() {

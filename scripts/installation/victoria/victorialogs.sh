@@ -23,7 +23,7 @@ PROJ_VICTORIALOGS_PORT=${PROJ_VICTORIALOGS_PORT:-9428}
 VICTORIALOGS_DOCKER_NAME=${NETWORK_NAME}-victorialogs
 
 # VictoriaLogs 数据目录
-VICTORIALOGS_DATA_DIR=${PROJ_ROOT_DIR}/data/victorialogs
+VICTORIALOGS_DATA_DIR=${PROJ_THIRDPARTY_INSTALL_DIR}/victorialogs
 
 # Function to install VictoriaLogs natively
 proj::victorialogs::install() {
@@ -54,7 +54,7 @@ proj::victorialogs::install() {
   # 下载并安装 VictoriaLogs
   local vl_url="https://github.com/VictoriaMetrics/VictoriaMetrics/releases/download/v${VICTORIALOGS_VERSION}/victoria-logs-${os}-${arch}-v${VICTORIALOGS_VERSION}.tar.gz"
   proj::log::info "Downloading VictoriaLogs from: ${vl_url}"
-  
+
   if ! curl -L "${vl_url}" | proj::util::sudo "tar -xz -C /opt/victorialogs"; then
     proj::log::error "Failed to download and extract VictoriaLogs"
     return 1
@@ -161,7 +161,7 @@ proj::victorialogs::pre_install() {
     proj::log::error "curl is required but not installed"
     return 1
   fi
-  
+
   proj::log::info "Pre-installation checks passed"
 }
 
@@ -186,7 +186,7 @@ proj::victorialogs::status() {
 # Function to check Docker container status
 proj::victorialogs::docker::status() {
   proj::log::info "Docker container:"
-  
+
   if docker ps -q -f name="${VICTORIALOGS_DOCKER_NAME}" | grep -q .; then
     local status=$(docker inspect --format='{{.State.Status}}' "${VICTORIALOGS_DOCKER_NAME}" 2>/dev/null || echo "not found")
     proj::log::info "  ${VICTORIALOGS_DOCKER_NAME}: ${status}"
@@ -203,7 +203,7 @@ proj::victorialogs::check_connectivity() {
   proj::log::info "Checking VictoriaLogs connectivity..."
 
   local url="http://${PROJ_VICTORIALOGS_HOST}:${PROJ_VICTORIALOGS_PORT}/health"
-  
+
   if curl -s --max-time 5 "${url}" >/dev/null 2>&1; then
     proj::log::info "  VictoriaLogs: ✓ (${url})"
   else
@@ -271,7 +271,7 @@ EOF
 # Main function to handle command line arguments
 main() {
   local action=${1:-}
-  
+
   case "${action}" in
     install)
       proj::victorialogs::install

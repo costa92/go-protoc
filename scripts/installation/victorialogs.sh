@@ -14,7 +14,7 @@ set -o pipefail
 # Can be overridden by setting these variables before running the script
 PROJ_VICTORIALOGS_HOST=${PROJ_VICTORIALOGS_HOST:-127.0.0.1}                # VictoriaLogs server host
 PROJ_VICTORIALOGS_PORT=${PROJ_VICTORIALOGS_PORT:-9428}                     # VictoriaLogs server port
-PROJ_VICTORIALOGS_DATA_DIR=${PROJ_VICTORIALOGS_DATA_DIR:-/var/lib/victorialogs} # VictoriaLogs data directory
+PROJ_VICTORIALOGS_DATA_DIR=${PROJ_VICTORIALOGS_DATA_DIR:-${PROJ_THIRDPARTY_INSTALL_DIR}/victorialogs} # VictoriaLogs data directory
 PROJ_VICTORIALOGS_CONFIG_DIR=${PROJ_VICTORIALOGS_CONFIG_DIR:-/etc/victorialogs} # VictoriaLogs config directory
 # 加载通用配置和版本管理
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -167,13 +167,12 @@ proj::victorialogs::docker::install() {
   proj::common::network
 
   # 创建数据目录
-  local victorialogs_data_dir="${PROJ_THIRDPARTY_INSTALL_DIR}/victorialogs"
-  mkdir -p ${victorialogs_data_dir}
+  mkdir -p ${PROJ_VICTORIALOGS_DATA_DIR}
 
   docker run -d --name ${VICTORIALOGS_DOCKER_MNAME} \
     --restart always \
     --network ${NETWORK_NAME} \
-    -v ${victorialogs_data_dir}:/victoria-logs-data \
+    -v ${PROJ_VICTORIALOGS_DATA_DIR}:/victoria-logs-data \
     -p ${PROJ_VICTORIALOGS_HOST}:${PROJ_VICTORIALOGS_PORT}:9428 \
     victoriametrics/victoria-logs:${PROJ_VICTORIALOGS_VERSION} \
     -storageDataPath=/victoria-logs-data \
@@ -205,7 +204,7 @@ EOF
 # Uninstall the docker container
 proj::victorialogs::docker::uninstall() {
   docker rm -f ${VICTORIALOGS_DOCKER_MNAME} &>/dev/null
-  proj::util::sudo "rm -rf ${PROJ_THIRDPARTY_INSTALL_DIR}/victorialogs"
+  proj::util::sudo "rm -rf ${PROJ_VICTORIALOGS_DATA_DIR}"
   proj::log::info "uninstall victorialogs successfully"
 }
 

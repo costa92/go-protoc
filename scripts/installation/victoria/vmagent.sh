@@ -27,7 +27,7 @@ VICTORIAMETRICS_DOCKER_NAME=${NETWORK_NAME}-victoriametrics
 VICTORIALOGS_DOCKER_NAME=${NETWORK_NAME}-victorialogs
 
 # vmagent 数据目录
-VMAGENT_DATA_DIR=${PROJ_ROOT_DIR}/data/vmagent
+VMAGENT_DATA_DIR=${PROJ_THIRDPARTY_INSTALL_DIR}/vmagent
 
 # Function to install vmagent natively
 proj::vmagent::install() {
