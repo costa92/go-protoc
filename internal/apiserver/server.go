@@ -61,12 +61,47 @@ type ServerConfig struct {
 }
 
 func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
-	// 初始化日志库 - 根据配置设置日志等级
+	// 日志库已在应用程序启动时初始化，包含context extractors配置
+	// 这里只记录配置信息
 	if cfg.LogOptions != nil {
-		log.Init(cfg.LogOptions)
-		log.Infow("Logger initialized", "level", cfg.LogOptions.Level, "format", cfg.LogOptions.Format)
+		log.Infow("Logger configuration", "level", cfg.LogOptions.Level, "format", cfg.LogOptions.Format)
 		log.Debugw("Debug logging enabled", "caller_skip", 2, "enable_color", cfg.LogOptions.EnableColor)
 	}
+
+	// 在启动服务前验证所有连接
+	log.Infow("Validating service connections before startup...")
+	
+	// 验证MySQL连接
+	if cfg.MySQLOptions != nil {
+		log.Infow("Testing MySQL connection...")
+		if err := cfg.MySQLOptions.TestConnection(); err != nil {
+			log.Errorw(err, "MySQL connection test failed")
+			return nil, err
+		}
+		log.Infow("MySQL connection test passed")
+	}
+
+	// 验证Redis连接
+	if cfg.RedisOptions != nil {
+		log.Infow("Testing Redis connection...")
+		if err := cfg.RedisOptions.TestConnection(); err != nil {
+			log.Errorw(err, "Redis connection test failed")
+			return nil, err
+		}
+		log.Infow("Redis connection test passed")
+	}
+
+	// 验证Jaeger连接
+	if cfg.JaegerOptions != nil {
+		log.Infow("Testing Jaeger connection...")
+		if err := cfg.JaegerOptions.TestConnection(); err != nil {
+			log.Errorw(err, "Jaeger connection test failed")
+			return nil, err
+		}
+		log.Infow("Jaeger connection test passed")
+	}
+
+	log.Infow("All service connections validated successfully")
 
 	if err := cfg.JaegerOptions.SetTracerProvider(Name); err != nil {
 		return nil, err

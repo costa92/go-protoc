@@ -1,6 +1,8 @@
 package options
 
 import (
+	"context"
+	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -56,6 +58,40 @@ func (o *RedisOptions) Validate() []error {
 	}
 
 	return errs
+}
+
+// TestConnection tests the actual connection to Redis server.
+func (o *RedisOptions) TestConnection() error {
+	if o.Addr == "" {
+		return fmt.Errorf("Redis connection address not configured")
+	}
+
+	// 创建Redis客户端配置
+	client := redis.NewClient(&redis.Options{
+		Addr:         o.Addr,
+		Username:     o.Username,
+		Password:     o.Password,
+		DB:           o.Database,
+		DialTimeout:  o.DialTimeout,
+		ReadTimeout:  o.ReadTimeout,
+		WriteTimeout: o.WriteTimeout,
+		MaxRetries:   o.MaxRetries,
+		MinIdleConns: o.MinIdleConns,
+		PoolSize:     o.PoolSize,
+		PoolTimeout:  o.PoolTimeout,
+	})
+	defer client.Close()
+
+	// 设置连接超时
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// 测试连接
+	if err := client.Ping(ctx).Err(); err != nil {
+		return fmt.Errorf("failed to ping Redis server: %w", err)
+	}
+
+	return nil
 }
 
 // AddFlags adds flags related to redis storage for a specific APIServer to the specified FlagSet.

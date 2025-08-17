@@ -18,6 +18,7 @@ func (l *zapLogger) Log(level krtlog.Level, keyvals ...any) error {
 		return nil
 	}
 
+	// 使用已有的zap logger实例，它可能包含通过W(ctx)添加的context字段
 	switch level {
 	case krtlog.LevelDebug:
 		l.z.Sugar().Debugw("", keyvals...)

@@ -3,7 +3,7 @@
 # =============================================================================
 # 统一版本管理配置文件
 # Central Version Management Configuration
-# 
+#
 # 此文件管理所有第三方组件的版本信息，确保版本统一和易于升级
 # This file manages version information for all third-party components
 # =============================================================================
@@ -33,7 +33,12 @@ export OTELCOL_VERSION=${OTELCOL_VERSION:-0.91.0}
 export SENTRY_VERSION=${SENTRY_VERSION:-24.1.0}
 
 # 日志管理 (Log Management)
-export VICTORIALOGS_VERSION=${VICTORIALOGS_VERSION:-v0.5.2-victorialogs}
+export VICTORIALOGS_VERSION=${VICTORIALOGS_VERSION:-1.28.0}
+
+# VictoriaMetrics 监控栈 (VictoriaMetrics Stack)
+export VICTORIAMETRICS_VERSION=${VICTORIAMETRICS_VERSION:-1.96.0}
+export VMAGENT_VERSION=${VMAGENT_VERSION:-1.96.0}
+export VMALERT_VERSION=${VMALERT_VERSION:-1.96.0}
 
 # 工具版本 (Tools)
 export DOCKER_COMPOSE_VERSION=${DOCKER_COMPOSE_VERSION:-v2.29.7}
@@ -59,12 +64,12 @@ export PROJ_VICTORIALOGS_VERSION=${VICTORIALOGS_VERSION}
 proj::versions::validate_version() {
   local version=$1
   local component=$2
-  
+
   if [[ -z "$version" ]]; then
     echo "错误: $component 版本不能为空" >&2
     return 1
   fi
-  
+
   # 基本的版本格式检查（支持 v前缀和不带v的版本）
   if [[ ! "$version" =~ ^v?[0-9]+\.[0-9]+(\.[0-9]+)?(-[a-zA-Z0-9\-]+)?$ ]]; then
     echo "警告: $component 版本格式可能不正确: $version" >&2
@@ -94,6 +99,11 @@ proj::versions::show_all() {
   echo "日志管理:"
   echo "  VictoriaLogs: $VICTORIALOGS_VERSION"
   echo ""
+  echo "VictoriaMetrics 监控栈:"
+  echo "  VictoriaMetrics: $VICTORIAMETRICS_VERSION"
+  echo "  vmagent:         $VMAGENT_VERSION"
+  echo "  vmalert:         $VMALERT_VERSION"
+  echo ""
   echo "工具:"
   echo "  Docker Compose: $DOCKER_COMPOSE_VERSION"
 }
@@ -101,7 +111,7 @@ proj::versions::show_all() {
 # 检查所有版本
 proj::versions::validate_all() {
   echo "正在验证版本格式..."
-  
+
   proj::versions::validate_version "$REDIS_VERSION" "Redis"
   proj::versions::validate_version "$MARIADB_VERSION" "MariaDB"
   proj::versions::validate_version "$MYSQL_VERSION" "MySQL"
@@ -114,15 +124,18 @@ proj::versions::validate_all() {
   proj::versions::validate_version "$ALERTMANAGER_VERSION" "AlertManager"
   proj::versions::validate_version "$OTELCOL_VERSION" "OpenTelemetry Collector"
   proj::versions::validate_version "$VICTORIALOGS_VERSION" "VictoriaLogs"
+  proj::versions::validate_version "$VICTORIAMETRICS_VERSION" "VictoriaMetrics"
+  proj::versions::validate_version "$VMAGENT_VERSION" "vmagent"
+  proj::versions::validate_version "$VMALERT_VERSION" "vmalert"
   proj::versions::validate_version "$DOCKER_COMPOSE_VERSION" "Docker Compose"
-  
+
   echo "版本验证完成"
 }
 
 # =============================================================================
 # 使用示例 (Usage Examples)
 # =============================================================================
-# 
+#
 # 在其他脚本中使用:
 # source ./versions.sh
 # echo "使用 Prometheus 版本: $PROMETHEUS_VERSION"

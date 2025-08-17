@@ -178,7 +178,7 @@ proj::victorialogs::docker::install() {
     victoriametrics/victoria-logs:${PROJ_VICTORIALOGS_VERSION} \
     -storageDataPath=/victoria-logs-data \
     -httpListenAddr=0.0.0.0:9428 \
-    -loggerLevel=INFO
+    -loggerLevel=WARN
 
   sleep 5
   if proj::util::is_linux; then

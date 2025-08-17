@@ -27,5 +27,10 @@ source ${PROJ_ENV_FILE}
 # 在 uninstall 时，可不删除 proj 容器网络，可以作为一个无害的无用数据
 proj::common::network()
 {
-  docker network ls |grep -q ${NETWORK_NAME} || docker network create ${NETWORK_NAME}
+  if ! docker network ls | grep -q ${NETWORK_NAME}; then
+    docker network create ${NETWORK_NAME} || {
+      proj::log::info "Network ${NETWORK_NAME} already exists or failed to create, continuing..."
+      return 0
+    }
+  fi
 }

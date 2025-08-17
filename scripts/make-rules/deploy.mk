@@ -240,25 +240,6 @@ _uninstall.docker.otelcol: ## Uninstall docker install OpenTelemetry Collector
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::otelcol::docker::uninstall
 
 
-##@ VictoriaLogs Service
-# ==============================================================================
-# VictoriaLogs installation methods
-# ==============================================================================
-.PHONY: _install.victorialogs
-_install.victorialogs:  ## Install VictoriaLogs for deployment.
-	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::victorialogs::install
-
-.PHONY: _uninstall.victorialogs
-_uninstall.victorialogs: ## Uninstall VictoriaLogs for deployment.
-	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::victorialogs::uninstall
-
-.PHONY: _install.docker.victorialogs
-_install.docker.victorialogs: ## Install docker install VictoriaLogs
-	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::victorialogs::docker::install
-
-.PHONY: _uninstall.docker.victorialogs
-_uninstall.docker.victorialogs: ## Uninstall docker install VictoriaLogs
-	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::victorialogs::docker::uninstall
 
 ##@ Sentry Service
 # ==============================================================================
@@ -279,3 +260,116 @@ _install.docker.sentry: ## Install docker install Sentry
 .PHONY: _uninstall.docker.sentry
 _uninstall.docker.sentry: ## Uninstall docker install Sentry
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::sentry::docker::uninstall
+
+
+##@ Victoria Suite (Complete Stack)
+# ==============================================================================
+# Victoria Suite installation methods (unified stack)
+# ==============================================================================
+.PHONY: _install.victoria
+_install.victoria:  ## Install Victoria Suite for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh install
+
+.PHONY: _uninstall.victoria
+_uninstall.victoria: ## Uninstall Victoria Suite for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh uninstall
+
+.PHONY: _install.docker.victoria
+_install.docker.victoria: ## Install docker install Victoria Suite
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh docker.install
+
+.PHONY: _uninstall.docker.victoria
+_uninstall.docker.victoria: ## Uninstall docker install Victoria Suite
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh docker.uninstall
+
+.PHONY: deploy.status.victoria
+deploy.status.victoria: ## Check Victoria Suite status
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh status
+
+.PHONY: deploy.info.victoria
+deploy.info.victoria: ## Show Victoria Suite information
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh info
+
+.PHONY: deploy.install.all.victoria
+deploy.install.all.victoria: ## Install all Victoria components individually using Docker
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh install.all
+
+.PHONY: deploy.uninstall.all.victoria
+deploy.uninstall.all.victoria: ## Uninstall all Victoria components
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh uninstall.all
+
+##@ Victoria Individual Components  
+# ==============================================================================
+# Individual component installation methods (via unified entry point)
+# ==============================================================================
+.PHONY: _install.victoriametrics
+_install.victoriametrics:  ## Install VictoriaMetrics for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh victoriametrics.install
+
+.PHONY: _uninstall.victoriametrics
+_uninstall.victoriametrics: ## Uninstall VictoriaMetrics for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh victoriametrics.uninstall
+
+.PHONY: _install.docker.victoriametrics
+_install.docker.victoriametrics: ## Install docker install VictoriaMetrics
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh victoriametrics.docker.install
+
+.PHONY: _uninstall.docker.victoriametrics
+_uninstall.docker.victoriametrics: ## Uninstall docker install VictoriaMetrics
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh victoriametrics.docker.uninstall
+
+.PHONY: deploy.status.victoriametrics
+deploy.status.victoriametrics: ## Check VictoriaMetrics status
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh victoriametrics.status
+
+.PHONY: deploy.info.victoriametrics
+deploy.info.victoriametrics: ## Show VictoriaMetrics information
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh victoriametrics.info
+
+.PHONY: _install.victorialogs
+_install.victorialogs:  ## Install VictoriaLogs for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh victorialogs.install
+
+.PHONY: _uninstall.victorialogs
+_uninstall.victorialogs: ## Uninstall VictoriaLogs for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh victorialogs.uninstall
+
+.PHONY: _install.docker.victorialogs
+_install.docker.victorialogs: ## Install docker install VictoriaLogs
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh victorialogs.docker.install
+
+.PHONY: _uninstall.docker.victorialogs
+_uninstall.docker.victorialogs: ## Uninstall docker install VictoriaLogs
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh victorialogs.docker.uninstall
+
+.PHONY: deploy.status.victorialogs
+deploy.status.victorialogs: ## Check VictoriaLogs status
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh victorialogs.status
+
+.PHONY: deploy.info.victorialogs
+deploy.info.victorialogs: ## Show VictoriaLogs information
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh victorialogs.info
+
+.PHONY: _install.vmagent
+_install.vmagent:  ## Install vmagent for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh vmagent.install
+
+.PHONY: _uninstall.vmagent
+_uninstall.vmagent: ## Uninstall vmagent for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh vmagent.uninstall
+
+.PHONY: _install.docker.vmagent
+_install.docker.vmagent: ## Install docker install vmagent
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh vmagent.docker.install
+
+.PHONY: _uninstall.docker.vmagent
+_uninstall.docker.vmagent: ## Uninstall docker install vmagent
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh vmagent.docker.uninstall
+
+.PHONY: deploy.status.vmagent
+deploy.status.vmagent: ## Check vmagent status
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh vmagent.status
+
+.PHONY: deploy.info.vmagent
+deploy.info.vmagent: ## Show vmagent information
+	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh vmagent.info

@@ -42,9 +42,20 @@ jaeger:
 
 # Log Configuration
 log:
-  level: "info" # 日志级别：debug, info, warn, error, dpanic, panic, fatal
-  format: "console" # 日志格式：console, json
+  level: "debug" # 日志级别：debug, info, warn, error, dpanic, panic, fatal
+  format: "json" # 日志格式：console, json (VictoriaLogs推荐JSON格式)
   disable-caller: false # 是否禁用调用者信息
   disable-stacktrace: false # 是否禁用堆栈跟踪
-  enable-color: true # 是否启用彩色输出
-  output-paths: ["stdout"] # 日志输出路径
+  enable-color: false # JSON格式不需要颜色输出
+  output-paths: ["stdout", "logs/app.log"] # 日志输出路径：控制台 + 文件
+  victoria-logs:
+    enabled: true # 启用VictoriaLogs集成
+    endpoint: "http://127.0.0.1:9428" # VictoriaLogs API端点
+    service: "apiserver" # 服务名称
+    version: "v2.0.0" # 服务版本
+    environment: "development" # 环境标识
+    buffer-size: 1000 # 缓冲区大小
+    batch-size: 100 # 批量发送大小
+    flush-interval: 5 # 强制刷新间隔（秒）
+    timeout: 10 # HTTP请求超时（秒）
+    timezone: "UTC" # 时区设置：UTC(推荐), Local, 或具体时区如 Asia/Shanghai

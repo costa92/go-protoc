@@ -3,6 +3,7 @@ package contextx
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -69,5 +70,12 @@ func WithTraceID(ctx context.Context, traceID string) context.Context {
 
 func TraceID(ctx context.Context) string {
 	traceID, _ := ctx.Value(traceIDKey{}).(string)
+	// 调试：输出context中的trace_id提取结果
+	if traceID != "" {
+		// 这将帮助我们确认context中确实有trace_id
+		fmt.Printf("DEBUG: TraceID extracted from context: %s\n", traceID)
+	} else {
+		fmt.Printf("DEBUG: No TraceID found in context\n")
+	}
 	return traceID
 }

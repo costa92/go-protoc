@@ -1,7 +1,11 @@
 package options
 
 import (
+	"context"
+	"fmt"
+	"net"
 	"strings"
+	"time"
 
 	"github.com/costa92/go-protoc/v2/pkg/trace"
 	"github.com/spf13/pflag"
@@ -33,6 +37,42 @@ func (o *JaegerOptions) Validate() []error {
 	errs := []error{}
 
 	return errs
+}
+
+// TestConnection tests the actual connection to Jaeger agent.
+func (o *JaegerOptions) TestConnection() error {
+	if !o.Enabled {
+		// 如果Jaeger未启用，跳过连接测试
+		return nil
+	}
+
+	if o.Server == "" {
+		return fmt.Errorf("Jaeger server address not configured")
+	}
+
+	// 解析服务器地址，支持UDP Agent端点格式
+	addr := o.Server
+	if !strings.Contains(addr, ":") {
+		addr = addr + ":6831" // 默认Jaeger Agent UDP端口
+	}
+
+	// 移除可能的协议前缀，因为我们要测试UDP连接
+	addr = strings.TrimPrefix(addr, "http://")
+	addr = strings.TrimPrefix(addr, "https://")
+
+	// 设置连接超时
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// 测试UDP连接到Jaeger Agent
+	dialer := &net.Dialer{}
+	conn, err := dialer.DialContext(ctx, "udp", addr)
+	if err != nil {
+		return fmt.Errorf("failed to connect to Jaeger agent at %s: %w", addr, err)
+	}
+	defer conn.Close()
+
+	return nil
 }
 
 // AddFlags adds flags related to Jaeger tracing for a specific APIServer to the specified FlagSet.

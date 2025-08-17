@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  fluent-bit:
+    image: fluent/fluent-bit:3.0.7
+    container_name: fluent-bit
+    restart: unless-stopped
+    ports:
+      - "2020:2020"  # HTTP 监控端点
+    volumes:
+      # 配置文件
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./parsers.conf:/fluent-bit/etc/parsers.conf:ro
+      # 日志目录挂载
+      - ../../logs:/app/logs:ro
+      # 备份日志输出目录
+      - ./backup:/app/logs/backup
+    networks:
+      - fluent-network
+    environment:
+      - HOSTNAME=${HOSTNAME:-fluent-bit}
+    depends_on:
+      - victoria-logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # VictoriaLogs 服务（如果未单独部署）
+  victoria-logs:
+    image: victoriametrics/victoria-logs:v0.5.2-victorialogs
+    container_name: victoria-logs
+    restart: unless-stopped
+    ports:
+      - "9428:9428"
+    volumes:
+      - victoria-logs-data:/victoria-logs-data
+    command:
+      - '-storageDataPath=/victoria-logs-data'
+      - '-httpListenAddr=0.0.0.0:9428'
+      - '-loggerLevel=INFO'
+    networks:
+      - fluent-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  fluent-network:
+    driver: bridge
+    name: fluent-network
+
+volumes:
+  victoria-logs-data:
+    driver: local

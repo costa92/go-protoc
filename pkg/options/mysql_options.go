@@ -1,9 +1,12 @@
 package options
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql" // MySQL driver
 	"github.com/spf13/pflag"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
@@ -56,6 +59,35 @@ func (o *MySQLOptions) Validate() []error {
 	}
 
 	return errs
+}
+
+// TestConnection tests the actual connection to MySQL database.
+func (o *MySQLOptions) TestConnection() error {
+	if o.Addr == "" || o.Username == "" || o.Database == "" {
+		return fmt.Errorf("MySQL connection parameters not configured")
+	}
+
+	// 构建DSN
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		o.Username, o.Password, o.Addr, o.Database)
+
+	// 尝试连接数据库
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return fmt.Errorf("failed to open MySQL connection: %w", err)
+	}
+	defer db.Close()
+
+	// 设置连接超时
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// 测试连接
+	if err := db.PingContext(ctx); err != nil {
+		return fmt.Errorf("failed to ping MySQL database: %w", err)
+	}
+
+	return nil
 }
 
 // AddFlags adds flags related to mysql storage for a specific APIServer to the specified FlagSet.

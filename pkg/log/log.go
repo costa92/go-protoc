@@ -3,6 +3,7 @@ package log
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -70,7 +71,7 @@ func WithContextExtractor(contextExtractors ContextExtractors) Option {
 func Init(opts *Options, options ...Option) {
 	mu.Lock()
 	defer mu.Unlock()
-	std = NewLogger(opts)
+	std = NewLogger(opts, options...)
 }
 
 // NewLogger 根据传入的 opts 创建 Logger.
@@ -134,10 +135,47 @@ func NewLogger(opts *Options, options ...Option) *zapLogger {
 		panic(err)
 	}
 
+	// 如果启用了VictoriaLogs，创建一个tee logger来同时写入VictoriaLogs
+	if opts.VictoriaLogs != nil && opts.VictoriaLogs.Enabled {
+		victoriaWriter := NewVictoriaLogsWriter(VictoriaLogsOptions{
+			Endpoint:      opts.VictoriaLogs.Endpoint,
+			Service:       opts.VictoriaLogs.Service,
+			Version:       opts.VictoriaLogs.Version,
+			Environment:   opts.VictoriaLogs.Environment,
+			BufferSize:    opts.VictoriaLogs.BufferSize,
+			BatchSize:     opts.VictoriaLogs.BatchSize,
+			FlushInterval: time.Duration(opts.VictoriaLogs.FlushInterval) * time.Second,
+			Timeout:       time.Duration(opts.VictoriaLogs.Timeout) * time.Second,
+		})
+
+		// 创建多个core：原有输出 + VictoriaLogs
+		encoder := zapcore.NewJSONEncoder(encoderConfig)
+		victoriaCore := zapcore.NewCore(encoder, victoriaWriter.WriteSyncer(), zapLevel)
+		
+		// 获取现有的core
+		existingCore := z.Core()
+		
+		// 创建tee core
+		teeCore := zapcore.NewTee(existingCore, victoriaCore)
+		
+		// 重新创建logger
+		z = zap.New(teeCore, zap.AddStacktrace(zapcore.PanicLevel), zap.AddCallerSkip(2))
+	}
+
 	logger := &zapLogger{z: z, opts: opts, contextExtractors: make(map[string]func(context.Context) string)}
 	// 应用所有传入的 Option
 	for _, opt := range options {
 		opt(logger)
+	}
+
+	// 调试：输出已配置的context extractors
+	if len(logger.contextExtractors) > 0 {
+		logger.z.Debug("Context extractors configured", zap.Int("count", len(logger.contextExtractors)), zap.String("logger_addr", fmt.Sprintf("%p", logger)))
+		for fieldName := range logger.contextExtractors {
+			logger.z.Debug("Context extractor registered", zap.String("field", fieldName), zap.String("logger_addr", fmt.Sprintf("%p", logger)))
+		}
+	} else {
+		logger.z.Debug("No context extractors configured", zap.String("logger_addr", fmt.Sprintf("%p", logger)))
 	}
 
 	return logger
@@ -208,9 +246,16 @@ func W(ctx context.Context) Logger {
 func (l *zapLogger) W(ctx context.Context) Logger {
 	lc := l.clone()
 
+	// 调试：显示正在使用的logger地址和extractor数量
+	lc.z.Debug("W() method called", zap.String("logger_addr", fmt.Sprintf("%p", l)), zap.Int("extractor_count", len(l.contextExtractors)))
+
 	for fieldName, extractor := range l.contextExtractors {
 		if val := extractor(ctx); val != "" {
 			lc.z = lc.z.With(zap.String(fieldName, val))
+			// 调试输出：记录成功提取的context字段
+			lc.z.Debug("Context field extracted", zap.String("field", fieldName), zap.String("value", val))
+		} else {
+			lc.z.Debug("Context field empty", zap.String("field", fieldName))
 		}
 	}
 

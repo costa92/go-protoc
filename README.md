@@ -20,6 +20,7 @@
 ## 🎯 功能特性
 
 ### 核心特性
+
 - 🏗️ **清洁架构**: 分层架构设计，依赖倒置，易于测试和维护
 - 🔌 **依赖注入**: 基于Wire的编译时依赖注入，高性能零反射
 - 📡 **双协议支持**: HTTP REST + gRPC API，自动生成客户端代码
@@ -29,6 +30,7 @@
 - 🔧 **配置管理**: 环境变量，配置文件，命令行参数统一管理
 
 ### 技术栈
+
 - **框架**: Kratos v2，Gin，gRPC
 - **数据库**: MySQL，PostgreSQL，MongoDB，Redis
 - **消息队列**: Kafka，RabbitMQ
@@ -88,7 +90,7 @@ func main() {
     mysqlOpts := options.NewMySQLOptions()
     mysqlOpts.EnableMetrics = true
     mysqlOpts.EnableTrace = true
-    
+
     // 2. 初始化追踪
     traceConfig := trace.TracerConfig{
         ServiceName: "my-service",
@@ -96,7 +98,7 @@ func main() {
         Environment: "development",
     }
     trace.InitializeGlobalTracer(traceConfig)
-    
+
     // 3. 启动监控
     metricsManager, _ := metrics.StartMetrics("my-service",
         metrics.WithHTTP(true, 8080),
@@ -105,13 +107,13 @@ func main() {
         }),
     )
     defer metricsManager.Stop()
-    
+
     // 4. 创建数据库连接
     db, err := mysqlOpts.NewDB()
     if err != nil {
         panic(err)
     }
-    
+
     // 5. 注册到监控系统
     metrics.RegisterDatabase("main", db)
 }
@@ -153,7 +155,7 @@ graph TD
     B --> E[pkg/metrics]
     B --> F[pkg/trace]
     B --> G[pkg/options]
-    
+
     D --> E
     D --> F
     E --> G
@@ -167,12 +169,14 @@ graph TD
 提供统一的数据库连接抽象层，支持多种数据库类型。
 
 **核心功能**:
+
 - MySQL、PostgreSQL、Redis连接管理
 - 连接池监控和优化
 - 事务支持和错误处理
 - 指标收集和链路追踪集成
 
 **快速使用**:
+
 ```go
 // 创建MySQL连接
 opts := &db.MySQLOptions{
@@ -188,12 +192,14 @@ db, err := db.NewMySQL(opts)
 完整的指标收集和管理系统，支持HTTP、gRPC、数据库等组件监控。
 
 **核心功能**:
+
 - HTTP/gRPC/数据库/Redis指标收集
 - Prometheus标准指标导出
 - 自定义业务指标支持
 - 健康检查和状态监控
 
 **快速使用**:
+
 ```go
 // 启动指标收集
 manager, _ := metrics.StartMetrics("my-service",
@@ -210,12 +216,14 @@ metrics.RecordHTTPRequest("GET", "/api/users", 200, time.Millisecond*150)
 基于OpenTelemetry的分布式链路追踪系统。
 
 **核心功能**:
+
 - Jaeger链路追踪集成
 - 数据库操作自动追踪
 - 微服务调用链可视化
 - 性能瓶颈分析
 
 **快速使用**:
+
 ```go
 // 初始化追踪器
 config := trace.TracerConfig{
@@ -234,12 +242,14 @@ defer span.End()
 统一的配置选项管理系统，支持命令行参数和配置文件。
 
 **核心功能**:
+
 - 多种组件配置选项（数据库、服务、中间件）
 - 命令行参数自动生成
 - 配置验证和默认值
 - 环境变量支持
 
 **快速使用**:
+
 ```go
 // 创建配置选项
 mysqlOpts := options.NewMySQLOptions()
@@ -365,6 +375,7 @@ make tidy              # 清理依赖
 ### 配置管理
 
 **环境配置**:
+
 ```bash
 # 复制配置模板
 cp configs/apiserver.yaml configs/apiserver_local.yaml
@@ -377,6 +388,7 @@ go run cmd/apiserver/main.go -c configs/apiserver_local.yaml
 ```
 
 **配置结构**:
+
 ```yaml
 # configs/apiserver.yaml
 server:
@@ -469,6 +481,7 @@ spec:
 ### 监控配置
 
 **Prometheus配置**:
+
 ```yaml
 # prometheus.yml
 scrape_configs:
@@ -480,6 +493,7 @@ scrape_configs:
 ```
 
 **Grafana仪表板**:
+
 - HTTP请求监控
 - 数据库连接池状态
 - 应用性能指标
@@ -488,6 +502,7 @@ scrape_configs:
 ### 性能优化
 
 **生产环境建议**:
+
 ```yaml
 # 数据库连接池
 database:
@@ -520,6 +535,7 @@ make rename-project OLD_PATH=github.com/costa92/go-protoc/v2 NEW_PATH=github.com
 ### Git钩子
 
 项目包含自动安装的Git钩子：
+
 - **pre-commit**: 代码格式化和检查
 - **commit-msg**: 提交信息格式验证
 - **pre-push**: 推送前测试
@@ -601,6 +617,7 @@ type(scope): description
 ```
 
 **类型**:
+
 - `feat`: 新功能
 - `fix`: Bug修复
 - `docs`: 文档更新
@@ -623,6 +640,6 @@ type(scope): description
 
 ---
 
-**项目维护者**: Go-Protoc Team  
-**最后更新**: 2025-01-15  
+**项目维护者**: Go-Protoc Team
+**最后更新**: 2025-01-15
 **版本**: v2.0.0

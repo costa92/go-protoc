@@ -317,6 +317,113 @@ Wire依赖注入 → PoolMonitor → pkg/db (可选监控) → pkg/metrics (指�
 - **项目重命名**: 使用 `make rename-project OLD_PATH=X NEW_PATH=Y` 更改模块路径
 - **Git 钩子**: 自动安装的 Git 钩子: githooks/{pre-commit,commit-msg,pre-push}
 
+## VictoriaLogs 日志集成
+
+### 🔥 已完成集成
+项目已完全集成 **VictoriaLogs** 作为统一日志管理解决方案，支持结构化日志存储、查询和可视化。
+
+#### 📊 核心特性
+- ✅ **完全集成**: 基于 Zap 的高性能日志系统
+- ✅ **结构化日志**: JSON 格式，支持字段检索和过滤
+- ✅ **批量发送**: 异步处理，1000 条缓冲区，100 条批量发送
+- ✅ **多路输出**: 同时输出到控制台、文件和 VictoriaLogs
+- ✅ **UI 界面**: Web 界面支持实时日志查询和可视化
+
+#### 🌐 访问方式
+```bash
+# Web UI 界面（推荐）
+http://127.0.0.1:9428/select/vmui/
+
+# API 查询接口
+curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=*'
+```
+
+#### 🚀 管理命令
+```bash
+# VictoriaLogs 服务管理
+make deploy.install.docker.victorialogs    # 安装服务
+make deploy.status.victorialogs             # 检查状态
+make deploy.uninstall.docker.victorialogs  # 卸载服务
+
+# Victoria 完整套件管理
+make deploy.install.all.victoria            # 安装所有组件
+make deploy.uninstall.all.victoria          # 卸载所有组件
+make deploy.status.victoria                 # 检查套件状态
+
+# 统一脚本管理
+./scripts/installation/victoria.sh install.all      # 安装所有组件
+./scripts/installation/victoria.sh uninstall.all    # 卸载所有组件
+./scripts/installation/victoria.sh status           # 检查状态
+```
+
+#### 🔍 日志查询工具
+项目提供了专用的日志查询脚本：
+
+```bash
+# 使用查询脚本
+./scripts/victoria-logs-query.sh stats             # 日志统计
+./scripts/victoria-logs-query.sh recent            # 最近日志
+./scripts/victoria-logs-query.sh info              # Info 级别日志
+./scripts/victoria-logs-query.sh "_msg:*MySQL*"    # 自定义查询
+
+# 使用测试脚本
+./scripts/test-victorialogs-ui.sh                  # 完整集成测试
+```
+
+#### 📝 查询语法示例
+```bash
+# 基础查询
+*                           # 所有日志
+level:info                  # 按级别过滤
+_msg:*server*              # 消息内容包含 "server"
+_time:>2025-08-17          # 时间范围过滤
+
+# 复合查询
+level:info AND _msg:*MySQL*     # Info 级别且包含 MySQL
+level:(error OR warn)           # 错误或警告级别
+service:apiserver               # 特定服务日志
+```
+
+#### ⚙️ 配置说明
+日志配置位于 `configs/apiserver.yaml`:
+
+```yaml
+log:
+  level: "info"
+  format: "json"                    # VictoriaLogs 推荐格式
+  output-paths: ["stdout", "logs/app.log"]
+  victoria-logs:
+    enabled: true                   # 启用 VictoriaLogs
+    endpoint: "http://127.0.0.1:9428"
+    service: "apiserver"
+    version: "v2.0.0"
+    environment: "development"
+    buffer-size: 1000              # 缓冲区大小
+    batch-size: 100                # 批量发送大小
+    flush-interval: 5              # 刷新间隔（秒）
+    timeout: 10                    # 请求超时（秒）
+```
+
+#### 🏗️ 架构集成
+```
+应用程序 → Zap Logger → Tee Core → 多路输出:
+                                  ├─ 控制台 (开发调试)
+                                  ├─ 文件 (本地持久化)
+                                  └─ VictoriaLogs (集中管理)
+```
+
+#### 📈 监控指标
+- **日志吞吐量**: 支持高并发日志写入
+- **查询性能**: 毫秒级日志检索响应
+- **存储效率**: 压缩存储，节省磁盘空间
+- **可视化**: 时间序列图表，日志分布统计
+
+#### 🔗 与其他组件集成
+- **Jaeger 追踪**: 日志中包含 trace_id 关联
+- **Prometheus 指标**: 日志错误率监控
+- **数据库日志**: GORM 查询日志自动收集
+- **中间件日志**: HTTP/gRPC 请求响应日志
+
 ## AI Agent 模块开发计划
 
 ### 🤖 AI Agent 架构设计

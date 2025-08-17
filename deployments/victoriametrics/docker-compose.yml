@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  # VictoriaMetrics 时序数据库
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.96.0
+    container_name: proj-victoriametrics
+    ports:
+      - "8428:8428"
+    volumes:
+      - victoriametrics-data:/victoria-metrics-data
+    command:
+      - "--storageDataPath=/victoria-metrics-data"
+      - "--httpListenAddr=:8428"
+      - "--retentionPeriod=30d"
+      - "--maxConcurrentInserts=8"
+      - "--search.maxQueryDuration=30s"
+      - "--search.maxStepForPointsAdjustment=30s"
+    restart: unless-stopped
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8428/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # VictoriaLogs 日志数据库
+  victorialogs:
+    image: victoriametrics/victoria-logs:v1.28.0
+    container_name: proj-victorialogs
+    ports:
+      - "9428:9428"
+    volumes:
+      - victorialogs-data:/victoria-logs-data
+    command:
+      - "--storageDataPath=/victoria-logs-data"
+      - "--httpListenAddr=:9428"
+      - "--retentionPeriod=30d"
+      - "--maxConcurrentInserts=8"
+    restart: unless-stopped
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9428/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # vmagent 数据采集代理
+  vmagent:
+    image: victoriametrics/vmagent:v1.96.0
+    container_name: proj-vmagent
+    ports:
+      - "8429:8429"
+    volumes:
+      - ./vmagent.yml:/etc/vmagent/vmagent.yml:ro
+      - vmagent-data:/vmagent-data
+    command:
+      - "--promscrape.config=/etc/vmagent/vmagent.yml"
+      - "--remoteWrite.url=http://victoriametrics:8428/api/v1/write"
+      - "--httpListenAddr=:8429"
+      - "--dataDir=/vmagent-data"
+    restart: unless-stopped
+    networks:
+      - monitoring
+    depends_on:
+      - victoriametrics
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8429/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Fluent Bit 日志采集器
+  fluent-bit:
+    image: fluent/fluent-bit:2.2.0
+    container_name: proj-fluent-bit
+    ports:
+      - "24224:24224"
+      - "24225:24225"
+    volumes:
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./parsers.conf:/fluent-bit/etc/parsers.conf:ro
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    restart: unless-stopped
+    networks:
+      - monitoring
+    depends_on:
+      - victorialogs
+    environment:
+      - FLUENT_BIT_CONFIG_FILE=/fluent-bit/etc/fluent-bit.conf
+
+volumes:
+  victoriametrics-data:
+    driver: local
+    name: proj-victoriametrics-data
+  victorialogs-data:
+    driver: local
+    name: proj-victorialogs-data
+  vmagent-data:
+    driver: local
+    name: proj-vmagent-data
+
+networks:
+  monitoring:
+    driver: bridge
+    name: proj-monitoring
