@@ -133,12 +133,12 @@ func WithSpanKind(kind trace.SpanKind) trace.SpanStartOption {
 func SetNoOpTracer() {
 	mu.Lock()
 	defer mu.Unlock()
-	
+
 	// 设置空操作追踪器
 	otel.SetTracerProvider(trace.NewNoopTracerProvider())
 	globalTracer = trace.NewNoopTracerProvider().Tracer("")
 	initialized = true
-	
+
 	fmt.Printf("[Trace] Jaeger 追踪已禁用，使用空操作追踪器\n")
 }
 

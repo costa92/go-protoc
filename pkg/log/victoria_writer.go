@@ -39,16 +39,16 @@ type VictoriaLogsWriter struct {
 // LogEntry 表示发送到VictoriaLogs的日志条目
 // VictoriaLogs要求使用特定的字段名：_msg, _time, _stream
 type LogEntry struct {
-	Timestamp   string                 `json:"_time"`               // VictoriaLogs标准时间字段
-	Message     string                 `json:"_msg"`                // VictoriaLogs标准消息字段
+	Timestamp   string                 `json:"_time"` // VictoriaLogs标准时间字段
+	Message     string                 `json:"_msg"`  // VictoriaLogs标准消息字段
 	Level       string                 `json:"level"`
 	Logger      string                 `json:"logger,omitempty"`
 	Caller      string                 `json:"caller,omitempty"`
 	Service     string                 `json:"service"`
 	Version     string                 `json:"version,omitempty"`
 	Environment string                 `json:"environment,omitempty"`
-	TraceID     string                 `json:"trace_id,omitempty"`  // 分布式追踪ID
-	SpanID      string                 `json:"span_id,omitempty"`   // Span ID
+	TraceID     string                 `json:"trace_id,omitempty"` // 分布式追踪ID
+	SpanID      string                 `json:"span_id,omitempty"`  // Span ID
 	Fields      map[string]interface{} `json:"fields,omitempty"`
 	Error       string                 `json:"error,omitempty"`
 	Stack       string                 `json:"stack,omitempty"`
@@ -56,14 +56,14 @@ type LogEntry struct {
 
 // VictoriaLogsOptions 配置选项
 type VictoriaLogsOptions struct {
-	Endpoint     string        // VictoriaLogs API端点
-	Service      string        // 服务名称
-	Version      string        // 服务版本
-	Environment  string        // 环境标识
-	BufferSize   int           // 缓冲区大小
-	BatchSize    int           // 批量发送大小
+	Endpoint      string        // VictoriaLogs API端点
+	Service       string        // 服务名称
+	Version       string        // 服务版本
+	Environment   string        // 环境标识
+	BufferSize    int           // 缓冲区大小
+	BatchSize     int           // 批量发送大小
 	FlushInterval time.Duration // 强制刷新间隔
-	Timeout      time.Duration // HTTP请求超时
+	Timeout       time.Duration // HTTP请求超时
 }
 
 // NewVictoriaLogsWriter 创建新的VictoriaLogs写入器
@@ -87,7 +87,7 @@ func NewVictoriaLogsWriter(opts VictoriaLogsOptions) *VictoriaLogsWriter {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	writer := &VictoriaLogsWriter{
-		endpoint:    opts.Endpoint + "/insert/jsonline",
+		endpoint: opts.Endpoint + "/insert/jsonline",
 		client: &http.Client{
 			Timeout: opts.Timeout,
 		},
@@ -132,7 +132,6 @@ func (w *VictoriaLogsWriter) Write(p []byte) (n int, err error) {
 		return len(p), nil
 	}
 
-
 	// 构建标准化的日志条目
 	// 按优先级提取消息字段：message > msg > operation > caller > 其他有意义字段
 	message := w.extractString(logData, "message", "")
@@ -157,7 +156,7 @@ func (w *VictoriaLogsWriter) Write(p []byte) (n int, err error) {
 			message = "Unknown log entry"
 		}
 	}
-	
+
 	entry := LogEntry{
 		Timestamp: w.convertToRFC3339(logData),
 		Message:   message,
@@ -213,24 +212,24 @@ func (w *VictoriaLogsWriter) extractString(data map[string]interface{}, key, def
 func (w *VictoriaLogsWriter) extractTraceID(data map[string]interface{}) string {
 	// 常见的 trace_id 字段名，优先使用项目标准字段名
 	traceFields := []string{
-		"x-trace-id",      // 项目标准字段名（最高优先级）
+		"x-trace-id", // 项目标准字段名（最高优先级）
 		"trace_id", "traceId", "trace-id", "TraceId", "TRACE_ID",
 		"traceid", "span.trace_id", "dd.trace_id",
 	}
-	
+
 	for _, field := range traceFields {
 		if val := w.extractString(data, field, ""); val != "" {
 			return val
 		}
 	}
-	
+
 	// 检查嵌套字段（如 span.trace_id）
 	if span, ok := data["span"].(map[string]interface{}); ok {
 		if traceID := w.extractString(span, "trace_id", ""); traceID != "" {
 			return traceID
 		}
 	}
-	
+
 	return ""
 }
 
@@ -238,31 +237,31 @@ func (w *VictoriaLogsWriter) extractTraceID(data map[string]interface{}) string 
 func (w *VictoriaLogsWriter) extractSpanID(data map[string]interface{}) string {
 	// 常见的 span_id 字段名，优先使用项目标准字段名
 	spanFields := []string{
-		"x-span-id",       // 项目标准字段名（最高优先级）
+		"x-span-id", // 项目标准字段名（最高优先级）
 		"span_id", "spanId", "span-id", "SpanId", "SPAN_ID",
 		"spanid", "span.span_id", "dd.span_id",
 	}
-	
+
 	for _, field := range spanFields {
 		if val := w.extractString(data, field, ""); val != "" {
 			return val
 		}
 	}
-	
+
 	// 检查嵌套字段
 	if span, ok := data["span"].(map[string]interface{}); ok {
 		if spanID := w.extractString(span, "span_id", ""); spanID != "" {
 			return spanID
 		}
 	}
-	
+
 	return ""
 }
 
 // convertToRFC3339 将时间戳转换为VictoriaLogs兼容的RFC3339格式（UTC）
 func (w *VictoriaLogsWriter) convertToRFC3339(data map[string]interface{}) string {
 	timestampStr := w.extractString(data, "timestamp", "")
-	
+
 	if timestampStr == "" {
 		// 发送UTC时间，让VictoriaLogs UI处理时区显示
 		return time.Now().UTC().Format(time.RFC3339Nano)
@@ -270,14 +269,14 @@ func (w *VictoriaLogsWriter) convertToRFC3339(data map[string]interface{}) strin
 
 	// 尝试解析不同的时间格式
 	timeFormats := []string{
-		"2006-01-02 15:04:05.000",           // 项目自定义格式
-		"2006-01-02T15:04:05.000Z07:00",     // RFC3339Nano
-		"2006-01-02T15:04:05Z07:00",         // RFC3339
-		"2006-01-02 15:04:05",               // Simple format
-		time.RFC3339Nano,                     // Standard RFC3339Nano
-		time.RFC3339,                         // Standard RFC3339
-		"2006-01-02T15:04:05.000000Z07:00",  // RFC3339 with microseconds
-		"2006-01-02T15:04:05.000000Z",       // UTC with microseconds
+		"2006-01-02 15:04:05.000",          // 项目自定义格式
+		"2006-01-02T15:04:05.000Z07:00",    // RFC3339Nano
+		"2006-01-02T15:04:05Z07:00",        // RFC3339
+		"2006-01-02 15:04:05",              // Simple format
+		time.RFC3339Nano,                   // Standard RFC3339Nano
+		time.RFC3339,                       // Standard RFC3339
+		"2006-01-02T15:04:05.000000Z07:00", // RFC3339 with microseconds
+		"2006-01-02T15:04:05.000000Z",      // UTC with microseconds
 	}
 
 	for _, format := range timeFormats {

@@ -3,7 +3,6 @@ package log
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -151,13 +150,13 @@ func NewLogger(opts *Options, options ...Option) *zapLogger {
 		// 创建多个core：原有输出 + VictoriaLogs
 		encoder := zapcore.NewJSONEncoder(encoderConfig)
 		victoriaCore := zapcore.NewCore(encoder, victoriaWriter.WriteSyncer(), zapLevel)
-		
+
 		// 获取现有的core
 		existingCore := z.Core()
-		
+
 		// 创建tee core
 		teeCore := zapcore.NewTee(existingCore, victoriaCore)
-		
+
 		// 重新创建logger
 		z = zap.New(teeCore, zap.AddStacktrace(zapcore.PanicLevel), zap.AddCallerSkip(2))
 	}
@@ -167,7 +166,6 @@ func NewLogger(opts *Options, options ...Option) *zapLogger {
 	for _, opt := range options {
 		opt(logger)
 	}
-
 
 	return logger
 }
@@ -236,7 +234,6 @@ func W(ctx context.Context) Logger {
 // W 方法，根据 context 提取字段并添加到日志中
 func (l *zapLogger) W(ctx context.Context) Logger {
 	lc := l.clone()
-
 
 	for fieldName, extractor := range l.contextExtractors {
 		if val := extractor(ctx); val != "" {

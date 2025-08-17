@@ -70,7 +70,7 @@ func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
 
 	// 在启动服务前验证所有连接
 	log.Infow("Validating service connections before startup...")
-	
+
 	// 验证MySQL连接
 	if cfg.MySQLOptions != nil {
 		log.Infow("Testing MySQL connection...")

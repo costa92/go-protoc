@@ -2,4 +2,4 @@
 .vscode
 ._output/
 .idea
-._thirdparty/
+._thirdparty/*

@@ -80,7 +80,7 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&o.EnableColor, "log.enable-color", o.EnableColor, "Enable output ansi colors in plain format logs.")
 	fs.StringVar(&o.Format, "log.format", o.Format, "Log output `FORMAT`, support plain or json format.")
 	fs.StringSliceVar(&o.OutputPaths, "log.output-paths", o.OutputPaths, "Output paths of log.")
-	
+
 	// VictoriaLogs 相关配置
 	if o.VictoriaLogs != nil {
 		fs.BoolVar(&o.VictoriaLogs.Enabled, "log.victoria-logs.enabled", o.VictoriaLogs.Enabled, "Enable VictoriaLogs integration.")

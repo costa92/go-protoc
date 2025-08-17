@@ -16,7 +16,7 @@ var _ IOptions = (*JaegerOptions)(nil)
 // JaegerOptions defines options for Jaeger tracing client.
 type JaegerOptions struct {
 	// Enabled determines whether Jaeger tracing is enabled
-	Enabled     bool   `json:"enabled,omitempty" mapstructure:"enabled"`
+	Enabled bool `json:"enabled,omitempty" mapstructure:"enabled"`
 	// Server is the url of the Jaeger server
 	Server      string `json:"server,omitempty" mapstructure:"server"`
 	ServiceName string `json:"service-name,omitempty" mapstructure:"service-name"`
