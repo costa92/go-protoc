@@ -34,7 +34,7 @@ _install.wire: ## Install Google Wire dependency injection tool
 
 .PHONY: _install.golangci-lint
 _install.golangci-lint: ## Install golangci-lint Go linting tool
-	@$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+	@$(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
 .PHONY: _install.goimports
 _install.goimports: ## Install goimports Go import formatting tool

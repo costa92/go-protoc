@@ -13,7 +13,7 @@ run:
   # 跳过目录
   skip-dirs:
     - _output
-    - _thirdparty 
+    - _thirdparty
     - deployments
     - manifests
     - third_party
@@ -21,7 +21,7 @@ run:
   # 跳过文件 (支持正则表达式)
   skip-files:
     - ".*\\.pb\\.go$"              # protobuf 生成文件
-    - ".*\\.pb\\.gw\\.go$"         # protobuf gateway 生成文件  
+    - ".*\\.pb\\.gw\\.go$"         # protobuf gateway 生成文件
     - ".*\\.pb\\.validate\\.go$"   # protobuf 验证生成文件
     - ".*_grpc\\.pb\\.go$"         # gRPC 生成文件
     - ".*_http\\.pb\\.go$"         # HTTP 生成文件
@@ -43,7 +43,7 @@ linters:
     - ineffassign       # 检查无效赋值
     - staticcheck       # 静态分析
     - unused            # 检查未使用的代码
-    
+
     # 代码质量
     - gocyclo           # 检查复杂度
     - goconst           # 检查重复常量
@@ -52,13 +52,13 @@ linters:
     - unconvert         # 检查不必要的类型转换
     - gocritic          # 综合代码质量检查
     - revive            # 快速 linter
-    
+
     # 安全检查
     - gosec             # 安全检查
-    
+
     # 性能优化
     - prealloc          # slice 预分配检查
-    
+
     # 特定场景
     - bodyclose         # HTTP body close 检查
     - contextcheck      # context 使用检查
@@ -68,7 +68,7 @@ linters:
     - nolintlint       # nolint 注释检查
     - rowserrcheck     # database/sql rows.Err 检查
     - wastedassign     # 无用赋值检查
-    
+
     # 依赖管理
     - gomodguard       # Go模块依赖守护
 
@@ -78,37 +78,37 @@ issues:
   max-issues-per-linter: 0
   # 最多报告的同类问题数 (0 表示无限制)
   max-same-issues: 0
-  
+
   # 全局排除规则
   exclude:
     # === 示例和测试文件常见误报 ===
     - "examples/.*: fmt\\.Print"
     - "fmt\\.Print.*should be.*Errorf"
     - "Test.*should be.*\\.\\.\\..*"
-    
+
     # === 错误定义文件的重复代码是设计模式 ===
     - "lines are duplicate of.*pkg/errors.*\\(dupl\\)"
     - "duplicate of.*pkg/errors.*\\(dupl\\)"
-    
+
     # === 已知的revive误报 ===
     - "should have a package comment.*\\(revive\\)"
     - "comment on exported.*should be of the form.*\\(revive\\)"
     - "exported.*should have comment.*\\(revive\\)"
     - "package-comments.*\\(revive\\)"
-    
+
     # === 第三方库兼容性问题 ===
     - "\"go\\.opentelemetry\\.io/otel/exporters/jaeger\" is deprecated.*\\(staticcheck\\)"
     - "trace\\.NewNoopTracerProvider is deprecated.*\\(staticcheck\\)"
-    
+
     # === nolint指令清理 ===
     - "directive.*is unused for linter.*\\(nolintlint\\)"
     - "Found unknown linters.*gomnd.*"
-    
+
     # === 特定的设计模式 ===
     - "redefines-builtin-id.*redefinition of the built-in function.*\\(revive\\)"
     - "func name will be used as.*and that stutters.*\\(revive\\)"
     - "unexported-return.*returns unexported type.*\\(revive\\)"
-    
+
   # 按路径和linter具体排除
   exclude-rules:
     # === 测试文件宽松规则 ===
@@ -123,7 +123,7 @@ issues:
         - contextcheck     # 测试中context使用可以灵活
         - gocritic         # 测试代码质量检查放松
         - prealloc         # 测试中不需要优化分配
-        
+
     # === 示例文件宽松规则 ===
     - path: examples/
       linters:
@@ -134,7 +134,7 @@ issues:
         - revive           # 示例代码注释要求放松
         - gocritic         # 示例代码质量检查放松
         - dupl             # 示例代码重复可接受
-        
+
     # === 错误定义文件特殊规则 ===
     - path: pkg/errors/.*\.go$
       linters:
@@ -142,14 +142,14 @@ issues:
         - goconst          # 错误码和消息重复是正常的
         - revive           # 错误定义的命名遵循特定约定
         - errname          # 错误变量命名遵循domain-specific约定
-        
+
     # === 错误测试文件特殊规则 ===
     - path: pkg/errors/.*_test\.go$
       linters:
         - dupl             # 测试代码重复是常见模式
         - goconst          # 测试常量重复可接受
         - revive           # 测试代码注释要求放松
-        
+
     # === 生成文件完全排除 ===
     - path: ".*\\.pb\\.go$"
       linters:
@@ -166,38 +166,38 @@ issues:
     - path: "wire_gen\\.go$"
       linters:
         - all
-        
+
     # === 工具和脚本文件 ===
     - path: tools/.*
       linters:
         - revive           # 工具代码注释要求放松
         - gosec            # 工具安全检查放松
         - errcheck         # 工具错误处理可以简化
-        
+
     # === 配置和选项文件 ===
     - path: pkg/options/.*\.go$
       text: "directive.*is unused for linter.*"
       linters:
         - nolintlint       # 选项文件中的nolint指令可能是有意的
-        
+
     # === 中间件文件特殊处理 ===
     - path: pkg/.*middleware.*\.go$
       text: "Error return value.*is not checked"
       linters:
         - errcheck         # 中间件中某些错误检查是可选的
-        
+
     # === 指标收集文件 ===
     - path: pkg/metrics/.*\.go$
       text: "field.*is unused"
       linters:
         - unused           # 指标字段可能在运行时通过反射使用
-        
+
     # === 弃用API的过渡期处理 ===
     - path: pkg/trace/.*\.go$
       text: "is deprecated"
       linters:
         - staticcheck      # 追踪组件可能需要支持旧API过渡
-        
+
     # === 特定函数的context检查排除 ===
     - text: "Non-inherited new context.*r\\.Context"
       linters:
@@ -205,7 +205,7 @@ issues:
     - text: "Non-inherited new context.*GracefulStop"
       linters:
         - contextcheck     # 服务停止时context.Background()是标准用法
-        
+
     # === 版本相关文件的内建函数重定义 ===
     - path: pkg/version/.*\.go$
       text: "redefinition of the built-in function"
@@ -305,7 +305,7 @@ linters-settings:
         - gopkg.in                               # Gopkg镜像库
         - k8s.io                                 # Kubernetes官方库
         - sigs.k8s.io                           # Kubernetes SIG库
-        
+
       # === 允许的模块 ===
       modules:
         # 标准库和官方模块
@@ -316,16 +316,16 @@ linters-settings:
         - github.com/go-kratos/grpc-gateway/v2    # Kratos gRPC网关
         - github.com/go-kratos/swagger-api        # Kratos Swagger
         - github.com/go-kratos/aegis              # Kratos 治理
-        
-        # Web框架  
+
+        # Web框架
         - github.com/gin-gonic/gin                # Gin web框架
         - github.com/gorilla/mux                  # Gorilla路由器
         - github.com/gorilla/handlers             # Gorilla处理器
-        
+
         # gRPC生态
         - github.com/grpc-ecosystem/grpc-gateway/v2  # gRPC网关
         - github.com/grpc-ecosystem/go-grpc-prometheus # gRPC Prometheus
-        
+
         # 数据库驱动
         - gorm.io/gorm                            # GORM ORM
         - gorm.io/driver/mysql                    # GORM MySQL驱动
@@ -334,10 +334,10 @@ linters-settings:
         - gorm.io/plugin/opentelemetry            # GORM OpenTelemetry插件
         - github.com/redis/go-redis/v9            # Redis客户端
         - github.com/redis/go-redis/extra/redisotel/v9  # Redis OpenTelemetry
-        
+
         # 消息队列
         - github.com/segmentio/kafka-go           # Kafka客户端
-        
+
         # 配置管理
         - github.com/spf13/viper                  # Viper配置库
         - github.com/spf13/cobra                  # Cobra CLI库
@@ -345,47 +345,47 @@ linters-settings:
         - github.com/spf13/cast                   # 类型转换
         - github.com/spf13/afero                  # 文件系统抽象
         - github.com/fsnotify/fsnotify            # 文件监控
-        
+
         # JWT和认证
         - github.com/golang-jwt/jwt/v4            # JWT v4
         - github.com/golang-jwt/jwt/v5            # JWT v5
-        
+
         # 依赖注入
         - github.com/google/wire                  # Google Wire
-        
+
         # 工具库
         - github.com/jinzhu/copier                # 结构体拷贝
         - github.com/asaskevich/govalidator       # 验证器
         - github.com/google/uuid                  # UUID生成
         - github.com/google/go-cmp                # 比较工具
-        
+
         # 国际化
         - github.com/nicksnyder/go-i18n/v2        # 国际化支持
-        
+
         # 监控和可观测性
         - github.com/prometheus/client_golang     # Prometheus客户端
         - github.com/prometheus/client_model      # Prometheus模型
         - github.com/prometheus/common            # Prometheus通用库
         - github.com/prometheus/procfs            # Prometheus procfs
-        
+
         # 服务发现
         - github.com/hashicorp/consul/api         # Consul API
-        
+
         # 测试库
         - github.com/stretchr/testify             # 测试断言库
-        
+
         # 错误监控和报告
         - github.com/getsentry/sentry-go          # Sentry错误监控
-        
+
         # UI和表格
         - github.com/gosuri/uitable                # 表格显示
-        
+
         # 数据格式
         - github.com/BurntSushi/toml               # TOML格式
         - github.com/pelletier/go-toml/v2          # TOML v2
         - gopkg.in/yaml.v3                        # YAML v3
         - gopkg.in/yaml.v2                        # YAML v2
-        
+
     blocked:
       # === 不推荐的模块 ===
       modules:
@@ -394,52 +394,52 @@ linters-settings:
           recommendations:
             - github.com/golang-jwt/jwt/v4
           reason: "该库已不再维护，存在安全漏洞，请使用 golang-jwt/jwt"
-          
+
         # 过时的UUID库
         - name: github.com/satori/go.uuid
           recommendations:
             - github.com/google/uuid
           reason: "该库已不再维护，请使用 google/uuid"
-          
+
         # 不安全的crypto库
         - name: crypto/md5
           recommendations:
             - crypto/sha256
           reason: "MD5算法不安全，请使用SHA256或更强的哈希算法"
-          
+
         # 过时的Context库
         - name: golang.org/x/net/context
           recommendations:
             - context
           reason: "请使用标准库的context包"
-          
+
         # 过时的errors库
         - name: github.com/pkg/errors
           recommendations:
             - errors
             - fmt.Errorf
           reason: "Go 1.13+提供了内置的错误包装，请使用标准库"
-          
+
       # === 限制版本的模块 ===
       versions:
         # Kubernetes相关库版本控制
         - name: k8s.io/client-go
           version: "< v0.30.0"
           reason: "使用过低版本的k8s客户端可能存在兼容性问题"
-          
+
         # gRPC版本控制
         - name: google.golang.org/grpc
           version: "< v1.50.0"
           reason: "使用过低版本的gRPC可能存在安全漏洞"
-          
+
         # Gin版本控制
         - name: github.com/gin-gonic/gin
           version: "< v1.8.0"
           reason: "使用过低版本的Gin可能存在安全漏洞"
-          
+
     # 本地replace规则检查
     local_replace_directives: true
-    
+
     # 检查go.mod文件中的依赖
     blocked_versioned_modules:
       # 过时的errors库 (包括间接依赖)
@@ -449,7 +449,7 @@ linters-settings:
           - fmt.Errorf
         reason: "Go 1.13+提供了内置的错误包装，请使用标准库"
 
-# 输出配置  
+# 输出配置
 output:
   formats:
     text:

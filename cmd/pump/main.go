@@ -1,7 +1,7 @@
 package main
 
-import "github.com/costa92/go-protoc/v2/pkg/log"
+import "github.com/costa92/go-protoc/v2/pkg/logger"
 
 func main() {
-	log.Infow("pump", "version", "0.0.1")
+	logger.Infow("pump", "version", "0.0.1")
 }

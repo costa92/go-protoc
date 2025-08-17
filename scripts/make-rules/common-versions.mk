@@ -27,7 +27,7 @@ BUF_VERSION ?= 1.54.0
 GOIMPORTS_VERSION ?= v0.35.0
 
 # 安装 golangci-lint
-GOLANGCI_LINT_VERSION ?= v1.61.0
+GOLANGCI_LINT_VERSION ?= v2.4.0
 
 # gRPC工具
 PROTOC_GEN_GO_VERSION ?= $(call get_go_version,google.golang.org/protobuf/cmd/protoc-gen-go)
