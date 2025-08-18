@@ -38,9 +38,12 @@
 项目现已实现统一的服务管理机制，支持通过 docker-compose 和安装脚本管理所有第三方服务。
 
 #### 数据库服务
-- `make run-redis` / `make stop-redis` - Redis 缓存服务
-- `make run-mariadb` / `make stop-mariadb` - MariaDB 数据库服务  
-- `make run-mongodb` / `make stop-mongodb` - MongoDB 文档数据库
+使用脚本管理数据库服务：
+```bash
+./scripts/installation/service.sh start redis
+./scripts/installation/service.sh start mariadb  
+./scripts/installation/service.sh start mongodb
+```
 
 #### MySQL数据库管理（新增）
 项目新增了完整的MySQL数据库管理功能，支持自动化的数据库设置、迁移和维护：
@@ -80,27 +83,35 @@
 - `user_profiles` - 用户配置表（个人简介、偏好设置等）
 - `user_roles` - 用户角色表（权限管理）
 
-#### 消息队列服务
-- `make run-kafka` / `make stop-kafka` - Kafka 消息服务
+#### 其他服务
+使用脚本管理各类服务：
+```bash
+# 消息队列服务
+./scripts/installation/service.sh start kafka
 
-#### 分布式服务
-- `make run-etcd` / `make stop-etcd` - etcd 分布式键值存储
+# 分布式服务  
+./scripts/installation/service.sh start etcd
 
-#### 可观测性服务
-- `make run-jaeger` / `make stop-jaeger` - Jaeger 链路追踪
-- `make run-prometheus` / `make stop-prometheus` - Prometheus 监控
-- `make run-grafana` / `make stop-grafana` - Grafana 仪表板
-- `make run-alertmanager` / `make stop-alertmanager` - AlertManager 告警
-- `make run-otelcol` / `make stop-otelcol` - OpenTelemetry 收集器
-- `make run-victorialogs` / `make stop-victorialogs` - VictoriaLogs 日志管理
+# 可观测性服务
+./scripts/installation/service.sh start jaeger
+./scripts/installation/service.sh start prometheus
+./scripts/installation/service.sh start grafana
+./scripts/installation/service.sh start alertmanager
+./scripts/installation/service.sh start otelcol
+./scripts/installation/service.sh start victorialogs
+```
 
 #### 服务组管理
-- `make start-all` / `make stop-all` - 所有服务
-- `make restart-all` - 重启所有服务
-- `make start-database` / `make stop-database` - 数据库服务组
-- `make start-observability` / `make stop-observability` - 可观测性服务组
-- `make status-all` - 检查所有服务状态
-- `make logs-all` - 查看所有服务日志
+```bash
+# 服务组操作
+./scripts/installation/service.sh start all
+./scripts/installation/service.sh stop all
+./scripts/installation/service.sh restart all
+./scripts/installation/service.sh start database
+./scripts/installation/service.sh start observability
+./scripts/installation/service.sh status all
+./scripts/installation/service.sh logs all
+```
 
 #### 直接脚本调用
 ```bash
@@ -171,7 +182,7 @@ HTTP 请求 → gRPC-Gateway → 处理器 → 业务层 → 存储层 → 数�
 ### 本地设置
 1. 复制并编辑：`cp configs/apiserver.yaml configs/apiserver_local.yaml`
 2. 在本地配置中配置数据库
-3. 启动依赖服务：`make run-redis`（或 `docker-compose -f deployments/redis/docker-compose.yml up`）
+3. 启动依赖服务：`./scripts/installation/service.sh start redis`（或 `docker-compose -f deployments/redis/docker-compose.yml up`）
 4. 运行：`go run cmd/apiserver/main.go -c configs/apiserver_local.yaml`
 
 ### 快速设置替代方案
@@ -239,10 +250,10 @@ go test -tags=integration ./...   # 运行集成测试
 ## 基础设施模板
 
 ### 可用的 Docker 服务
-- **Redis**：`make run-redis` 或 `docker-compose -f deployments/redis/docker-compose.yml up`
-- **Jaeger**：`make run-jaeger` 或 `docker-compose -f deployments/jaeger/docker-compose.yml up`
-- **Kafka**：`make run-kafka` 或 `docker-compose -f deployments/kafka/docker-compose.yml up`
-- **所有服务**：`make start-all`（同时启动 Redis, Jaeger, Kafka）
+- **Redis**：`./scripts/installation/service.sh start redis` 或 `docker-compose -f deployments/redis/docker-compose.yml up`
+- **Jaeger**：`./scripts/installation/service.sh start jaeger` 或 `docker-compose -f deployments/jaeger/docker-compose.yml up`
+- **Kafka**：`./scripts/installation/service.sh start kafka` 或 `docker-compose -f deployments/kafka/docker-compose.yml up`
+- **所有服务**：`./scripts/installation/service.sh start all`（同时启动 Redis, Jaeger, Kafka）
 
 ### Observability Stack (统一收集与分析)
 
@@ -250,10 +261,10 @@ go test -tags=integration ./...   # 运行集成测试
 
 | 功能 | 工具 | 用途 | 接入方式 |
 |------|------|------|----------|
-| **全栈监控** | Grafana+Prometheus | 系统/应用指标可视化 | `make run-grafana` |
+| **全栈监控** | Grafana+Prometheus | 系统/应用指标可视化 | `./scripts/installation/service.sh start grafana` |
 | **链路追踪** | Jaeger + OpenTelemetry | 分布式请求追踪 | 已内置集成 |
 | **告警管理** | Alertmanager | 统一告警路由 | 与Prometheus集成 |
-| **日志采集** | OpenTelemetry Collector | 统一日志/指标/追踪收集 | `make run-otelcol` |
+| **日志采集** | OpenTelemetry Collector | 统一日志/指标/追踪收集 | `./scripts/installation/service.sh start otelcol` |
 | **仪表板** | Grafana Dashboards | 预置监控面板 | 启动后访问 `localhost:3000` |
 
 ### 架构关系
@@ -354,6 +365,10 @@ make deploy.status.victoria                 # 检查套件状态
 ./scripts/installation/victoria.sh install.all      # 安装所有组件
 ./scripts/installation/victoria.sh uninstall.all    # 卸载所有组件
 ./scripts/installation/victoria.sh status           # 检查状态
+
+# 直接服务管理
+./scripts/installation/service.sh start victorialogs
+./scripts/installation/service.sh stop victorialogs
 ```
 
 #### 🔍 日志查询工具
@@ -614,24 +629,25 @@ ai:
 
 #### AI 专用命令
 ```bash
-# AI 服务管理
-make run-ai                  # 启动 AI 服务器
-make stop-ai                 # 停止 AI 服务器
-make restart-ai              # 重启 AI 服务器
+# AI 服务管理 (需要实现)
+# TODO: 以下命令待实现
+# make run-ai                  # 启动 AI 服务器
+# make stop-ai                 # 停止 AI 服务器
+# make restart-ai              # 重启 AI 服务器
 
-# AI 开发工具
-make ai-generate             # 生成 AI API 代码
-make ai-index                # 构建项目知识索引
-make ai-test                 # 运行 AI 模块测试
+# AI 开发工具 (需要实现)
+# make ai-generate             # 生成 AI API 代码
+# make ai-index                # 构建项目知识索引
+# make ai-test                 # 运行 AI 模块测试
 
-# 知识库管理
-make knowledge-build         # 构建完整知识库
-make knowledge-update        # 增量更新知识库
-make knowledge-search QUERY="<query>"  # 搜索知识库
+# 知识库管理 (需要实现)
+# make knowledge-build         # 构建完整知识库
+# make knowledge-update        # 增量更新知识库
+# make knowledge-search QUERY="<query>"  # 搜索知识库
 
-# 向量数据库
-make run-vectordb           # 启动向量数据库
-make stop-vectordb          # 停止向量数据库
+# 向量数据库 (需要实现)
+# make run-vectordb           # 启动向量数据库
+# make stop-vectordb          # 停止向量数据库
 ```
 
 ### 可观测性增强

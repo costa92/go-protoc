@@ -27,15 +27,15 @@ usage() {
   echo ""
   echo "Services:"
   echo "  Database:"
-  echo "    redis        Redis cache service (docker-compose)"
+  echo "    redis        Redis cache service (docker)"
   echo "    mariadb      MariaDB database service (docker)"
   echo "    mongodb      MongoDB database service (docker)"
   echo "  Messaging:"
-  echo "    kafka        Kafka messaging service (docker-compose)"
+  echo "    kafka        Kafka messaging service (docker)"
   echo "  Distributed:"
   echo "    etcd         etcd distributed key-value store (binary)"
   echo "  Observability:"
-  echo "    jaeger       Jaeger tracing service (docker-compose)"
+  echo "    jaeger       Jaeger tracing service (docker)"
   echo "    prometheus   Prometheus monitoring (docker)"
   echo "    grafana      Grafana dashboard (docker)"
   echo "    alertmanager AlertManager for Prometheus (docker)"
@@ -63,11 +63,11 @@ ALL_SERVICES=("${DATABASE_SERVICES[@]}" "kafka" "etcd" "${OBSERVABILITY_SERVICES
 
 # Service type mappings
 declare -A SERVICE_TYPES=(
-  ["redis"]="docker-compose"
-  ["kafka"]="docker-compose" 
-  ["jaeger"]="docker-compose"
-  ["mariadb"]="docker-compose"
-  ["mongodb"]="docker-compose"
+  ["redis"]="script"
+  ["kafka"]="script" 
+  ["jaeger"]="script"
+  ["mariadb"]="script"
+  ["mongodb"]="script"
   ["etcd"]="script"
   ["prometheus"]="script"
   ["grafana"]="script"
@@ -76,51 +76,24 @@ declare -A SERVICE_TYPES=(
   ["victorialogs"]="script"
 )
 
-# Function to manage services by docker-compose
+# Function to manage services by docker-compose (deprecated - kept for reference)
+# All services now use individual scripts for better control and consistency
 manage_docker_compose_service() {
-  local service_name=$1
-  local action=$2
-  local compose_file="${ROOT_DIR}/deployments/${service_name}/docker-compose.yml"
-
-  if [ ! -f "${compose_file}" ]; then
-    echo "Error: docker-compose.yml for service '${service_name}' not found at ${compose_file}"
-    return 1
-  fi
-
-  case "${action}" in
-    start)
-      echo "==> Starting ${service_name} service (docker-compose)..."
-      docker compose -f "${compose_file}" up -d
-      ;;
-    stop)
-      echo "==> Stopping ${service_name} service (docker-compose)..."
-      docker compose -f "${compose_file}" down
-      ;;
-    restart)
-      echo "==> Restarting ${service_name} service (docker-compose)..."
-      docker compose -f "${compose_file}" down
-      docker compose -f "${compose_file}" up -d
-      ;;
-    status)
-      echo "==> Checking ${service_name} service status (docker-compose)..."
-      docker compose -f "${compose_file}" ps
-      ;;
-    logs)
-      echo "==> Showing ${service_name} service logs (docker-compose)..."
-      docker compose -f "${compose_file}" logs -f
-      ;;
-    *)
-      echo "Error: Invalid action '${action}' for docker-compose service"
-      return 1
-      ;;
-  esac
+  echo "Error: docker-compose management is deprecated. All services now use individual scripts."
+  echo "This function should not be called."
+  return 1
 }
 
 # Function to manage services by installation scripts
 manage_script_service() {
   local service_name=$1
   local action=$2
-  local script_file="${ROOT_DIR}/scripts/installation/${service_name}.sh"
+  # Handle special case where service name differs from script name
+  local script_name=$service_name
+  if [ "$service_name" = "mongodb" ]; then
+    script_name="mongo"
+  fi
+  local script_file="${ROOT_DIR}/scripts/installation/${script_name}.sh"
 
   if [ ! -f "${script_file}" ]; then
     echo "Error: Installation script for service '${service_name}' not found at ${script_file}"
@@ -131,10 +104,10 @@ manage_script_service() {
     start)
       echo "==> Starting ${service_name} service (script)..."
       # Source the script and call the install function
-      if source "${script_file}" && declare -f "proj::${service_name}::docker::install" >/dev/null 2>&1; then
-        "proj::${service_name}::docker::install"
-      elif source "${script_file}" && declare -f "proj::${service_name}::install" >/dev/null 2>&1; then
-        "proj::${service_name}::install"
+      if source "${script_file}" && declare -f "proj::${script_name}::docker::install" >/dev/null 2>&1; then
+        "proj::${script_name}::docker::install"
+      elif source "${script_file}" && declare -f "proj::${script_name}::install" >/dev/null 2>&1; then
+        "proj::${script_name}::install"
       else
         echo "Warning: No install function found for ${service_name}, trying generic install"
         bash "${script_file}" install 2>/dev/null || echo "Failed to start ${service_name}"
@@ -143,10 +116,10 @@ manage_script_service() {
     stop)
       echo "==> Stopping ${service_name} service (script)..."
       # Source the script and call the uninstall function
-      if source "${script_file}" && declare -f "proj::${service_name}::docker::uninstall" >/dev/null 2>&1; then
-        "proj::${service_name}::docker::uninstall"
-      elif source "${script_file}" && declare -f "proj::${service_name}::uninstall" >/dev/null 2>&1; then
-        "proj::${service_name}::uninstall"
+      if source "${script_file}" && declare -f "proj::${script_name}::docker::uninstall" >/dev/null 2>&1; then
+        "proj::${script_name}::docker::uninstall"
+      elif source "${script_file}" && declare -f "proj::${script_name}::uninstall" >/dev/null 2>&1; then
+        "proj::${script_name}::uninstall"
       else
         echo "Warning: No uninstall function found for ${service_name}, trying generic uninstall"
         bash "${script_file}" uninstall 2>/dev/null || echo "Failed to stop ${service_name}"
@@ -160,8 +133,8 @@ manage_script_service() {
       ;;
     status)
       echo "==> Checking ${service_name} service status (script)..."
-      if source "${script_file}" && declare -f "proj::${service_name}::status" >/dev/null 2>&1; then
-        "proj::${service_name}::status"
+      if source "${script_file}" && declare -f "proj::${script_name}::status" >/dev/null 2>&1; then
+        "proj::${script_name}::status"
       else
         # Fallback: check docker container status
         local container_name="${NETWORK_NAME:-proj}-${service_name}"
@@ -205,14 +178,12 @@ manage_service() {
   local service_type="${SERVICE_TYPES[$service_name]}"
   
   case "${service_type}" in
-    "docker-compose")
-      manage_docker_compose_service "${service_name}" "${action}"
-      ;;
     "script")
       manage_script_service "${service_name}" "${action}"
       ;;
     *)
       echo "Error: Unknown service type '${service_type}' for service '${service_name}'"
+      echo "All services should use 'script' type now."
       return 1
       ;;
   esac
