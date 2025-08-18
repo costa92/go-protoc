@@ -1,6 +1,10 @@
 package logger
 
-import "time"
+import (
+	"time"
+
+	"github.com/spf13/pflag"
+)
 
 type LoggerType string
 
@@ -49,6 +53,8 @@ type LogsOptions struct {
 	Sampling *SamplingConfig `json:"sampling" mapstructure:"sampling"`
 	// CallerSkip 调用者跳过的堆栈帧数
 	CallerSkip int `json:"caller-skip" mapstructure:"caller-skip"`
+	// DisableFunctionAtInfo 在info级别日志中禁用函数名显示
+	DisableFunctionAtInfo bool `json:"disable-function-at-info" mapstructure:"disable-function-at-info"`
 }
 
 // EncoderConfig 定义日志编码器的配置选项
@@ -102,7 +108,8 @@ func (l *LogsOptions) clone() *LogsOptions {
 		MaxAge:            l.MaxAge,
 		MaxBackups:        l.MaxBackups,
 		Compress:          l.Compress,
-		CallerSkip:        l.CallerSkip,
+		CallerSkip:               l.CallerSkip,
+		DisableFunctionAtInfo:    l.DisableFunctionAtInfo,
 	}
 	
 	if len(l.OutputPaths) > 0 {
@@ -147,6 +154,58 @@ func (l *LogsOptions) clone() *LogsOptions {
 	return clone
 }
 
+// AddFlags adds command line flags for the LogsOptions configuration.
+func (l *LogsOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar((*string)(&l.Type), "log.type", string(l.Type), "Logger type: zap or slog")
+	fs.BoolVar(&l.Dynamic, "log.dynamic", l.Dynamic, "Enable dynamic logger configuration")
+	fs.StringVar(&l.Level, "log.level", l.Level, "Minimum log output level")
+	fs.StringVar(&l.Format, "log.format", l.Format, "Log output format: json, text, console")
+	fs.BoolVar(&l.DisableCaller, "log.disable-caller", l.DisableCaller, "Disable output of caller information in the log")
+	fs.BoolVar(&l.DisableStacktrace, "log.disable-stacktrace", l.DisableStacktrace, "Disable the log to record a stack trace for all messages at or above panic level")
+	fs.BoolVar(&l.EnableColor, "log.enable-color", l.EnableColor, "Enable output ansi colors in plain format logs")
+	fs.StringSliceVar(&l.OutputPaths, "log.output-paths", l.OutputPaths, "Output paths of log")
+	fs.StringSliceVar(&l.ErrorOutputPaths, "log.error-output-paths", l.ErrorOutputPaths, "Error output paths of log")
+	fs.BoolVar(&l.Development, "log.development", l.Development, "Enable development mode")
+	fs.StringVar(&l.Encoding, "log.encoding", l.Encoding, "Log encoding format")
+	fs.IntVar(&l.MaxSize, "log.max-size", l.MaxSize, "Maximum size of log file in megabytes")
+	fs.IntVar(&l.MaxAge, "log.max-age", l.MaxAge, "Maximum number of days to retain log files")
+	fs.IntVar(&l.MaxBackups, "log.max-backups", l.MaxBackups, "Maximum number of old log files to retain")
+	fs.BoolVar(&l.Compress, "log.compress", l.Compress, "Compress old log files")
+	fs.IntVar(&l.CallerSkip, "log.caller-skip", l.CallerSkip, "Number of caller frames to skip")
+	fs.BoolVar(&l.DisableFunctionAtInfo, "log.disable-function-at-info", l.DisableFunctionAtInfo, "Disable function name display in info level logs")
+
+	// EncoderConfig flags
+	if l.EncoderConfig != nil {
+		fs.StringVar(&l.EncoderConfig.TimeKey, "log.time-key", l.EncoderConfig.TimeKey, "Time field key in log output")
+		fs.StringVar(&l.EncoderConfig.LevelKey, "log.level-key", l.EncoderConfig.LevelKey, "Level field key in log output")
+		fs.StringVar(&l.EncoderConfig.MessageKey, "log.message-key", l.EncoderConfig.MessageKey, "Message field key in log output")
+		fs.StringVar(&l.EncoderConfig.CallerKey, "log.caller-key", l.EncoderConfig.CallerKey, "Caller field key in log output")
+		fs.StringVar(&l.EncoderConfig.StacktraceKey, "log.stacktrace-key", l.EncoderConfig.StacktraceKey, "Stacktrace field key in log output")
+		fs.StringVar(&l.EncoderConfig.FunctionKey, "log.function-key", l.EncoderConfig.FunctionKey, "Function field key in log output")
+		fs.StringVar(&l.EncoderConfig.TimeEncoder, "log.time-encoder", l.EncoderConfig.TimeEncoder, "Time encoder format")
+		fs.StringVar(&l.EncoderConfig.LevelEncoder, "log.level-encoder", l.EncoderConfig.LevelEncoder, "Level encoder format")
+		fs.StringVar(&l.EncoderConfig.CallerEncoder, "log.caller-encoder", l.EncoderConfig.CallerEncoder, "Caller encoder format")
+	}
+
+	// Sampling flags
+	if l.Sampling != nil {
+		fs.IntVar(&l.Sampling.Initial, "log.sampling-initial", l.Sampling.Initial, "Initial sampling rate")
+		fs.IntVar(&l.Sampling.Thereafter, "log.sampling-thereafter", l.Sampling.Thereafter, "Thereafter sampling rate")
+	}
+}
+
+// Validate verifies the LogsOptions configuration.
+func (l *LogsOptions) Validate() []error {
+	warnings, err := ValidateConfig(l)
+	errs := []error{}
+	if err != nil {
+		errs = append(errs, err)
+	}
+	// 将警告作为错误返回，如果需要的话
+	_ = warnings // 目前忽略警告
+	return errs
+}
+
 func DefaultOptions() *LogsOptions {
 	return &LogsOptions{
 		Type:              LoggerTypeZap,
@@ -160,7 +219,8 @@ func DefaultOptions() *LogsOptions {
 		ErrorOutputPaths:  []string{"stderr"},
 		Development:       false,
 		Encoding:          "json",
-		CallerSkip:        1,
+		CallerSkip:               1,
+		DisableFunctionAtInfo:    true, // 默认在info级别禁用func字段
 		EncoderConfig: &EncoderConfig{
 			TimeKey:       "ts",
 			LevelKey:      "level",

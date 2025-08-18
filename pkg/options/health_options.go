@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/pflag"
 
-	"github.com/costa92/go-protoc/v2/pkg/log"
+	loggerPkg "github.com/costa92/go-protoc/v2/pkg/logger"
 )
 
 var _ IOptions = (*HealthOptions)(nil)
@@ -53,9 +53,9 @@ func (o *HealthOptions) ServeHealthCheck() {
 		r.HandleFunc("/debug/pprof/{_:.*}", pprof.Index)
 	}
 
-	log.Infow("Starting health check server", "path", o.HealthCheckPath, "addr", o.HealthCheckAddress)
+	loggerPkg.Infow("Starting health check server", "path", o.HealthCheckPath, "addr", o.HealthCheckAddress)
 	if err := http.ListenAndServe(o.HealthCheckAddress, r); err != nil {
-		log.Fatalf("Error serving health check endpoint: %v", err)
+		loggerPkg.Fatalf("Error serving health check endpoint: %v", err)
 	}
 }
 

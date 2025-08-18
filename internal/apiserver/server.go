@@ -13,7 +13,7 @@ import (
 	"github.com/costa92/go-protoc/v2/pkg/core"
 	"github.com/costa92/go-protoc/v2/pkg/db"
 	"github.com/costa92/go-protoc/v2/pkg/i18n"
-	"github.com/costa92/go-protoc/v2/pkg/log"
+	"github.com/costa92/go-protoc/v2/pkg/logger"
 	"github.com/costa92/go-protoc/v2/pkg/middleware/authn" // JWT Auth Middleware
 	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
 	"github.com/costa92/go-protoc/v2/pkg/server"
@@ -46,7 +46,7 @@ type Config struct {
 	SentryOptions      *genericoptions.SentryOptions      // Added Sentry Options
 	MetricsOptions     *genericoptions.MetricsOptions     // Added Metrics Options (K8s style)
 	PoolMonitorOptions *genericoptions.PoolMonitorOptions // Added Pool Monitor Options
-	LogOptions         *log.Options                       // Added Log Options
+	LogOptions         *logger.LogsOptions                // Added Log Options
 }
 
 type Server struct {
@@ -64,44 +64,44 @@ func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
 	// 日志库已在应用程序启动时初始化，包含context extractors配置
 	// 这里只记录配置信息
 	if cfg.LogOptions != nil {
-		log.Infow("Logger configuration", "level", cfg.LogOptions.Level, "format", cfg.LogOptions.Format)
-		log.Debugw("Debug logging enabled", "caller_skip", 2, "enable_color", cfg.LogOptions.EnableColor)
+		logger.Infow("Logger configuration", "level", cfg.LogOptions.Level, "format", cfg.LogOptions.Format)
+		logger.Debugw("Debug logging enabled", "caller_skip", 2, "enable_color", cfg.LogOptions.EnableColor)
 	}
 
 	// 在启动服务前验证所有连接
-	log.Infow("Validating service connections before startup...")
+	logger.Infow("Validating service connections before startup...")
 
 	// 验证MySQL连接
 	if cfg.MySQLOptions != nil {
-		log.Infow("Testing MySQL connection...")
+		logger.Infow("Testing MySQL connection...")
 		if err := cfg.MySQLOptions.TestConnection(); err != nil {
-			log.Errorw(err, "MySQL connection test failed")
+			logger.Errorw("MySQL connection test failed", "error", err)
 			return nil, err
 		}
-		log.Infow("MySQL connection test passed")
+		logger.Infow("MySQL connection test passed")
 	}
 
 	// 验证Redis连接
 	if cfg.RedisOptions != nil {
-		log.Infow("Testing Redis connection...")
+		logger.Infow("Testing Redis connection...")
 		if err := cfg.RedisOptions.TestConnection(); err != nil {
-			log.Errorw(err, "Redis connection test failed")
+			logger.Errorw("Redis connection test failed", "error", err)
 			return nil, err
 		}
-		log.Infow("Redis connection test passed")
+		logger.Infow("Redis connection test passed")
 	}
 
 	// 验证Jaeger连接
 	if cfg.JaegerOptions != nil {
-		log.Infow("Testing Jaeger connection...")
+		logger.Infow("Testing Jaeger connection...")
 		if err := cfg.JaegerOptions.TestConnection(); err != nil {
-			log.Errorw(err, "Jaeger connection test failed")
+			logger.Errorw("Jaeger connection test failed", "error", err)
 			return nil, err
 		}
-		log.Infow("Jaeger connection test passed")
+		logger.Infow("Jaeger connection test passed")
 	}
 
-	log.Infow("All service connections validated successfully")
+	logger.Infow("All service connections validated successfully")
 
 	if err := cfg.JaegerOptions.SetTracerProvider(Name); err != nil {
 		return nil, err

@@ -12,7 +12,7 @@ import (
 	gormlogger "gorm.io/gorm/logger"
 
 	"github.com/costa92/go-protoc/v2/pkg/db"
-	"github.com/costa92/go-protoc/v2/pkg/log"
+	loggerPkg "github.com/costa92/go-protoc/v2/pkg/logger"
 	"github.com/costa92/go-protoc/v2/pkg/monitor"
 )
 
@@ -130,7 +130,7 @@ func (o *MySQLOptions) NewDB() (*gorm.DB, error) {
 		MaxIdleConnections:    o.MaxIdleConnections,
 		MaxOpenConnections:    o.MaxOpenConnections,
 		MaxConnectionLifeTime: o.MaxConnectionLifeTime,
-		Logger:                log.Default().LogMode(gormlogger.LogLevel(o.LogLevel)),
+		Logger:                loggerPkg.NewGormLogger(loggerPkg.DefaultOptions(), gormlogger.LogLevel(o.LogLevel)),
 	}
 
 	return db.NewMySQL(opts)
@@ -146,7 +146,7 @@ func (o *MySQLOptions) NewDBWithMonitor(poolMonitor monitor.PoolMonitor) (*gorm.
 		MaxIdleConnections:    o.MaxIdleConnections,
 		MaxOpenConnections:    o.MaxOpenConnections,
 		MaxConnectionLifeTime: o.MaxConnectionLifeTime,
-		Logger:                log.Default().LogMode(gormlogger.LogLevel(o.LogLevel)),
+		Logger:                loggerPkg.NewGormLogger(loggerPkg.DefaultOptions(), gormlogger.LogLevel(o.LogLevel)),
 		Monitor:               poolMonitor,
 	}
 

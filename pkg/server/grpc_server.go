@@ -4,7 +4,7 @@ import (
 	"context"
 	"net"
 
-	"github.com/costa92/go-protoc/v2/pkg/log"
+	"github.com/costa92/go-protoc/v2/pkg/logger"
 	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -28,7 +28,7 @@ func NewGRPCServer(
 ) (*GRPCServer, error) {
 	lis, err := net.Listen("tcp", grpcOptions.Addr)
 	if err != nil {
-		log.Errorw(err, "Failed to listen")
+		logger.Errorw("Failed to listen", "error", err)
 		return nil, err
 	}
 
@@ -51,15 +51,15 @@ func NewGRPCServer(
 
 // RunOrDie 启动 GRPC 服务器并在出错时记录致命错误.
 func (s *GRPCServer) RunOrDie() {
-	log.Infow("Start to listening the incoming requests", "protocol", "grpc", "addr", s.lis.Addr().String())
+	logger.Infow("Start to listening the incoming requests", "protocol", "grpc", "addr", s.lis.Addr().String())
 	if err := s.srv.Serve(s.lis); err != nil {
-		log.Fatalw("Failed to serve grpc server", "err", err)
+		logger.Fatalw("Failed to serve grpc server", "err", err)
 	}
 }
 
 // GracefulStop 优雅地关闭 GRPC 服务器.
 func (s *GRPCServer) GracefulStop(ctx context.Context) {
-	log.Infow("Gracefully stop grpc server")
+	logger.Infow("Gracefully stop grpc server")
 	s.srv.GracefulStop()
 }
 

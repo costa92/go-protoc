@@ -13,6 +13,19 @@ fmt: ## Format go source code.
 run-api: ## Run the API server.
 	go run cmd/apiserver/main.go --config=configs/apiserver.yaml
 
+.PHONY: kill-ports
+kill-ports: ## Kill processes using ports 8080 and 9090.
+	@echo "🔪 Killing processes using ports 8080 and 9090..."
+	@lsof -i :8080 | grep LISTEN | awk '{print $$2}' | xargs kill -9 2>/dev/null || true
+	@lsof -i :9090 | grep LISTEN | awk '{print $$2}' | xargs kill -9 2>/dev/null || true
+	@echo "✅ Ports cleaned!"
+
+.PHONY: clean-run
+clean-run: ## Clean ports and run the API server.
+	@$(MAKE) kill-ports
+	@echo "🚀 Starting clean API server..."
+	@$(MAKE) run-api
+
 .PHONY: generate
 generate: ## Generate code from protobuf definitions.
 	buf generate

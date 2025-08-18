@@ -6,7 +6,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/costa92/go-protoc/v2/pkg/log"
+	"github.com/costa92/go-protoc/v2/pkg/logger"
 	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
 )
 
@@ -33,7 +33,7 @@ func NewHTTPServer(httpOptions *genericoptions.HTTPOptions, tlsOptions *generico
 
 // RunOrDie 启动 HTTP 服务器并在出错时记录致命错误.
 func (s *HTTPServer) RunOrDie() {
-	log.Infow("Start to listening the incoming requests", "protocol", protocolName(s.srv), "addr", s.srv.Addr)
+	logger.Infow("Start to listening the incoming requests", "protocol", protocolName(s.srv), "addr", s.srv.Addr)
 	// 默认启动 HTTP 服务器
 	serveFn := func() error { return s.srv.ListenAndServe() }
 	if s.srv.TLSConfig != nil {
@@ -41,14 +41,14 @@ func (s *HTTPServer) RunOrDie() {
 	}
 
 	if err := serveFn(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Fatalw("Failed to server HTTP(s) server", "err", err)
+		logger.Fatalw("Failed to server HTTP(s) server", "err", err)
 	}
 }
 
 // GracefulStop 优雅地关闭 HTTP 服务器.
 func (s *HTTPServer) GracefulStop(ctx context.Context) {
-	log.Infow("Gracefully stop HTTP(s) server")
+	logger.Infow("Gracefully stop HTTP(s) server")
 	if err := s.srv.Shutdown(ctx); err != nil {
-		log.Errorw(err, "HTTP(s) server forced to shutdown")
+		logger.Errorw("HTTP(s) server forced to shutdown", "error", err)
 	}
 }

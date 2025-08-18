@@ -29,15 +29,24 @@ func NewZapLogger(opts *LogsOptions) (*ZapLogger, error) {
 		opts = DefaultOptions()
 	}
 
+	// Always use production config to avoid errorVerbose field
 	config := zap.NewProductionConfig()
+	
+	// Apply development settings manually if needed, but avoid errorVerbose
 	if opts.Development {
-		config = zap.NewDevelopmentConfig()
+		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		config.EncoderConfig.ConsoleSeparator = " "
 	}
 
 	config.Level = zap.NewAtomicLevelAt(ParseLevel(opts.Level).ToZapLevel())
 	config.DisableCaller = opts.DisableCaller
 	config.DisableStacktrace = opts.DisableStacktrace
 	config.Development = opts.Development
+	
+	// Ensure stacktrace is enabled for error and fatal levels
+	if !config.DisableStacktrace {
+		config.EncoderConfig.StacktraceKey = "stacktrace"
+	}
 
 	if opts.Encoding != "" {
 		config.Encoding = opts.Encoding
@@ -91,11 +100,17 @@ func NewZapLogger(opts *LogsOptions) (*ZapLogger, error) {
 			writer = zapcore.AddSync(lumberJackLogger)
 		}
 
+		// Use level-aware encoder that can conditionally exclude function information
 		var encoder zapcore.Encoder
-		if opts.Encoding == "console" {
-			encoder = zapcore.NewConsoleEncoder(config.EncoderConfig)
+		if opts.DisableFunctionAtInfo {
+			encoder = NewLevelAwareEncoder(config.EncoderConfig, opts.Encoding)
 		} else {
-			encoder = zapcore.NewJSONEncoder(config.EncoderConfig)
+			// Use standard encoder when function exclusion is disabled
+			if opts.Encoding == "console" {
+				encoder = zapcore.NewConsoleEncoder(config.EncoderConfig)
+			} else {
+				encoder = zapcore.NewJSONEncoder(config.EncoderConfig)
+			}
 		}
 
 		core := zapcore.NewCore(encoder, writer, config.Level)
@@ -103,7 +118,19 @@ func NewZapLogger(opts *LogsOptions) (*ZapLogger, error) {
 	}
 
 	core := zapcore.NewTee(cores...)
-	logger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(opts.CallerSkip))
+	
+	// Create logger with stack trace support for error and fatal levels
+	loggerOptions := []zap.Option{
+		zap.AddCaller(),
+		zap.AddCallerSkip(opts.CallerSkip),
+	}
+	
+	// Add stack trace for error and fatal levels
+	if !opts.DisableStacktrace {
+		loggerOptions = append(loggerOptions, zap.AddStacktrace(zapcore.ErrorLevel))
+	}
+	
+	logger := zap.New(core, loggerOptions...)
 	
 	if opts.Development {
 		logger = logger.WithOptions(zap.Development())

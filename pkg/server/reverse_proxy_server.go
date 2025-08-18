@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/costa92/go-protoc/v2/pkg/log"
+	"github.com/costa92/go-protoc/v2/pkg/logger"
 	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
@@ -49,7 +49,7 @@ func NewGRPCGatewayServer(
 
 	conn, err := grpc.NewClient(grpcOptions.Addr, dialOptions...)
 	if err != nil {
-		log.Errorw(err, "Failed to dial context")
+		logger.Errorw("Failed to dial context", "error", err)
 		return nil, err
 	}
 
@@ -64,7 +64,7 @@ func NewGRPCGatewayServer(
 		}),
 	)
 	if err := registerHandler(gwmux, conn); err != nil {
-		log.Errorw(err, "Failed to register handler")
+		logger.Errorw("Failed to register handler", "error", err)
 		return nil, err
 	}
 
@@ -79,7 +79,7 @@ func NewGRPCGatewayServer(
 
 // RunOrDie 启动 GRPC 网关服务器并在出错时记录致命错误.
 func (s *GRPCGatewayServer) RunOrDie() {
-	log.Infow("Start to listening the incoming requests", "protocol", protocolName(s.srv), "addr", s.srv.Addr)
+	logger.Infow("Start to listening the incoming requests", "protocol", protocolName(s.srv), "addr", s.srv.Addr)
 	// 默认启动 HTTP 服务器
 	serveFn := func() error { return s.srv.ListenAndServe() }
 	if s.srv.TLSConfig != nil {
@@ -87,14 +87,14 @@ func (s *GRPCGatewayServer) RunOrDie() {
 	}
 
 	if err := serveFn(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Fatalw("Failed to server HTTP(s) server", "err", err)
+		logger.Fatalw("Failed to server HTTP(s) server", "err", err)
 	}
 }
 
 // GracefulStop 优雅地关闭 GRPC 网关服务器.
 func (s *GRPCGatewayServer) GracefulStop(ctx context.Context) {
-	log.Infow("Gracefully stop HTTP(s) server")
+	logger.Infow("Gracefully stop HTTP(s) server")
 	if err := s.srv.Shutdown(ctx); err != nil {
-		log.Errorw(err, "HTTP(s) server forced to shutdown")
+		logger.Errorw("HTTP(s) server forced to shutdown", "error", err)
 	}
 }

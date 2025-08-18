@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 
-	"github.com/costa92/go-protoc/v2/pkg/log"
 	"github.com/costa92/go-protoc/v2/pkg/logger"
 	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
 	"github.com/go-kratos/kratos/contrib/registry/consul/v2"
@@ -45,27 +44,22 @@ func NewKratosServer(cfg KratosAppConfig, servers ...transport.Server) (*KratosS
 }
 
 func (s *KratosServer) RunOrDie() {
-	log.Infow("Start to listening the incoming requests", "protocol", "kratos")
+	logger.Infow("Start to listening the incoming requests", "protocol", "kratos")
 	if err := s.kapp.Run(); err != nil {
-		log.Fatalw("Failed to serve kratos application", "err", err)
+		logger.Fatalw("Failed to serve kratos application", "err", err)
 	}
 }
 
 func (s *KratosServer) GracefulStop(ctx context.Context) {
-	log.Infow("Gracefully stop kratos application")
+	logger.Infow("Gracefully stop kratos application")
 	if err := s.kapp.Stop(); err != nil {
-		log.Errorw(err, "Failed to gracefully shutdown kratos application")
+		logger.Errorw("Failed to gracefully shutdown kratos application", "error", err)
 	}
 }
 
 func NewKratosLogger(id, name, version string) krtlog.Logger {
-	return krtlog.With(log.Default(),
-		"ts", krtlog.DefaultTimestamp,
-		"caller", krtlog.DefaultCaller,
-		"service.id", id,
-		"service.name", name,
-		"service.version", version,
-	)
+	// 使用新的 logger 包创建 Kratos 适配器
+	return logger.NewKratosLogger(logger.GetDefaultLogger(), id, name, version)
 }
 
 // NewKratosLoggerWithGeneric creates a Kratos-compatible logger using the generic logger package.

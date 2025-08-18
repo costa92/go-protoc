@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/viper"
 	"k8s.io/client-go/util/homedir"
 
-	"github.com/costa92/go-protoc/v2/pkg/log"
+	"github.com/costa92/go-protoc/v2/pkg/logger"
 )
 
 const ConfigFlagName = "config"
@@ -26,7 +26,7 @@ func AddConfigFlag(fs *pflag.FlagSet, name string, watch bool) {
 	fs.StringVarP(&CfgFile, ConfigFlagName, "c", CfgFile, "Read configuration from specified `FILE`, "+
 		"support JSON, TOML, YAML, HCL, or Java properties formats.")
 
-	log.Infow("Adding configuration flag", "name", name, "watch", watch, "cfgFile", CfgFile)
+	logger.Infow("Adding configuration flag", "name", name, "watch", watch, "cfgFile", CfgFile)
 	// Enable viper's automatic environment variable parsing. This means
 	// that viper will automatically read values corresponding to viper
 	// variables from environment variables.
@@ -40,7 +40,7 @@ func AddConfigFlag(fs *pflag.FlagSet, name string, watch bool) {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 
 	cobra.OnInitialize(func() {
-		log.Infow("Reading configuration file", "name", name, "cfgFile", CfgFile)
+		logger.Infow("Reading configuration file", "name", name, "cfgFile", CfgFile)
 		if CfgFile != "" {
 			viper.SetConfigFile(CfgFile)
 		} else {
@@ -55,17 +55,17 @@ func AddConfigFlag(fs *pflag.FlagSet, name string, watch bool) {
 			viper.SetConfigName(name)
 		}
 
-		log.Debugw("Reading configuration file", "file", CfgFile)
+		logger.Debugw("Reading configuration file", "file", CfgFile)
 
 		if err := viper.ReadInConfig(); err != nil {
-			log.Errorw(err, "Failed to read configuration file", "file", CfgFile)
+			logger.Errorw("Failed to read configuration file", "error", err, "file", CfgFile)
 		}
-		log.Infow("Success to read configuration file", "file", viper.ConfigFileUsed())
+		logger.Infow("Success to read configuration file", "file", viper.ConfigFileUsed())
 
 		if watch {
 			viper.WatchConfig()
 			viper.OnConfigChange(func(e fsnotify.Event) {
-				log.Debugw("Config file changed", "name", e.Name)
+				logger.Debugw("Config file changed", "name", e.Name)
 			})
 		}
 	})
@@ -73,6 +73,6 @@ func AddConfigFlag(fs *pflag.FlagSet, name string, watch bool) {
 
 func PrintConfig() {
 	for _, key := range viper.AllKeys() {
-		log.Debugw(fmt.Sprintf("CFG: %s=%v", key, viper.Get(key)))
+		logger.Debugw(fmt.Sprintf("CFG: %s=%v", key, viper.Get(key)))
 	}
 }

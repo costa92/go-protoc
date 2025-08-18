@@ -3,7 +3,7 @@ package options
 import (
 	"github.com/costa92/go-protoc/v2/internal/apiserver"
 	"github.com/costa92/go-protoc/v2/pkg/app"
-	"github.com/costa92/go-protoc/v2/pkg/log"
+	"github.com/costa92/go-protoc/v2/pkg/logger"
 	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/util/feature"
@@ -24,7 +24,7 @@ type ServerOptions struct {
 	JaegerOptions      *genericoptions.JaegerOptions      `json:"jaeger" mapstructure:"jaeger"`
 	SentryOptions      *genericoptions.SentryOptions      `json:"sentry" mapstructure:"sentry"`             // Added Sentry Options
 	PoolMonitorOptions *genericoptions.PoolMonitorOptions `json:"pool-monitor" mapstructure:"pool-monitor"` // Added Pool Monitor Options
-	Log                *log.Options                       `json:"log" mapstructure:"log"`
+	Log                *logger.LogsOptions                `json:"log" mapstructure:"log"`
 	FeatureGates       map[string]bool                    `json:"feature-gates"`
 }
 
@@ -42,7 +42,7 @@ func NewServerOptions() *ServerOptions {
 		JaegerOptions:      genericoptions.NewJaegerOptions(),      // Initialize Jaeger Options
 		SentryOptions:      genericoptions.NewSentryOptions(),      // Initialize Sentry Options
 		PoolMonitorOptions: genericoptions.NewPoolMonitorOptions(), // Initialize Pool Monitor Options
-		Log:                log.NewOptions(),
+		Log:                logger.DefaultOptions(),
 	}
 }
 

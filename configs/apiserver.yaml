@@ -40,22 +40,40 @@ jaeger:
   agent-host: "127.0.0.1" # Jaeger Agent主机地址（如果使用UDP）
   agent-port: 6831 # Jaeger Agent端口（如果使用UDP）
 
-# Log Configuration
+# Enhanced Logger Configuration (pkg/logger)
 log:
-  level: "debug" # 日志级别：debug, info, warn, error, dpanic, panic, fatal
-  format: "json" # 日志格式：console, json (VictoriaLogs推荐JSON格式)
+  type: "zap" # 日志器类型: zap 或 slog
+  dynamic: false # 启用动态配置功能（运行时调整日志配置）
+  level: "debug" # 日志级别: debug, info, warn, error, fatal
+  format: "json" # 日志格式: json, text, console
   disable-caller: false # 是否禁用调用者信息
   disable-stacktrace: false # 是否禁用堆栈跟踪
-  enable-color: false # JSON格式不需要颜色输出
-  output-paths: ["stdout", "logs/app.log"] # 日志输出路径：控制台 + 文件
-  victoria-logs:
-    enabled: true # 启用VictoriaLogs集成
-    endpoint: "http://127.0.0.1:9428" # VictoriaLogs API端点
-    service: "apiserver" # 服务名称
-    version: "v2.0.0" # 服务版本
-    environment: "development" # 环境标识
-    buffer-size: 1000 # 缓冲区大小
-    batch-size: 100 # 批量发送大小
-    flush-interval: 5 # 强制刷新间隔（秒）
-    timeout: 10 # HTTP请求超时（秒）
-    timezone: "UTC" # 时区设置：UTC(推荐), Local, 或具体时区如 Asia/Shanghai
+  enable-color: false # 启用控制台颜色输出（JSON格式不需要）
+  output-paths: ["stdout", "logs/app.log"] # 日志输出路径
+  error-output-paths: ["stderr"] # 错误日志输出路径
+  development: false # 开发模式（更详细的日志输出）
+  encoding: "json" # 编码格式: json, console
+  max-size: 100 # 日志文件最大大小（MB）
+  max-age: 7 # 日志文件最大保留天数
+  max-backups: 5 # 最大备份文件数量
+  compress: true # 压缩旧日志文件
+  caller-skip: 1 # 调用者跳过的堆栈帧数
+  disable-function-at-info: true # 在info级别日志中禁用函数名显示
+  
+  # 编码器配置
+  encoder-config:
+    time-key: "ts" # 时间字段键名
+    level-key: "level" # 级别字段键名
+    message-key: "msg" # 消息字段键名
+    caller-key: "caller" # 调用者字段键名
+    stacktrace-key: "stacktrace" # 堆栈跟踪字段键名
+    function-key: "func" # 函数名字段键名
+    time-encoder: "iso8601" # 时间编码格式
+    level-encoder: "lowercase" # 级别编码格式
+    caller-encoder: "short" # 调用者编码格式
+  
+  # 初始字段（添加到所有日志条目）
+  initial-fields:
+    service: "apiserver"
+    version: "v2.0.0"
+    environment: "development"

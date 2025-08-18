@@ -10,7 +10,7 @@ import (
 	"github.com/costa92/go-protoc/v2/internal/pkg/contextx"
 	"github.com/costa92/go-protoc/v2/internal/pkg/known"
 	"github.com/costa92/go-protoc/v2/pkg/app"
-	"github.com/costa92/go-protoc/v2/pkg/log"
+	"github.com/costa92/go-protoc/v2/pkg/logger"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 )
 
@@ -45,7 +45,7 @@ func run(opts *options.ServerOptions) app.RunFunc {
 
 		// 启动连接池监控
 		if err := startMetricsCollection(cfg); err != nil {
-			log.Warnf("Failed to start metrics collection: %v", err)
+			logger.Warnf("Failed to start metrics collection: %v", err)
 		}
 
 		ctx := genericapiserver.SetupSignalContext()
@@ -64,21 +64,21 @@ func run(opts *options.ServerOptions) app.RunFunc {
 // startMetricsCollection 启动连接池监控
 func startMetricsCollection(cfg *apiserver.Config) error {
 	if cfg.PoolMonitorOptions != nil && cfg.PoolMonitorOptions.Enabled {
-		log.Infow("Connection pool metrics collection is enabled through dependency injection")
-		log.Infow("Metrics will be automatically collected by the PoolMonitor when database connections are established")
+		logger.Infow("Connection pool metrics collection is enabled through dependency injection")
+		logger.Infow("Metrics will be automatically collected by the PoolMonitor when database connections are established")
 
 		if cfg.PoolMonitorOptions.Database.Enabled {
-			log.Infow("Database pool monitoring enabled",
+			logger.Infow("Database pool monitoring enabled",
 				"slow_query_threshold", cfg.PoolMonitorOptions.Database.SlowQuery,
 				"collect_interval", cfg.PoolMonitorOptions.CollectInterval)
 		}
 
 		if cfg.PoolMonitorOptions.Redis.Enabled {
-			log.Infow("Redis pool monitoring enabled",
+			logger.Infow("Redis pool monitoring enabled",
 				"collect_interval", cfg.PoolMonitorOptions.CollectInterval)
 		}
 	} else {
-		log.Infow("Connection pool metrics collection is disabled")
+		logger.Infow("Connection pool metrics collection is disabled")
 	}
 
 	return nil

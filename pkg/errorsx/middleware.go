@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/costa92/go-protoc/v2/pkg/log"
+	"github.com/costa92/go-protoc/v2/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
@@ -43,11 +43,11 @@ type ErrorHandler interface {
 
 // DefaultErrorHandler 默认错误处理器
 type DefaultErrorHandler struct {
-	logger log.Logger
+	logger logger.Logger
 }
 
 // NewDefaultErrorHandler 创建默认错误处理器
-func NewDefaultErrorHandler(logger log.Logger) *DefaultErrorHandler {
+func NewDefaultErrorHandler(logger logger.Logger) *DefaultErrorHandler {
 	return &DefaultErrorHandler{
 		logger: logger,
 	}
@@ -133,7 +133,11 @@ func (h *DefaultErrorHandler) logError(ctx context.Context, err *ErrorX) {
 
 	// 根据错误级别记录日志
 	if err.Code >= 500 {
-		h.logger.Errorw(err.cause, err.Message, fields...)
+		if err.cause != nil {
+			h.logger.Errorw(err.Message, append(fields, "error", err.cause.Error())...)
+		} else {
+			h.logger.Errorw(err.Message, fields...)
+		}
 	} else if err.Code >= 400 {
 		h.logger.Warnw(err.Message, fields...)
 	} else {
@@ -261,7 +265,7 @@ func AbortWithErrorX(c *gin.Context, err *ErrorX) {
 
 // WriteErrorResponse 直接写入错误响应
 func WriteErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
-	handler := NewDefaultErrorHandler(log.Default())
+	handler := NewDefaultErrorHandler(logger.GetDefaultLogger())
 	resp := handler.HandleError(r.Context(), err)
 	if resp == nil {
 		return

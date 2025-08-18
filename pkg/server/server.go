@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/costa92/go-protoc/v2/pkg/log"
+	"github.com/costa92/go-protoc/v2/pkg/logger"
 )
 
 type Server interface {
@@ -24,7 +24,7 @@ func Serve(ctx context.Context, srv Server) error {
 	<-ctx.Done()
 
 	// Shutdown the server gracefully.
-	log.Infow("Shutting down server...")
+	logger.Infow("Shutting down server...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -32,7 +32,7 @@ func Serve(ctx context.Context, srv Server) error {
 	// Gracefully stop the server.
 	srv.GracefulStop(ctx)
 
-	log.Infow("Server exited successfully.")
+	logger.Infow("Server exited successfully.")
 
 	return nil
 }

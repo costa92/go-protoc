@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/costa92/go-protoc/v2/pkg/log"
 	"github.com/go-kratos/kratos/v2/errors"
 	krtlog "github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware"
@@ -47,12 +46,12 @@ func (al *AsyncLogger) start() {
 		for {
 			select {
 			case entry := <-al.logChan:
-				_ = log.W(entry.ctx).Log(entry.level, entry.keyvals...)
+				_ = al.logger.Log(entry.level, entry.keyvals...)
 			case <-al.ctx.Done():
 				// 处理剩余日志
 				for len(al.logChan) > 0 {
 					entry := <-al.logChan
-					_ = log.W(entry.ctx).Log(entry.level, entry.keyvals...)
+					_ = al.logger.Log(entry.level, entry.keyvals...)
 				}
 				return
 			}
@@ -71,7 +70,7 @@ func (al *AsyncLogger) LogAsync(ctx context.Context, level krtlog.Level, keyvals
 		// 日志成功发送到队列
 	default:
 		// 队列满时直接记录，避免阻塞
-		_ = log.W(ctx).Log(level, keyvals...)
+		_ = al.logger.Log(level, keyvals...)
 	}
 }
 
@@ -154,7 +153,7 @@ func Client(logger krtlog.Logger) middleware.Middleware {
 				reason = se.Reason
 			}
 			level, stack := extractError(err)
-			_ = log.W(ctx).Log(level,
+			_ = logger.Log(level,
 				"kind", "client",
 				"component", kind,
 				"operation", operation,
@@ -164,7 +163,7 @@ func Client(logger krtlog.Logger) middleware.Middleware {
 				"stack", stack,
 				"latency", time.Since(startTime).Seconds(),
 			)
-			return
+			return reply, err
 		}
 	}
 }

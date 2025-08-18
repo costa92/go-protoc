@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/costa92/go-protoc/v2/pkg/log"
+	"github.com/costa92/go-protoc/v2/pkg/logger"
 	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
 	"github.com/costa92/go-protoc/v2/pkg/version"
 	"github.com/spf13/cobra"
@@ -212,7 +212,7 @@ func (app *App) buildCommand() {
 
 		// 将配置标志添加到 fss 中的 "misc" 标志集中
 		if !app.noConfig {
-			log.Infow("buildCommand: Adding config flag to misc flagset", "name", app.name, "watch", app.watch)
+			logger.Infow("buildCommand: Adding config flag to misc flagset", "name", app.name, "watch", app.watch)
 			AddConfigFlag(fss.FlagSet("misc"), app.name, app.watch)
 		}
 
@@ -230,13 +230,13 @@ func (app *App) buildCommand() {
 
 		// 在 FlagSetOptions 分支中添加配置标志
 		if !app.noConfig {
-			log.Infow("buildCommand: Adding config flag to persistent flags", "name", app.name, "watch", app.watch)
+			logger.Infow("buildCommand: Adding config flag to persistent flags", "name", app.name, "watch", app.watch)
 			AddConfigFlag(fs, app.name, app.watch)
 		}
 	default:
 		// 在默认分支中添加配置标志
 		if !app.noConfig {
-			log.Infow("buildCommand: Adding config flag to command flags", "name", app.name, "watch", app.watch)
+			logger.Infow("buildCommand: Adding config flag to command flags", "name", app.name, "watch", app.watch)
 			AddConfigFlag(cmd.Flags(), app.name, app.watch)
 		}
 	}
@@ -281,8 +281,8 @@ func (app *App) runCommand(cmd *cobra.Command, args []string) error {
 	app.initializeLogger()
 
 	if !app.silence {
-		log.Infow("Starting application", "name", app.name, "version", version.Get().ToJSON())
-		log.Infow("Golang settings", "GOGC", os.Getenv("GOGC"), "GOMAXPROCS", os.Getenv("GOMAXPROCS"), "GOTRACEBACK", os.Getenv("GOTRACEBACK"))
+		logger.Infow("Starting application", "name", app.name, "version", version.Get().ToJSON())
+		logger.Infow("Golang settings", "GOGC", os.Getenv("GOGC"), "GOMAXPROCS", os.Getenv("GOMAXPROCS"), "GOTRACEBACK", os.Getenv("GOTRACEBACK"))
 		if !app.noConfig {
 			PrintConfig()
 		} else if app.options != nil {
@@ -318,14 +318,23 @@ func formatBaseName(name string) string {
 
 // initializeLogger sets up the logging system based on the configuration.
 func (app *App) initializeLogger() {
-	logOptions := log.NewOptions()
+	logOptions := logger.DefaultOptions()
 
 	// Configure logging options from viper
+	if viper.IsSet("log.type") {
+		logOptions.Type = logger.LoggerType(viper.GetString("log.type"))
+	}
+	if viper.IsSet("log.dynamic") {
+		logOptions.Dynamic = viper.GetBool("log.dynamic")
+	}
 	if viper.IsSet("log.disable-caller") {
 		logOptions.DisableCaller = viper.GetBool("log.disable-caller")
 	}
 	if viper.IsSet("log.disable-stacktrace") {
 		logOptions.DisableStacktrace = viper.GetBool("log.disable-stacktrace")
+	}
+	if viper.IsSet("log.enable-color") {
+		logOptions.EnableColor = viper.GetBool("log.enable-color")
 	}
 	if viper.IsSet("log.level") {
 		logOptions.Level = viper.GetString("log.level")
@@ -336,7 +345,35 @@ func (app *App) initializeLogger() {
 	if viper.IsSet("log.output-paths") {
 		logOptions.OutputPaths = viper.GetStringSlice("log.output-paths")
 	}
+	if viper.IsSet("log.error-output-paths") {
+		logOptions.ErrorOutputPaths = viper.GetStringSlice("log.error-output-paths")
+	}
+	if viper.IsSet("log.development") {
+		logOptions.Development = viper.GetBool("log.development")
+	}
+	if viper.IsSet("log.encoding") {
+		logOptions.Encoding = viper.GetString("log.encoding")
+	}
+	if viper.IsSet("log.max-size") {
+		logOptions.MaxSize = viper.GetInt("log.max-size")
+	}
+	if viper.IsSet("log.max-age") {
+		logOptions.MaxAge = viper.GetInt("log.max-age")
+	}
+	if viper.IsSet("log.max-backups") {
+		logOptions.MaxBackups = viper.GetInt("log.max-backups")
+	}
+	if viper.IsSet("log.compress") {
+		logOptions.Compress = viper.GetBool("log.compress")
+	}
+	if viper.IsSet("log.caller-skip") {
+		logOptions.CallerSkip = viper.GetInt("log.caller-skip")
+	}
 
-	// Initialize logging with custom context extractors
-	log.Init(logOptions, log.WithContextExtractor(app.contextExtractors))
+	// Initialize the global logger
+	if globalLogger, err := logger.NewLogger(logOptions); err != nil {
+		panic("Failed to initialize logger: " + err.Error())
+	} else {
+		logger.SetDefaultLogger(globalLogger)
+	}
 }

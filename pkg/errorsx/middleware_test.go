@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/costa92/go-protoc/v2/pkg/errorsx"
-	"github.com/costa92/go-protoc/v2/pkg/log"
+	"github.com/costa92/go-protoc/v2/pkg/logger"
 	krtlog "github.com/go-kratos/kratos/v2/log"
 	gormlogger "gorm.io/gorm/logger"
 )
