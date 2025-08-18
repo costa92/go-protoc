@@ -13,6 +13,8 @@ const (
 type LogsOptions struct {
 	// Type 指定日志记录器类型 (zap 或 slog)
 	Type LoggerType `json:"type" mapstructure:"type"`
+	// Dynamic 启用动态配置功能，支持运行时调整日志配置
+	Dynamic bool `json:"dynamic" mapstructure:"dynamic"`
 	// Level 设置日志级别 (debug, info, warn, error, fatal)
 	Level string `json:"level" mapstructure:"level"`
 	// Format 指定日志输出格式 (json, console)
@@ -88,6 +90,7 @@ func (l *LogsOptions) clone() *LogsOptions {
 	
 	clone := &LogsOptions{
 		Type:              l.Type,
+		Dynamic:           l.Dynamic,
 		Level:             l.Level,
 		Format:            l.Format,
 		DisableCaller:     l.DisableCaller,
@@ -147,6 +150,7 @@ func (l *LogsOptions) clone() *LogsOptions {
 func DefaultOptions() *LogsOptions {
 	return &LogsOptions{
 		Type:              LoggerTypeZap,
+		Dynamic:           false, // 默认禁用动态配置以保持性能
 		Level:             "info",
 		Format:            "json",
 		DisableCaller:     false,

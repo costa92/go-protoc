@@ -13,6 +13,12 @@ func NewLogger(opts *LogsOptions) (Logger, error) {
 		opts = DefaultOptions()
 	}
 
+	// 如果启用动态配置，返回 DynamicLogger
+	if opts.Dynamic {
+		return NewDynamicLogger(opts)
+	}
+
+	// 否则直接创建静态 logger
 	switch opts.Type {
 	case LoggerTypeZap:
 		return NewZapLogger(opts)
