@@ -156,3 +156,28 @@ function proj::log::status() {
     echo "    ${message}"
   done
 }
+
+# Print a success message. Similar to status but for successful operations.
+function proj::log::success() {
+  local V="${V:-0}"
+  if (( KUBE_VERBOSE < V )); then
+    return
+  fi
+
+  timestamp=$(date +"[%m%d %H:%M:%S]")
+  echo "✓✓✓ ${timestamp} ${1}"
+  shift
+  for message; do
+    echo "    ${message}"
+  done
+}
+
+# Print a warning message.
+function proj::log::warn() {
+  timestamp=$(date +"[%m%d %H:%M:%S]")
+  echo "⚠⚠⚠ ${timestamp} ${1-}" >&2
+  shift
+  for message; do
+    echo "    ${message}" >&2
+  done
+}

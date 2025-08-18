@@ -53,12 +53,48 @@ proj::victoriametrics::install() {
 
   # 下载并安装 VictoriaMetrics
   local vm_url="https://github.com/VictoriaMetrics/VictoriaMetrics/releases/download/v${VICTORIAMETRICS_VERSION}/victoria-metrics-${os}-${arch}-v${VICTORIAMETRICS_VERSION}.tar.gz"
+  local temp_file="/tmp/victoria-metrics-${VICTORIAMETRICS_VERSION}.tar.gz"
+  
   proj::log::info "Downloading VictoriaMetrics from: ${vm_url}"
   
-  if ! curl -L "${vm_url}" | proj::util::sudo "tar -xz -C /opt/victoriametrics"; then
-    proj::log::error "Failed to download and extract VictoriaMetrics"
+  # 使用更稳定的下载策略：分步下载，支持重试和断点续传
+  if [[ -f "${temp_file}" ]]; then
+    proj::log::info "Found existing download, attempting to resume..."
+    if ! wget -c -t 5 -T 60 --progress=bar "${vm_url}" -O "${temp_file}"; then
+      proj::log::warn "Resume failed, starting fresh download..."
+      rm -f "${temp_file}"
+      if ! curl --connect-timeout 30 --max-time 300 --retry 5 --retry-delay 10 -L "${vm_url}" -o "${temp_file}"; then
+        proj::log::error "Failed to download VictoriaMetrics"
+        return 1
+      fi
+    fi
+  else
+    if ! wget -t 5 -T 60 --progress=bar "${vm_url}" -O "${temp_file}"; then
+      proj::log::warn "wget failed, trying curl..."
+      if ! curl --connect-timeout 30 --max-time 300 --retry 5 --retry-delay 10 -L "${vm_url}" -o "${temp_file}"; then
+        proj::log::error "Failed to download VictoriaMetrics"
+        return 1
+      fi
+    fi
+  fi
+  
+  # 验证下载的文件
+  if [[ ! -f "${temp_file}" ]] || [[ $(stat -c%s "${temp_file}") -lt 1000000 ]]; then
+    proj::log::error "Downloaded file is invalid or too small"
+    rm -f "${temp_file}"
     return 1
   fi
+  
+  # 解压文件
+  proj::log::info "Extracting VictoriaMetrics..."
+  if ! proj::util::sudo "tar -xzf ${temp_file} -C /opt/victoriametrics"; then
+    proj::log::error "Failed to extract VictoriaMetrics"
+    rm -f "${temp_file}"
+    return 1
+  fi
+  
+  # 清理临时文件
+  rm -f "${temp_file}"
 
   # 设置可执行权限
   proj::util::sudo "chmod +x /opt/victoriametrics/victoria-metrics-prod"
