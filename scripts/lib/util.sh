@@ -8,7 +8,7 @@ function proj::util::sortable_date() {
 # Run commands requiring root privileges without entering a password.
 function proj::util::sudo()
 {
-  echo ${LINUX_PASSWORD} | sudo -S $1
+  echo ${LINUX_PASSWORD} | sudo -S bash -c "$1"
 }
 
 # Run commands requiring root privileges without entering a password.
