@@ -44,18 +44,26 @@ proj::sentry::install() {
         
         # 安装 PostgreSQL 客户端工具
         if ! proj::util::cmd_exists "psql"; then
-            proj::util::sudo "apt update"
-            proj::util::sudo "apt install -y postgresql-client"
+            proj::log::info "Installing PostgreSQL client..."
+            if ! proj::util::sudo "apt install -y postgresql-client" 2>/dev/null; then
+                proj::log::warn "PostgreSQL client installation failed, but continuing..."
+            fi
         fi
         
         # 安装 Redis 客户端工具 (如果尚未安装)
         if ! proj::util::cmd_exists "redis-cli"; then
-            proj::util::sudo "apt install -y redis-tools"
+            proj::log::info "Installing Redis client tools..."
+            if ! proj::util::sudo "apt install -y redis-tools" 2>/dev/null; then
+                proj::log::warn "Redis tools installation failed, but continuing..."
+            fi
         fi
         
         # 安装 Python 依赖
         if ! proj::util::cmd_exists "python3"; then
-            proj::util::sudo "apt install -y python3 python3-pip python3-venv"
+            proj::log::info "Installing Python dependencies..."
+            if ! proj::util::sudo "apt install -y python3 python3-pip python3-venv" 2>/dev/null; then
+                proj::log::warn "Python installation failed, but continuing..."
+            fi
         fi
     fi
 
@@ -63,30 +71,20 @@ proj::sentry::install() {
     proj::log::info "For production use, please use Docker installation: make deploy.install.docker.sentry"
     proj::log::info "This native install creates a minimal setup for testing purposes only."
     
-    # 创建简化的配置文件用于测试
+    # 创建 Sentry 配置文件
     local sentry_config="${PROJ_THIRDPARTY_INSTALL_DIR}/sentry/sentry.conf.py"
+    local template_config_file="${SCRIPT_DIR}/sentry/sentry.conf.py"
+    local temp_config_file="/tmp/sentry.conf.py.tmp"
+
     proj::util::sudo "mkdir -p $(dirname ${sentry_config})"
-    
-    cat << EOF | proj::util::sudo "tee ${sentry_config}" > /dev/null
-# Minimal Sentry configuration for testing
-DATABASES = {
-    'default': {
-        'ENGINE': 'sentry.db.postgres',
-        'NAME': '${PROJ_SENTRY_POSTGRES_DB}',
-        'USER': '${PROJ_SENTRY_POSTGRES_USER}',
-        'PASSWORD': '${PROJ_SENTRY_POSTGRES_PASSWORD}',
-        'HOST': '${PROJ_SENTRY_HOST}',
-        'PORT': '5432',
-    }
-}
 
-SENTRY_CACHE = 'sentry.cache.redis.RedisCache'
-SENTRY_REDIS_OPTIONS = {'hosts': {0: {'host': '${PROJ_SENTRY_HOST}', 'port': 6379}}}
+    # 使用 envsubst 替换模板中的环境变量
+    envsubst < ${template_config_file} > ${temp_config_file}
 
-SECRET_KEY = '${PROJ_SENTRY_SECRET_KEY}'
-SENTRY_WEB_HOST = '${PROJ_SENTRY_HOST}'
-SENTRY_WEB_PORT = ${PROJ_SENTRY_WEB_PORT}
-EOF
+    # 复制配置文件到系统目录
+    proj::util::sudo "cp ${temp_config_file} ${sentry_config}"
+    proj::util::sudo "chown root:root ${sentry_config}"
+    rm -f ${temp_config_file}
 
     proj::sentry::status || return 1
     proj::sentry::info
@@ -116,6 +114,19 @@ proj::sentry::uninstall() {
 proj::sentry::pre_install() {
     proj::log::info "Pre-installing Sentry..."
     
+    # 检查 envsubst (gettext-base)
+    if ! command -v envsubst >/dev/null 2>&1; then
+        proj::log::info "Installing gettext-base for envsubst..."
+        if ! proj::util::sudo "apt install -y gettext-base" 2>/dev/null; then
+            proj::log::warn "Failed to install gettext-base, but envsubst might be available from other sources"
+            # 检查是否 envsubst 现在可用
+            if ! command -v envsubst >/dev/null 2>&1; then
+                proj::log::error "envsubst is required but not available. Please install gettext-base manually."
+                return 1
+            fi
+        fi
+    fi
+    
     # 判断是 mac 还是 linux
     if proj::util::is_mac; then
         proj::log::info "Mac OS detected, installing dependencies via brew..."
@@ -129,21 +140,42 @@ proj::sentry::pre_install() {
     else
         proj::log::info "Linux detected, installing dependencies via apt..."
         
-        # 更新包列表
-        proj::util::sudo "apt update"
+        # 更新包列表，忽略失败的仓库
+        proj::log::info "Updating package lists (ignoring repository errors)..."
+        
+        # 首先尝试标准更新
+        if ! proj::util::sudo "apt update --allow-releaseinfo-change" 2>/dev/null; then
+            proj::log::warn "Some repositories are unreachable, trying alternative update methods..."
+            
+            # 尝试忽略失败的仓库
+            proj::util::sudo "apt update --allow-releaseinfo-change -o APT::Update::Error-Mode=any" 2>/dev/null || {
+                proj::log::warn "Repository update partially failed, but continuing with available packages..."
+                
+                # 最后尝试：只更新可用的仓库
+                proj::util::sudo "apt-get update --error-on=any" 2>/dev/null || {
+                    proj::log::info "Using existing package cache..."
+                }
+            }
+        fi
         
         # 检查并安装 Docker
         if ! proj::util::cmd_exists "docker"; then
-            proj::log::info "Docker not found, installing Docker..."
-            proj::util::sudo "apt install -y docker.io"
-            proj::util::sudo "systemctl start docker"
-            proj::util::sudo "systemctl enable docker"
+            proj::log::info "Docker not found, attempting to install Docker..."
+            if proj::util::sudo "apt install -y docker.io" 2>/dev/null; then
+                proj::util::sudo "systemctl start docker" 2>/dev/null || true
+                proj::util::sudo "systemctl enable docker" 2>/dev/null || true
+                proj::log::info "Docker installation completed"
+            else
+                proj::log::warn "Docker installation failed, but continuing..."
+            fi
         fi
         
-        # 检查并安装 Docker Compose
+        # 检查并安装 Docker Compose  
         if ! proj::util::cmd_exists "docker-compose"; then
-            proj::log::info "Docker Compose not found, installing Docker Compose..."
-            proj::util::sudo "apt install -y docker-compose"
+            proj::log::info "Docker Compose not found, attempting to install..."
+            if ! proj::util::sudo "apt install -y docker-compose" 2>/dev/null; then
+                proj::log::warn "Docker Compose installation failed, but continuing..."
+            fi
         fi
     fi
 }
@@ -186,6 +218,10 @@ proj::sentry::docker::install() {
 
     # 安装 Sentry 容器
     proj::log::info "Installing Sentry application..."
+    
+    # 清理可能存在的同名容器
+    proj::common::docker::cleanup_container "${SENTRY_DOCKER_MNAME}"
+
     docker run -d --name ${SENTRY_DOCKER_MNAME} \
         --restart always \
         --network ${NETWORK_NAME} \

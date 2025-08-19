@@ -1,0 +1,81 @@
+# Prometheus Configuration Template for Docker Container Installation
+# Environment variables will be substituted by envsubst
+
+global:
+  scrape_interval: 15s # By default, scrape targets every 15 seconds.
+  scrape_timeout: 10s  # Timeout after 10 seconds
+  evaluation_interval: 15s # Evaluate rules every 15 seconds.
+
+# Alertmanager configuration (optional)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # Use Docker container names for service discovery
+          # - "${NETWORK_NAME}-alertmanager:9093"
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+# A scrape configuration containing exactly one endpoint to scrape:
+scrape_configs:
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']  # Container internal address
+    scrape_interval: 5s
+    metrics_path: /metrics
+
+  # Scrape API service on host
+  - job_name: 'go-protoc-api'
+    static_configs:
+      - targets: ['host.docker.internal:8080']  # Access host from container
+    scrape_interval: 15s
+    metrics_path: /metrics
+    
+  # Scrape other Docker services using container names
+  - job_name: 'jaeger'
+    static_configs:
+      - targets: ['${NETWORK_NAME}-jaeger:14269']  # Jaeger metrics port
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+  - job_name: 'victoriametrics'
+    static_configs:
+      - targets: ['${NETWORK_NAME}-victoriametrics:8428']
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['${NETWORK_NAME}-redis:6379']
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['${NETWORK_NAME}-grafana:3000']
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+  # OpenTelemetry Collector metrics
+  - job_name: 'otelcol'
+    static_configs:
+      - targets: ['${NETWORK_NAME}-otelcol:8888']
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+# Storage configuration  
+storage:
+  tsdb:
+    path: "/prometheus/data"  # Container internal path
+    retention.time: 30d
+    retention.size: 10GB
+
+# Web console configuration
+web:
+  console:
+    libraries: "/usr/share/prometheus/console_libraries"
+    templates: "/usr/share/prometheus/consoles"

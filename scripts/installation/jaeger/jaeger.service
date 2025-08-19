@@ -1,0 +1,34 @@
+[Unit]
+Description=Jaeger All-in-One
+Documentation=https://www.jaegertracing.io/docs/
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=jaeger
+Group=jaeger
+ExecStart=/usr/local/bin/jaeger-all-in-one \
+  --config-file=${PROJ_JAEGER_CONFIG_DIR}/jaeger-config.yaml \
+  --collector.http-server.host-port=${PROJ_JAEGER_HOST}:${PROJ_JAEGER_COLLECTOR_HTTP_PORT} \
+  --collector.grpc-server.host-port=${PROJ_JAEGER_HOST}:${PROJ_JAEGER_COLLECTOR_GRPC_PORT} \
+  --query.http-server.host-port=${PROJ_JAEGER_HOST}:${PROJ_JAEGER_QUERY_PORT} \
+  --agent.http-server.host-port=${PROJ_JAEGER_HOST}:${PROJ_JAEGER_AGENT_HTTP_PORT} \
+  --processor.jaeger-compact.server-host-port=${PROJ_JAEGER_HOST}:${PROJ_JAEGER_AGENT_COMPACT_PORT} \
+  --processor.jaeger-binary.server-host-port=${PROJ_JAEGER_HOST}:${PROJ_JAEGER_AGENT_BINARY_PORT} \
+  --log-level=info
+
+SyslogIdentifier=jaeger
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+# Security settings
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=${PROJ_JAEGER_DATA_DIR}
+
+[Install]
+WantedBy=multi-user.target

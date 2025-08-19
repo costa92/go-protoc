@@ -1,0 +1,58 @@
+[Unit]
+Description=etcd key-value store
+Documentation=https://github.com/etcd-io/etcd
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=etcd
+Group=etcd
+ExecStart=/usr/local/bin/etcd \
+  --name=${ETCD_NODE_NAME} \
+  --data-dir=${PROJ_ETCD_DATA_DIR} \
+  --listen-client-urls=http://${PROJ_ETCD_HOST}:${PROJ_ETCD_PORT} \
+  --advertise-client-urls=http://${PROJ_ETCD_HOST}:${PROJ_ETCD_PORT} \
+  --listen-peer-urls=http://${PROJ_ETCD_HOST}:${PROJ_ETCD_PEER_PORT} \
+  --initial-advertise-peer-urls=http://${PROJ_ETCD_HOST}:${PROJ_ETCD_PEER_PORT} \
+  --initial-cluster=${ETCD_NODE_NAME}=http://${PROJ_ETCD_HOST}:${PROJ_ETCD_PEER_PORT} \
+  --initial-cluster-token=${ETCD_CLUSTER_TOKEN} \
+  --initial-cluster-state=${ETCD_CLUSTER_STATE} \
+  --log-level=info \
+  --logger=zap \
+  --log-outputs=stderr
+
+Restart=always
+RestartSec=10s
+TimeoutStartSec=300
+
+# Security settings
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectHome=yes
+ProtectSystem=strict
+
+# File system access
+ReadWritePaths=${PROJ_ETCD_DATA_DIR}
+ReadWritePaths=/var/log/etcd
+
+# Resource limits
+LimitNOFILE=40000
+LimitNPROC=8192
+
+# Additional security
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+
+# etcd-specific settings
+Environment=ETCD_UNSUPPORTED_ARCH=arm64
+Environment=ETCD_DATA_DIR=${PROJ_ETCD_DATA_DIR}
+Environment=ETCD_LISTEN_CLIENT_URLS=http://${PROJ_ETCD_HOST}:${PROJ_ETCD_PORT}
+Environment=ETCD_ADVERTISE_CLIENT_URLS=http://${PROJ_ETCD_HOST}:${PROJ_ETCD_PORT}
+
+[Install]
+WantedBy=multi-user.target

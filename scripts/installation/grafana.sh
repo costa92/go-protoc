@@ -71,31 +71,11 @@ proj::grafana::install() {
 
   # 创建 Grafana 配置文件
   local grafana_conf_file="/etc/grafana/grafana.ini"
+  local template_conf_file="${SCRIPT_DIR}/grafana/grafana.ini"
   local temp_conf_file="/tmp/grafana.ini.tmp"
 
-  cat > ${temp_conf_file} << EOF
-[server]
-http_addr = ${PROJ_GRAFANA_HOST}
-http_port = ${PROJ_GRAFANA_PORT}
-
-[security]
-admin_user = ${PROJ_GRAFANA_ADMIN_USER}
-admin_password = ${PROJ_GRAFANA_ADMIN_PASSWORD}
-
-[paths]
-data = ${PROJ_GRAFANA_DATA_DIR}
-logs = /var/log/grafana
-plugins = ${PROJ_GRAFANA_DATA_DIR}/plugins
-provisioning = /etc/grafana/provisioning
-
-[database]
-type = sqlite3
-path = ${PROJ_GRAFANA_DATA_DIR}/grafana.db
-
-[log]
-mode = file
-level = info
-EOF
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_conf_file} > ${temp_conf_file}
 
   # 复制配置文件到系统目录
   proj::util::sudo "cp ${temp_conf_file} ${grafana_conf_file}"
@@ -104,39 +84,11 @@ EOF
 
   # 创建 systemd 服务文件
   local grafana_service_file="/etc/systemd/system/grafana.service"
+  local template_service_file="${SCRIPT_DIR}/grafana/grafana.service"
   local temp_service_file="/tmp/grafana.service.tmp"
 
-  cat > ${temp_service_file} << 'EOF'
-[Unit]
-Description=Grafana instance
-Documentation=http://docs.grafana.org
-Wants=network-online.target
-After=network-online.target
-After=postgresql.service mariadb.service mysql.service
-
-[Service]
-EnvironmentFile=-/etc/default/grafana-server
-User=grafana
-Group=grafana
-Type=notify
-Restart=on-failure
-RuntimeDirectory=grafana
-RuntimeDirectoryMode=0750
-WorkingDirectory=/usr/share/grafana
-ExecStart=/usr/share/grafana/bin/grafana server                                                  \
-  --config=${GF_PATHS_CONFIG}                                                                    \
-  --pidfile=${GF_PIDFILE_PATH}                                                                   \
-  cfg:default.paths.logs=${GF_PATHS_LOGS}                                                       \
-  cfg:default.paths.data=${GF_PATHS_DATA}                                                       \
-  cfg:default.paths.plugins=${GF_PATHS_PLUGINS}                                                 \
-  cfg:default.paths.provisioning=${GF_PATHS_PROVISIONING}
-
-LimitNOFILE=10000
-TimeoutStopSec=20
-
-[Install]
-WantedBy=multi-user.target
-EOF
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_service_file} > ${temp_service_file}
 
   # 复制服务文件到系统目录
   proj::util::sudo "cp ${temp_service_file} ${grafana_service_file}"
@@ -144,27 +96,11 @@ EOF
 
   # 创建环境文件
   local grafana_env_file="/etc/default/grafana-server"
+  local template_env_file="${SCRIPT_DIR}/grafana/grafana-server-env"
   local temp_env_file="/tmp/grafana-server.tmp"
 
-  cat > ${temp_env_file} << EOF
-GRAFANA_USER=grafana
-GRAFANA_GROUP=grafana
-GRAFANA_HOME=/usr/share/grafana
-LOG_DIR=/var/log/grafana
-DATA_DIR=${PROJ_GRAFANA_DATA_DIR}
-MAX_OPEN_FILES=10000
-CONF_DIR=/etc/grafana
-CONF_FILE=/etc/grafana/grafana.ini
-RESTART_ON_UPGRADE=true
-PLUGINS_DIR=${PROJ_GRAFANA_DATA_DIR}/plugins
-PROVISIONING_CFG_DIR=/etc/grafana/provisioning
-GF_PATHS_CONFIG=/etc/grafana/grafana.ini
-GF_PATHS_DATA=${PROJ_GRAFANA_DATA_DIR}
-GF_PATHS_LOGS=/var/log/grafana
-GF_PATHS_PLUGINS=${PROJ_GRAFANA_DATA_DIR}/plugins
-GF_PATHS_PROVISIONING=/etc/grafana/provisioning
-GF_PIDFILE_PATH=/run/grafana/grafana.pid
-EOF
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_env_file} > ${temp_env_file}
 
   proj::util::sudo "cp ${temp_env_file} ${grafana_env_file}"
   rm -f ${temp_env_file}
@@ -216,6 +152,12 @@ proj::grafana::pre_install() {
       proj::log::info "Grafana already installed, skipping..."
     fi
   else
+    # 检查 envsubst (gettext-base)
+    if ! command -v envsubst >/dev/null 2>&1; then
+        proj::log::info "Installing gettext-base for envsubst..."
+        proj::util::sudo "apt install -y gettext-base"
+    fi
+
     # 检查必要的依赖
     if ! command -v curl >/dev/null 2>&1; then
       proj::log::info "Installing curl..."
@@ -236,14 +178,31 @@ proj::grafana::docker::install() {
   proj::grafana::pre_install
   proj::common::network
 
-  # 创建数据目录
+  # 创建数据和配置目录
   local grafana_data_dir="${PROJ_THIRDPARTY_INSTALL_DIR}/grafana"
   mkdir -p ${grafana_data_dir}
+  mkdir -p ${grafana_data_dir}/conf
+
+  # 创建 Grafana Docker 配置文件
+  local grafana_docker_conf_file="${grafana_data_dir}/conf/grafana.ini"
+  local template_docker_conf_file="${SCRIPT_DIR}/grafana/grafana-docker.ini"
+  local temp_docker_conf_file="/tmp/grafana-docker.ini.tmp"
+
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_docker_conf_file} > ${temp_docker_conf_file}
+
+  # 复制配置文件到数据目录
+  proj::util::sudo "cp ${temp_docker_conf_file} ${grafana_docker_conf_file}"
+  rm -f ${temp_docker_conf_file}
+
+  # 清理可能存在的同名容器
+  proj::common::docker::cleanup_container "${GRAFANA_DOCKER_MNAME}"
 
   docker run -d --name ${GRAFANA_DOCKER_MNAME} \
     --restart always \
     --network ${NETWORK_NAME} \
     -v ${grafana_data_dir}:/var/lib/grafana \
+    -v ${grafana_data_dir}/conf/grafana.ini:/etc/grafana/grafana.ini \
     -p ${PROJ_GRAFANA_HOST}:${PROJ_GRAFANA_PORT}:3000 \
     -e "GF_SECURITY_ADMIN_USER=${PROJ_GRAFANA_ADMIN_USER}" \
     -e "GF_SECURITY_ADMIN_PASSWORD=${PROJ_GRAFANA_ADMIN_PASSWORD}" \

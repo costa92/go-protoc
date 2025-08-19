@@ -13,8 +13,8 @@ set -o pipefail
 # Environment variables for OpenTelemetry Collector configuration
 # Can be overridden by setting these variables before running the script
 PROJ_OTELCOL_HOST=${PROJ_OTELCOL_HOST:-127.0.0.1}                # OpenTelemetry Collector server host
-PROJ_OTELCOL_HTTP_PORT=${PROJ_OTELCOL_HTTP_PORT:-4318}           # OTLP HTTP receiver port
-PROJ_OTELCOL_GRPC_PORT=${PROJ_OTELCOL_GRPC_PORT:-4317}           # OTLP gRPC receiver port
+PROJ_OTELCOL_HTTP_PORT=${PROJ_OTELCOL_HTTP_PORT:-4328}           # OTLP HTTP receiver port (avoid conflict with Jaeger)
+PROJ_OTELCOL_GRPC_PORT=${PROJ_OTELCOL_GRPC_PORT:-4327}           # OTLP gRPC receiver port (avoid conflict with Jaeger)
 PROJ_OTELCOL_METRICS_PORT=${PROJ_OTELCOL_METRICS_PORT:-8888}     # Metrics port
 PROJ_OTELCOL_HEALTH_PORT=${PROJ_OTELCOL_HEALTH_PORT:-13133}      # Health check port
 PROJ_OTELCOL_DATA_DIR=${PROJ_OTELCOL_DATA_DIR:-/var/lib/otelcol} # OpenTelemetry Collector data directory
@@ -54,7 +54,7 @@ proj::otelcol::install() {
     otelcol_arch="arm64"
   fi
 
-  local otelcol_url="https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${PROJ_OTELCOL_VERSION}/otelcol_${PROJ_OTELCOL_VERSION}_linux_${otelcol_arch}.tar.gz"
+  local otelcol_url="https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${PROJ_OTELCOL_VERSION}/otelcol-contrib_${PROJ_OTELCOL_VERSION}_linux_${otelcol_arch}.tar.gz"
 
   # 检查文件是否已存在，避免重复下载
   if [[ -f "${otelcol_download_dir}/otelcol.tar.gz" ]]; then
@@ -66,73 +66,16 @@ proj::otelcol::install() {
 
   # 解压并安装
   tar xzf ${otelcol_download_dir}/otelcol.tar.gz -C ${otelcol_download_dir}
-  proj::util::sudo "cp ${otelcol_download_dir}/otelcol /usr/local/bin/"
-  proj::util::sudo "chmod +x /usr/local/bin/otelcol"
+  proj::util::sudo "cp ${otelcol_download_dir}/otelcol-contrib /usr/local/bin/"
+  proj::util::sudo "chmod +x /usr/local/bin/otelcol-contrib"
 
-  # 创建 OpenTelemetry Collector 配置文件
+  # 创建 OpenTelemetry Collector 配置文件（宿主机版本）
   local otelcol_conf_file="${PROJ_OTELCOL_CONFIG_DIR}/config.yaml"
+  local template_conf_file="${SCRIPT_DIR}/otelcol/config.yaml"
   local temp_conf_file="/tmp/otelcol-config.yaml.tmp"
 
-  cat > ${temp_conf_file} << EOF
-receivers:
-  otlp:
-    protocols:
-      grpc:
-        endpoint: 0.0.0.0:${PROJ_OTELCOL_GRPC_PORT}
-      http:
-        endpoint: 0.0.0.0:${PROJ_OTELCOL_HTTP_PORT}
-
-  prometheus:
-    config:
-      scrape_configs:
-        - job_name: 'otelcol'
-          scrape_interval: 10s
-          static_configs:
-            - targets: ['0.0.0.0:8888']
-
-processors:
-  batch:
-    timeout: 1s
-    send_batch_size: 1024
-
-  memory_limiter:
-    limit_mib: 512
-
-exporters:
-  logging:
-    loglevel: debug
-
-  prometheus:
-    endpoint: "0.0.0.0:8889"
-
-  jaeger:
-    endpoint: jaeger:14250
-    tls:
-      insecure: true
-
-service:
-  pipelines:
-    traces:
-      receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [logging, jaeger]
-
-    metrics:
-      receivers: [otlp, prometheus]
-      processors: [memory_limiter, batch]
-      exporters: [logging, prometheus]
-
-    logs:
-      receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [logging]
-
-  extensions: [health_check]
-
-extensions:
-  health_check:
-    endpoint: 0.0.0.0:${PROJ_OTELCOL_HEALTH_PORT}
-EOF
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_conf_file} > ${temp_conf_file}
 
   # 复制配置文件到系统目录
   proj::util::sudo "cp ${temp_conf_file} ${otelcol_conf_file}"
@@ -141,29 +84,11 @@ EOF
 
   # 创建 systemd 服务文件
   local otelcol_service_file="/etc/systemd/system/otelcol.service"
+  local template_service_file="${SCRIPT_DIR}/otelcol/otelcol.service"
   local temp_service_file="/tmp/otelcol.service.tmp"
 
-  cat > ${temp_service_file} << EOF
-[Unit]
-Description=OpenTelemetry Collector
-Documentation=https://opentelemetry.io/docs/collector/
-Wants=network-online.target
-After=network-online.target
-
-[Service]
-Type=simple
-User=otelcol
-Group=otelcol
-ExecReload=/bin/kill -HUP \$MAINPID
-ExecStart=/usr/local/bin/otelcol --config=${PROJ_OTELCOL_CONFIG_DIR}/config.yaml
-
-SyslogIdentifier=otelcol
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_service_file} > ${temp_service_file}
 
   # 复制服务文件到系统目录
   proj::util::sudo "cp ${temp_service_file} ${otelcol_service_file}"
@@ -190,7 +115,7 @@ proj::otelcol::uninstall() {
   proj::util::sudo "systemctl disable otelcol"
   proj::util::sudo "rm -f /etc/systemd/system/otelcol.service"
   proj::util::sudo "systemctl daemon-reload"
-  proj::util::sudo "rm -f /usr/local/bin/otelcol"
+  proj::util::sudo "rm -f /usr/local/bin/otelcol-contrib"
   proj::util::sudo "rm -rf ${PROJ_OTELCOL_CONFIG_DIR}"
   proj::util::sudo "rm -rf ${PROJ_OTELCOL_DATA_DIR}"
   proj::util::sudo "rm -rf /var/log/otelcol"
@@ -207,11 +132,11 @@ proj::otelcol::pre_install() {
   # 判断是 mac 还是 linux
   if proj::util::is_mac; then
     proj::log::info "Mac OS detected, checking for OpenTelemetry Collector installation..."
-    if ! command -v otelcol >/dev/null 2>&1; then
-      proj::log::info "Installing OpenTelemetry Collector via brew..."
-      brew install opentelemetry-collector
+    if ! command -v otelcol-contrib >/dev/null 2>&1; then
+      proj::log::info "Installing OpenTelemetry Collector Contrib via brew..."
+      brew install opentelemetry-collector-contrib
     else
-      proj::log::info "OpenTelemetry Collector already installed, skipping..."
+      proj::log::info "OpenTelemetry Collector Contrib already installed, skipping..."
     fi
   else
     # 检查必要的依赖
@@ -223,6 +148,11 @@ proj::otelcol::pre_install() {
     if ! command -v tar >/dev/null 2>&1; then
       proj::log::info "Installing tar..."
       proj::util::sudo "apt install -y tar"
+    fi
+
+    if ! command -v envsubst >/dev/null 2>&1; then
+      proj::log::info "Installing gettext-base for envsubst..."
+      proj::util::sudo "apt install -y gettext-base"
     fi
   fi
 }
@@ -240,76 +170,31 @@ proj::otelcol::docker::install() {
   mkdir -p ${otelcol_data_dir}
   mkdir -p ${otelcol_config_dir}
 
-  # 创建配置文件
-  cat > ${otelcol_config_dir}/config.yaml << EOF
-receivers:
-  otlp:
-    protocols:
-      grpc:
-        endpoint: 0.0.0.0:${PROJ_OTELCOL_GRPC_PORT}
-      http:
-        endpoint: 0.0.0.0:${PROJ_OTELCOL_HTTP_PORT}
+  # 选择配置文件模板
+  local template_conf_file="${SCRIPT_DIR}/otelcol/config-docker.yaml"
+  
+  # 检查是否有 Jaeger 容器运行，如果没有则使用独立配置
+  if ! docker ps --format "table {{.Names}}" | grep -q "jaeger" 2>/dev/null; then
+    proj::log::info "No Jaeger container found, using standalone Docker configuration..."
+    template_conf_file="${SCRIPT_DIR}/otelcol/config-docker-standalone.yaml"
+  else
+    proj::log::info "Jaeger container detected, using networked Docker configuration..."
+  fi
+  
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_conf_file} > ${otelcol_config_dir}/config.yaml
 
-  prometheus:
-    config:
-      scrape_configs:
-        - job_name: 'otelcol'
-          scrape_interval: 10s
-          static_configs:
-            - targets: ['0.0.0.0:8888']
-
-processors:
-  batch:
-    timeout: 1s
-    send_batch_size: 1024
-
-  memory_limiter:
-    limit_mib: 512
-
-exporters:
-  logging:
-    loglevel: debug
-
-  prometheus:
-    endpoint: "0.0.0.0:8889"
-
-  jaeger:
-    endpoint: jaeger:14250
-    tls:
-      insecure: true
-
-service:
-  pipelines:
-    traces:
-      receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [logging, jaeger]
-
-    metrics:
-      receivers: [otlp, prometheus]
-      processors: [memory_limiter, batch]
-      exporters: [logging, prometheus]
-
-    logs:
-      receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [logging]
-
-  extensions: [health_check]
-
-extensions:
-  health_check:
-    endpoint: 0.0.0.0:${PROJ_OTELCOL_HEALTH_PORT}
-EOF
+  # 清理可能存在的同名容器
+  proj::common::docker::cleanup_container "${OTELCOL_DOCKER_MNAME}"
 
   docker run -d --name ${OTELCOL_DOCKER_MNAME} \
     --restart always \
     --network ${NETWORK_NAME} \
     -v ${otelcol_config_dir}/config.yaml:/etc/otelcol-contrib/config.yaml \
-    -p ${PROJ_OTELCOL_HOST}:${PROJ_OTELCOL_HTTP_PORT}:4318 \
-    -p ${PROJ_OTELCOL_HOST}:${PROJ_OTELCOL_GRPC_PORT}:4317 \
-    -p ${PROJ_OTELCOL_HOST}:${PROJ_OTELCOL_METRICS_PORT}:8888 \
-    -p ${PROJ_OTELCOL_HOST}:${PROJ_OTELCOL_HEALTH_PORT}:13133 \
+    -p 127.0.0.1:4328:4328 \
+    -p 127.0.0.1:4327:4327 \
+    -p 127.0.0.1:8888:8888 \
+    -p 127.0.0.1:13133:13133 \
     otel/opentelemetry-collector-contrib:${PROJ_OTELCOL_VERSION} \
     --config=/etc/otelcol-contrib/config.yaml
 

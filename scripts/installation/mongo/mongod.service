@@ -1,0 +1,47 @@
+[Unit]
+Description=MongoDB Database Server
+Documentation=https://docs.mongodb.org/manual
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=forking
+User=mongodb
+Group=mongodb
+EnvironmentFile=-/etc/default/mongod
+ExecStart=/usr/bin/mongod --config /etc/mongod.conf
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=300
+TimeoutStopSec=300
+
+# Security settings
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectHome=yes
+ProtectSystem=strict
+
+# File system access
+ReadWritePaths=/var/lib/mongodb
+ReadWritePaths=/var/log/mongodb
+ReadWritePaths=/tmp
+
+# Resource limits
+LimitNOFILE=64000
+LimitNPROC=64000
+TasksMax=infinity
+
+# Additional security
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+
+# Memory settings
+MemoryDenyWriteExecute=false
+
+[Install]
+WantedBy=multi-user.target

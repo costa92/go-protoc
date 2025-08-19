@@ -1,0 +1,100 @@
+# MariaDB Configuration Template for Docker Container Installation
+# Environment variables will be substituted by envsubst
+
+[mysqld]
+# Basic Settings for Container Environment
+user                    = mysql
+skip-external-locking
+
+# Network Configuration - bind to all interfaces for container access
+bind-address            = 0.0.0.0
+port                    = 3306
+
+# Character set and collation (UTF-8 support)
+character-set-server    = utf8mb4
+collation-server        = utf8mb4_unicode_ci
+
+# Container-optimized connection settings
+max_connections         = 200
+connect_timeout         = 10
+wait_timeout            = 300
+max_allowed_packet      = 64M
+
+# Memory settings (conservative for containers)
+thread_cache_size       = 64
+sort_buffer_size        = 2M
+bulk_insert_buffer_size = 8M
+tmp_table_size          = 16M
+max_heap_table_size     = 16M
+
+# MyISAM settings
+key_buffer_size         = 64M
+table_open_cache        = 200
+myisam_sort_buffer_size = 256M
+read_buffer_size        = 1M
+read_rnd_buffer_size    = 512K
+
+# Query Cache (disabled for development containers)
+query_cache_size        = 0
+query_cache_type        = OFF
+
+# Logging Configuration for Containers
+# Error logging to stdout/stderr for Docker log aggregation
+#log-error              = /var/log/mysql/error.log
+
+# Slow query logging (disabled by default for containers)
+slow_query_log          = 0
+#slow_query_log_file    = /var/log/mysql/mysql-slow.log
+long_query_time         = 2
+
+# Binary logging (optional for development)
+#log_bin                = mysql-bin
+#expire_logs_days       = 7
+#max_binlog_size        = 100M
+
+# InnoDB Configuration for Containers
+default_storage_engine  = InnoDB
+innodb_buffer_pool_size = 128M
+innodb_log_file_size    = 32M
+innodb_log_buffer_size  = 4M
+innodb_file_per_table   = 1
+innodb_open_files       = 200
+innodb_io_capacity      = 200
+innodb_flush_log_at_trx_commit = 2
+innodb_flush_method     = O_DIRECT
+
+# Disable performance schema for containers (saves memory)
+performance_schema      = OFF
+
+# Disable strict mode for development containers
+sql_mode                = ""
+
+# Container-specific optimizations
+skip-name-resolve
+skip-host-cache
+
+[mysql]
+# Client configuration
+default-character-set   = utf8mb4
+
+[client]
+# Client defaults
+default-character-set   = utf8mb4
+port                    = 3306
+socket                  = /run/mysqld/mysqld.sock
+
+[mysqldump]
+# Dump configuration
+quick
+quote-names
+max_allowed_packet      = 64M
+default-character-set   = utf8mb4
+
+[mysql]
+# MySQL client configuration
+no-auto-rehash
+default-character-set   = utf8mb4
+
+[isamchk]
+# isamchk configuration
+key_buffer_size         = 16M

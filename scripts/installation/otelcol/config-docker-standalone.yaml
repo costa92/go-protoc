@@ -1,0 +1,59 @@
+# OpenTelemetry Collector Configuration for Standalone Docker Installation
+# This configuration is designed for Docker containers without external service dependencies
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4327
+      http:
+        endpoint: 0.0.0.0:4328
+
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'otelcol'
+          scrape_interval: 10s
+          static_configs:
+            - targets: ['0.0.0.0:8888']
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+
+  memory_limiter:
+    limit_mib: 512
+    check_interval: 1s
+
+exporters:
+  logging:
+    verbosity: detailed
+
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+
+  # For standalone Docker, export to stdout only (file removed for simplicity)
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [logging]
+
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [memory_limiter, batch]
+      exporters: [logging, prometheus]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [logging]
+
+  extensions: [health_check]
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:${PROJ_OTELCOL_HEALTH_PORT}

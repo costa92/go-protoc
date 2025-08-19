@@ -33,6 +33,9 @@ proj::kafka::docker::install()
     -e ZOOKEEPER_TICK_TIME=2000 \
     confluentinc/cp-zookeeper:latest
 
+  # 清理可能存在的同名容器
+  proj::common::docker::cleanup_container "${KAFKA_DOCKER_MNAME}"
+
   # 启动 Kafka (使用支持ARM64的镜像)
   if [[ "${arch}" == "aarch64" || "${arch}" == "arm64" ]]; then
     proj::log::info "Install kafka arch: ${arch}"

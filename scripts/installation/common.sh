@@ -34,3 +34,26 @@ proj::common::network()
     }
   fi
 }
+
+# 清理可能存在的同名 Docker 容器
+# 用法: proj::common::docker::cleanup_container "容器名称"
+proj::common::docker::cleanup_container()
+{
+  local container_name="${1}"
+  
+  if [[ -z "${container_name}" ]]; then
+    echo "Error: Container name is required for cleanup" >&2
+    return 1
+  fi
+  
+  # 检查容器是否存在，如果存在则删除
+  if docker ps -aq -f name="^${container_name}$" | grep -q .; then
+    echo "Cleaning up existing container: ${container_name}"
+    docker rm -f "${container_name}" 2>/dev/null || {
+      echo "Warning: Failed to remove container ${container_name}, but continuing..."
+      return 0
+    }
+  fi
+  
+  return 0
+}

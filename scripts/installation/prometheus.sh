@@ -74,32 +74,11 @@ proj::prometheus::install() {
 
   # 创建 Prometheus 配置文件
   local prometheus_conf_file="${PROJ_PROMETHEUS_CONFIG_DIR}/prometheus.yml"
+  local template_conf_file="${SCRIPT_DIR}/prometheus/prometheus.yml"
   local temp_conf_file="/tmp/prometheus.yml.tmp"
 
-  cat > ${temp_conf_file} << EOF
-global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
-
-rule_files:
-  # - "first_rules.yml"
-  # - "second_rules.yml"
-
-scrape_configs:
-  - job_name: 'prometheus'
-    static_configs:
-      - targets: ['localhost:9090']
-
-  - job_name: 'node'
-    static_configs:
-      - targets: ['localhost:9100']
-
-alerting:
-  alertmanagers:
-    - static_configs:
-        - targets:
-          # - alertmanager:9093
-EOF
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_conf_file} > ${temp_conf_file}
 
   # 复制配置文件到系统目录
   proj::util::sudo "cp ${temp_conf_file} ${prometheus_conf_file}"
@@ -108,34 +87,11 @@ EOF
 
   # 创建 systemd 服务文件
   local prometheus_service_file="/etc/systemd/system/prometheus.service"
+  local template_service_file="${SCRIPT_DIR}/prometheus/prometheus.service"
   local temp_service_file="/tmp/prometheus.service.tmp"
 
-  cat > ${temp_service_file} << EOF
-[Unit]
-Description=Prometheus
-Documentation=https://prometheus.io/docs/introduction/overview/
-Wants=network-online.target
-After=network-online.target
-
-[Service]
-Type=simple
-User=prometheus
-Group=prometheus
-ExecReload=/bin/kill -HUP \$MAINPID
-ExecStart=/usr/local/bin/prometheus \\
-  --config.file=${PROJ_PROMETHEUS_CONFIG_DIR}/prometheus.yml \\
-  --storage.tsdb.path=${PROJ_PROMETHEUS_DATA_DIR} \\
-  --web.console.templates=${PROJ_PROMETHEUS_CONFIG_DIR}/consoles \\
-  --web.console.libraries=${PROJ_PROMETHEUS_CONFIG_DIR}/console_libraries \\
-  --web.listen-address=0.0.0.0:${PROJ_PROMETHEUS_PORT} \\
-  --web.external-url=
-
-SyslogIdentifier=prometheus
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_service_file} > ${temp_service_file}
 
   # 复制服务文件到系统目录
   proj::util::sudo "cp ${temp_service_file} ${prometheus_service_file}"
@@ -197,6 +153,12 @@ proj::prometheus::pre_install() {
       proj::log::info "Installing tar..."
       proj::util::sudo "apt install -y tar"
     fi
+
+    # 检查 envsubst (gettext-base)
+    if ! command -v envsubst >/dev/null 2>&1; then
+      proj::log::info "Installing gettext-base for envsubst..."
+      proj::util::sudo "apt install -y gettext-base"
+    fi
   fi
 }
 
@@ -213,31 +175,17 @@ proj::prometheus::docker::install() {
   mkdir -p ${prometheus_data_dir}
   mkdir -p ${prometheus_config_dir}
 
-  # 创建配置文件
-  cat > ${prometheus_config_dir}/prometheus.yml << EOF
-global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
+  # 创建 Docker 配置文件
+  local template_conf_file="${SCRIPT_DIR}/prometheus/prometheus-docker.yml"
+  local temp_conf_file="/tmp/prometheus-docker.yml.tmp"
 
-rule_files:
-  # - "first_rules.yml"
-  # - "second_rules.yml"
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_conf_file} > ${temp_conf_file}
+  cp ${temp_conf_file} ${prometheus_config_dir}/prometheus.yml
+  rm -f ${temp_conf_file}
 
-scrape_configs:
-  - job_name: 'prometheus'
-    static_configs:
-      - targets: ['localhost:9090']
-
-  - job_name: 'node'
-    static_configs:
-      - targets: ['localhost:9100']
-
-alerting:
-  alertmanagers:
-    - static_configs:
-        - targets:
-          # - alertmanager:9093
-EOF
+  # 清理可能存在的同名容器
+  proj::common::docker::cleanup_container "${PROMETHEUS_DOCKER_MNAME}"
 
   docker run -d --name ${PROMETHEUS_DOCKER_MNAME} \
     --restart always \

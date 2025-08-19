@@ -70,34 +70,11 @@ proj::alertmanager::install() {
 
   # 创建 AlertManager 配置文件
   local alertmanager_conf_file="${PROJ_ALERTMANAGER_CONFIG_DIR}/alertmanager.yml"
+  local template_conf_file="${SCRIPT_DIR}/alertmanager/alertmanager.yml"
   local temp_conf_file="/tmp/alertmanager.yml.tmp"
 
-  cat > ${temp_conf_file} << EOF
-global:
-  smtp_smarthost: 'localhost:587'
-  smtp_from: 'alertmanager@example.org'
-  smtp_auth_username: 'alertmanager@example.org'
-  smtp_auth_password: 'password'
-
-route:
-  group_by: ['alertname']
-  group_wait: 10s
-  group_interval: 10s
-  repeat_interval: 1h
-  receiver: 'web.hook'
-
-receivers:
-- name: 'web.hook'
-  webhook_configs:
-  - url: 'http://127.0.0.1:5001/'
-
-inhibit_rules:
-  - source_match:
-      severity: 'critical'
-    target_match:
-      severity: 'warning'
-    equal: ['alertname', 'dev', 'instance']
-EOF
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_conf_file} > ${temp_conf_file}
 
   # 复制配置文件到系统目录
   proj::util::sudo "cp ${temp_conf_file} ${alertmanager_conf_file}"
@@ -106,32 +83,11 @@ EOF
 
   # 创建 systemd 服务文件
   local alertmanager_service_file="/etc/systemd/system/alertmanager.service"
+  local template_service_file="${SCRIPT_DIR}/alertmanager/alertmanager.service"
   local temp_service_file="/tmp/alertmanager.service.tmp"
 
-  cat > ${temp_service_file} << EOF
-[Unit]
-Description=AlertManager
-Documentation=https://prometheus.io/docs/alerting/alertmanager/
-Wants=network-online.target
-After=network-online.target
-
-[Service]
-Type=simple
-User=alertmanager
-Group=alertmanager
-ExecReload=/bin/kill -HUP \$MAINPID
-ExecStart=/usr/local/bin/alertmanager \\
-  --config.file=${PROJ_ALERTMANAGER_CONFIG_DIR}/alertmanager.yml \\
-  --storage.path=${PROJ_ALERTMANAGER_DATA_DIR} \\
-  --web.listen-address=0.0.0.0:${PROJ_ALERTMANAGER_PORT} \\
-  --web.external-url=
-
-SyslogIdentifier=alertmanager
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_service_file} > ${temp_service_file}
 
   # 复制服务文件到系统目录
   proj::util::sudo "cp ${temp_service_file} ${alertmanager_service_file}"
@@ -193,6 +149,12 @@ proj::alertmanager::pre_install() {
       proj::log::info "Installing tar..."
       proj::util::sudo "apt install -y tar"
     fi
+
+    # 检查 envsubst (gettext-base)
+    if ! command -v envsubst >/dev/null 2>&1; then
+      proj::log::info "Installing gettext-base for envsubst..."
+      proj::util::sudo "apt install -y gettext-base"
+    fi
   fi
 }
 
@@ -209,33 +171,17 @@ proj::alertmanager::docker::install() {
   mkdir -p ${alertmanager_data_dir}
   mkdir -p ${alertmanager_config_dir}
 
-  # 创建配置文件
-  cat > ${alertmanager_config_dir}/alertmanager.yml << EOF
-global:
-  smtp_smarthost: 'localhost:587'
-  smtp_from: 'alertmanager@example.org'
-  smtp_auth_username: 'alertmanager@example.org'
-  smtp_auth_password: 'password'
+  # 创建 Docker 配置文件
+  local template_conf_file="${SCRIPT_DIR}/alertmanager/alertmanager-docker.yml"
+  local temp_conf_file="/tmp/alertmanager-docker.yml.tmp"
 
-route:
-  group_by: ['alertname']
-  group_wait: 10s
-  group_interval: 10s
-  repeat_interval: 1h
-  receiver: 'web.hook'
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_conf_file} > ${temp_conf_file}
+  cp ${temp_conf_file} ${alertmanager_config_dir}/alertmanager.yml
+  rm -f ${temp_conf_file}
 
-receivers:
-- name: 'web.hook'
-  webhook_configs:
-  - url: 'http://127.0.0.1:5001/'
-
-inhibit_rules:
-  - source_match:
-      severity: 'critical'
-    target_match:
-      severity: 'warning'
-    equal: ['alertname', 'dev', 'instance']
-EOF
+  # 清理可能存在的同名容器
+  proj::common::docker::cleanup_container "${ALERTMANAGER_DOCKER_MNAME}"
 
   docker run -d --name ${ALERTMANAGER_DOCKER_MNAME} \
     --restart always \

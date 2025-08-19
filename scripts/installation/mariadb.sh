@@ -1,18 +1,29 @@
 #!/usr/bin/env bash
 
+# Exit on any error, undefined variables, or pipe failures
+set -o errexit
+set -o nounset
+set -o pipefail
 
-# The root of the build/dist directory.
-PROJ_ROOT_DIR=$(dirname "${BASH_SOURCE[0]}")/../..
-# If common.sh has already been sourced, it will not be sourced again here.
-[[ -z ${COMMON_SOURCED} ]] && source ${PROJ_ROOT_DIR}/scripts/installation/common.sh
-# Set some environment variables.
-PROJ_MYSQL_HOST=${PROJ_MYSQL_HOST:-127.0.0.1}
-PROJ_MYSQL_PORT=${PROJ_MYSQL_PORT:-3306}
-PROJ_PASSWORD=${PROJ_PASSWORD:-onex(#)666}
+# 加载通用配置和版本管理
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
+
+# Environment variables for MariaDB configuration
+# Can be overridden by setting these variables before running the script
+PROJ_MYSQL_HOST=${PROJ_MYSQL_HOST:-127.0.0.1}                          # MariaDB server host
+PROJ_MYSQL_PORT=${PROJ_MYSQL_PORT:-3306}                               # MariaDB server port
+PROJ_MYSQL_ADMIN_USERNAME=${PROJ_MYSQL_ADMIN_USERNAME:-root}           # Admin username
+PROJ_MYSQL_ADMIN_PASSWORD=${PROJ_MYSQL_ADMIN_PASSWORD:-proj(#)666}     # Admin password
+PROJ_PASSWORD=${PROJ_PASSWORD:-proj(#)666}                             # Legacy password variable
+PROJ_MYSQL_DATA_DIR=${PROJ_MYSQL_DATA_DIR:-/var/lib/mysql}             # MariaDB data directory
+PROJ_MYSQL_CONFIG_DIR=${PROJ_MYSQL_CONFIG_DIR:-/etc/mysql}             # MariaDB config directory
+# 版本信息从统一配置文件加载：MARIADB_VERSION 在 versions.sh 中定义
 MARIADB_DOCKER_MNAME=${NETWORK_NAME}-mariadb
 
 proj::mariadb::pre_install()
 {
+  proj::log::info "Pre-installing MariaDB..."
   if proj::util::is_linux; then
       # 检查是否已安装 MariaDB 客户端，如果没有则安装
       if ! proj::util::cmd_exists "mariadb-client"; then
@@ -20,6 +31,12 @@ proj::mariadb::pre_install()
           proj::util::sudo "DEBIAN_FRONTEND=noninteractive apt install -y mariadb-client"
       else
           proj::log::info "mariadb-client already exists, skipping installation"
+      fi
+
+      # 检查 envsubst (gettext-base)
+      if ! command -v envsubst >/dev/null 2>&1; then
+          proj::log::info "Installing gettext-base for envsubst..."
+          proj::util::sudo "apt install -y gettext-base"
       fi
   fi
 }
@@ -29,13 +46,35 @@ proj::mariadb::docker::install()
 {
   proj::mariadb::pre_install
   proj::common::network
+  
+  # 清理可能存在的同名容器
+  proj::common::docker::cleanup_container "${MARIADB_DOCKER_MNAME}"
+  
+  # 创建 MariaDB 数据和配置目录
+  proj::util::sudo "mkdir -p ${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb"
+  proj::util::sudo "mkdir -p ${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb/conf.d"
+
+  # 创建 MariaDB Docker 配置文件
+  local mariadb_docker_conf_file="${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb/conf.d/mariadb-docker.cnf"
+  local template_docker_conf_file="${SCRIPT_DIR}/mariadb/mariadb-docker.cnf"
+  local temp_docker_conf_file="/tmp/mariadb-docker.cnf.tmp"
+
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_docker_conf_file} > ${temp_docker_conf_file}
+
+  # 复制配置文件到数据目录
+  proj::util::sudo "cp ${temp_docker_conf_file} ${mariadb_docker_conf_file}"
+  rm -f ${temp_docker_conf_file}
+
+  # 启动 MariaDB 容器，使用配置文件
   docker run -d --name ${MARIADB_DOCKER_MNAME} \
     --restart always \
     --network ${NETWORK_NAME} \
     -v ${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb:/var/lib/mysql \
+    -v ${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb/conf.d:/etc/mysql/conf.d \
     -p 0.0.0.0:${PROJ_MYSQL_PORT}:3306 \
-    -e MYSQL_ROOT_PASSWORD=${PROJ_PASSWORD} \
-    mariadb:11.2.2
+    -e MYSQL_ROOT_PASSWORD=${PROJ_MYSQL_ADMIN_PASSWORD} \
+    mariadb:${MARIADB_VERSION}
 
   echo "Sleeping to wait for all mariadb container to complete startup ..."
   sleep 10
@@ -109,8 +148,31 @@ proj::mariadb::install()
   # 启动 MariaDB，并设置开机启动
   proj::util::sudo "systemctl enable mariadb"
 
-  # 为了方便你访问 MySQL，这里我们设置 MySQL 允许从所有机器网卡访问
-  echo ${LINUX_PASSWORD} | sudo -S sed -i 's/^bind-address.*/bind-address = 0.0.0.0/g' /etc/mysql/mariadb.conf.d/50-server.cnf
+  # 创建 MariaDB 服务器配置文件
+  local mariadb_server_conf_file="/etc/mysql/mariadb.conf.d/50-server.cnf"
+  local template_server_conf_file="${SCRIPT_DIR}/mariadb/50-server.cnf"
+  local temp_server_conf_file="/tmp/50-server.cnf.tmp"
+
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_server_conf_file} > ${temp_server_conf_file}
+
+  # 复制配置文件到系统目录
+  proj::util::sudo "cp ${temp_server_conf_file} ${mariadb_server_conf_file}"
+  proj::util::sudo "chown root:root ${mariadb_server_conf_file}"
+  rm -f ${temp_server_conf_file}
+
+  # 创建客户端配置文件
+  local mariadb_client_conf_file="/etc/mysql/conf.d/mariadb-client.cnf"
+  local template_client_conf_file="${SCRIPT_DIR}/mariadb/mariadb-client.cnf"
+  local temp_client_conf_file="/tmp/mariadb-client.cnf.tmp"
+
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_client_conf_file} > ${temp_client_conf_file}
+
+  # 复制配置文件到系统目录
+  proj::util::sudo "cp ${temp_client_conf_file} ${mariadb_client_conf_file}"
+  proj::util::sudo "chown root:root ${mariadb_client_conf_file}"
+  rm -f ${temp_client_conf_file}
 
   proj::util::sudo "systemctl restart mariadb"
 
@@ -141,12 +203,13 @@ proj::mariadb::uninstall()
 # Print necessary information after docker or sbs installation.
 proj::mariadb::info()
 {
-  proj::color::green "mariadb has been installed, here are some useful information:"
+  echo -e ${C_GREEN}MariaDB has been installed, here are some useful information:${C_NORMAL}
   cat << EOF | sed 's/^/  /'
-MySQL access endpoint is: ${PROJ_MYSQL_HOST}:${PROJ_MYSQL_PORT}
-        root password is: ${PROJ_PASSWORD}
-# `mysql` will be deprecated in the future, so here use `mariadb` instead.
-Access command: mariadb -h ${PROJ_MYSQL_HOST} -P ${PROJ_MYSQL_PORT} -u root -p'${PROJ_PASSWORD}'
+MariaDB access endpoint is: ${PROJ_MYSQL_HOST}:${PROJ_MYSQL_PORT}
+       Admin username is: ${PROJ_MYSQL_ADMIN_USERNAME}
+       Admin password is: ${PROJ_MYSQL_ADMIN_PASSWORD}
+# \`mysql\` will be deprecated in the future, so here use \`mariadb\` instead.
+Access command: mariadb -h ${PROJ_MYSQL_HOST} -P ${PROJ_MYSQL_PORT} -u ${PROJ_MYSQL_ADMIN_USERNAME} -p'${PROJ_MYSQL_ADMIN_PASSWORD}'
 EOF
 }
 

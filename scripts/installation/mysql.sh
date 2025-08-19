@@ -136,8 +136,8 @@ proj::mysql::docker::install() {
     proj::mysql::pre_install
     proj::common::network
 
-    # Stop any existing container
-    docker rm -f ${MYSQL_DOCKER_MNAME} 2>/dev/null || true
+    # 清理可能存在的同名容器
+    proj::common::docker::cleanup_container "${MYSQL_DOCKER_MNAME}"
 
     # Run MySQL container
     docker run -d --name ${MYSQL_DOCKER_MNAME} \

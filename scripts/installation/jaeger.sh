@@ -13,9 +13,13 @@ set -o pipefail
 # Environment variables for Jaeger configuration
 # Can be overridden by setting these variables before running the script
 PROJ_JAEGER_HOST=${PROJ_JAEGER_HOST:-127.0.0.1}                    # Jaeger server host
-PROJ_JAEGER_UI_PORT=${PROJ_JAEGER_UI_PORT:-16686}                  # Jaeger UI port
-PROJ_JAEGER_COLLECTOR_PORT=${PROJ_JAEGER_COLLECTOR_PORT:-14268}    # Jaeger collector port
-PROJ_JAEGER_AGENT_PORT=${PROJ_JAEGER_AGENT_PORT:-6831}             # Jaeger agent port (UDP)
+PROJ_JAEGER_QUERY_PORT=${PROJ_JAEGER_QUERY_PORT:-16686}            # Jaeger query/UI port
+PROJ_JAEGER_COLLECTOR_HTTP_PORT=${PROJ_JAEGER_COLLECTOR_HTTP_PORT:-14268}  # Collector HTTP port
+PROJ_JAEGER_COLLECTOR_GRPC_PORT=${PROJ_JAEGER_COLLECTOR_GRPC_PORT:-14250}  # Collector gRPC port
+PROJ_JAEGER_AGENT_HTTP_PORT=${PROJ_JAEGER_AGENT_HTTP_PORT:-5778}    # Agent HTTP port
+PROJ_JAEGER_AGENT_COMPACT_PORT=${PROJ_JAEGER_AGENT_COMPACT_PORT:-6831} # Agent compact thrift port
+PROJ_JAEGER_AGENT_BINARY_PORT=${PROJ_JAEGER_AGENT_BINARY_PORT:-6832} # Agent binary thrift port
+PROJ_JAEGER_CONFIG_DIR=${PROJ_JAEGER_CONFIG_DIR:-/etc/jaeger}       # Jaeger config directory
 # 加载通用配置和版本管理
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
@@ -28,8 +32,10 @@ JAEGER_DOCKER_MNAME=${NETWORK_NAME}-jaeger
 proj::jaeger::install() {
   proj::jaeger::pre_install
 
-  # 创建 Jaeger 数据目录
+  # 创建 Jaeger 相关目录
   proj::util::sudo "mkdir -p ${PROJ_JAEGER_DATA_DIR}"
+  proj::util::sudo "mkdir -p ${PROJ_JAEGER_CONFIG_DIR}"
+  proj::util::sudo "mkdir -p /var/log/jaeger"
   proj::util::sudo "chmod 755 ${PROJ_JAEGER_DATA_DIR}"
 
   # 创建 jaeger 用户
@@ -39,6 +45,8 @@ proj::jaeger::install() {
 
   # 设置正确的目录所有权
   proj::util::sudo "chown -R jaeger:jaeger ${PROJ_JAEGER_DATA_DIR}"
+  proj::util::sudo "chown -R jaeger:jaeger ${PROJ_JAEGER_CONFIG_DIR}"
+  proj::util::sudo "chown -R jaeger:jaeger /var/log/jaeger"
 
   # 下载 Jaeger 二进制文件
   local jaeger_download_dir="/tmp/jaeger-download-test"
@@ -67,34 +75,26 @@ proj::jaeger::install() {
   proj::util::sudo "cp ${jaeger_download_dir}/jaeger-query /usr/local/bin/"
   proj::util::sudo "chmod +x /usr/local/bin/jaeger-*"
 
+  # 创建 Jaeger 配置文件
+  local jaeger_conf_file="${PROJ_JAEGER_CONFIG_DIR}/jaeger-config.yaml"
+  local template_conf_file="${SCRIPT_DIR}/jaeger/jaeger-config.yaml"
+  local temp_conf_file="/tmp/jaeger-config.yaml.tmp"
+
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_conf_file} > ${temp_conf_file}
+
+  # 复制配置文件到系统目录
+  proj::util::sudo "cp ${temp_conf_file} ${jaeger_conf_file}"
+  proj::util::sudo "chown jaeger:jaeger ${jaeger_conf_file}"
+  rm -f ${temp_conf_file}
+
   # 创建 systemd 服务文件
   local jaeger_service_file="/etc/systemd/system/jaeger.service"
-
-  # 创建临时文件
+  local template_service_file="${SCRIPT_DIR}/jaeger/jaeger.service"
   local temp_service_file="/tmp/jaeger.service.tmp"
-  cat > ${temp_service_file} << 'EOF'
-[Unit]
-Description=Jaeger Tracing Platform
-Documentation=https://www.jaegertracing.io/
-After=network.target
 
-[Service]
-Type=simple
-User=jaeger
-ExecStart=/usr/local/bin/jaeger-all-in-one \
-  --collector.grpc-server.host-port=0.0.0.0:14250 \
-  --collector.http-server.host-port=0.0.0.0:14268 \
-  --query.http-server.host-port=0.0.0.0:16686 \
-  --processor.jaeger-compact.server-host-port=0.0.0.0:6831 \
-  --memory.max-traces=50000 \
-  --log-level=info
-Restart=always
-RestartSec=10s
-LimitNOFILE=40000
-
-[Install]
-WantedBy=multi-user.target
-EOF
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_service_file} > ${temp_service_file}
 
   # 复制到系统目录
   proj::util::sudo "cp ${temp_service_file} ${jaeger_service_file}"
@@ -147,6 +147,12 @@ proj::jaeger::pre_install() {
       proj::log::info "Installing tar..."
       proj::util::sudo "apt install -y tar"
     fi
+
+    # 检查 envsubst (gettext-base)
+    if ! command -v envsubst >/dev/null 2>&1; then
+      proj::log::info "Installing gettext-base for envsubst..."
+      proj::util::sudo "apt install -y gettext-base"
+    fi
   fi
 }
 
@@ -157,17 +163,34 @@ proj::jaeger::docker::install() {
   proj::jaeger::pre_install
   proj::common::network
 
-  # 创建数据目录
+  # 创建数据目录和配置目录
   local jaeger_data_dir="${PROJ_THIRDPARTY_INSTALL_DIR}/jaeger"
+  local jaeger_config_dir="${PROJ_THIRDPARTY_INSTALL_DIR}/jaeger/config"
   proj::util::sudo "mkdir -p ${jaeger_data_dir}"
+  proj::util::sudo "mkdir -p ${jaeger_config_dir}"
+
+  # 创建 Docker 配置文件
+  local template_conf_file="${SCRIPT_DIR}/jaeger/jaeger-config-docker.yaml"
+  local temp_conf_file="/tmp/jaeger-config-docker.yaml.tmp"
+
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_conf_file} > ${temp_conf_file}
+  proj::util::sudo "cp ${temp_conf_file} ${jaeger_config_dir}/jaeger-config.yaml"
+  rm -f ${temp_conf_file}
+
+  # 清理可能存在的同名容器
+  proj::common::docker::cleanup_container "${JAEGER_DOCKER_MNAME}"
 
   docker run -d --name ${JAEGER_DOCKER_MNAME} \
     --restart always \
     --network ${NETWORK_NAME} \
-    -p ${PROJ_JAEGER_HOST}:${PROJ_JAEGER_UI_PORT}:16686 \
-    -p ${PROJ_JAEGER_HOST}:${PROJ_JAEGER_COLLECTOR_PORT}:14268 \
-    -p ${PROJ_JAEGER_HOST}:14250:14250 \
-    -p ${PROJ_JAEGER_HOST}:${PROJ_JAEGER_AGENT_PORT}:6831/udp \
+    -p ${PROJ_JAEGER_HOST}:${PROJ_JAEGER_QUERY_PORT}:16686 \
+    -p ${PROJ_JAEGER_HOST}:${PROJ_JAEGER_COLLECTOR_HTTP_PORT}:14268 \
+    -p ${PROJ_JAEGER_HOST}:${PROJ_JAEGER_COLLECTOR_GRPC_PORT}:14250 \
+    -p ${PROJ_JAEGER_HOST}:${PROJ_JAEGER_AGENT_HTTP_PORT}:5778 \
+    -p ${PROJ_JAEGER_HOST}:${PROJ_JAEGER_AGENT_COMPACT_PORT}:6831/udp \
+    -p ${PROJ_JAEGER_HOST}:${PROJ_JAEGER_AGENT_BINARY_PORT}:6832/udp \
+    -v ${jaeger_config_dir}/jaeger-config.yaml:/etc/jaeger/jaeger-config.yaml \
     -e COLLECTOR_OTLP_ENABLED=true \
     jaegertracing/all-in-one:${PROJ_JAEGER_VERSION}
 
@@ -183,11 +206,13 @@ proj::jaeger::docker::install() {
 proj::jaeger::info() {
   echo -e ${C_GREEN}Jaeger has been installed, here are some useful information:${C_NORMAL}
   cat << EOF | sed 's/^/  /'
-Jaeger UI endpoint is: http://${PROJ_JAEGER_HOST}:${PROJ_JAEGER_UI_PORT}
-    Jaeger collector: http://${PROJ_JAEGER_HOST}:${PROJ_JAEGER_COLLECTOR_PORT}
-       Jaeger agent: ${PROJ_JAEGER_HOST}:${PROJ_JAEGER_AGENT_PORT}/udp
-      Jaeger health: curl http://${PROJ_JAEGER_HOST}:${PROJ_JAEGER_COLLECTOR_PORT}/health
-     Access Jaeger UI: Open http://${PROJ_JAEGER_HOST}:${PROJ_JAEGER_UI_PORT} in your browser
+Jaeger UI endpoint is: http://${PROJ_JAEGER_HOST}:${PROJ_JAEGER_QUERY_PORT}
+    Jaeger collector HTTP: http://${PROJ_JAEGER_HOST}:${PROJ_JAEGER_COLLECTOR_HTTP_PORT}
+    Jaeger collector gRPC: http://${PROJ_JAEGER_HOST}:${PROJ_JAEGER_COLLECTOR_GRPC_PORT}
+       Jaeger agent HTTP: http://${PROJ_JAEGER_HOST}:${PROJ_JAEGER_AGENT_HTTP_PORT}
+       Jaeger agent UDP: ${PROJ_JAEGER_HOST}:${PROJ_JAEGER_AGENT_COMPACT_PORT}/udp
+      Jaeger health check: curl http://${PROJ_JAEGER_HOST}:${PROJ_JAEGER_COLLECTOR_HTTP_PORT}/health
+     Access Jaeger UI: Open http://${PROJ_JAEGER_HOST}:${PROJ_JAEGER_QUERY_PORT} in your browser
 EOF
 }
 
@@ -200,11 +225,11 @@ proj::jaeger::docker::uninstall() {
 
 # Status check after docker or native installation
 proj::jaeger::status() {
-  proj::util::telnet ${PROJ_JAEGER_HOST} ${PROJ_JAEGER_UI_PORT} || return 1
+  proj::util::telnet ${PROJ_JAEGER_HOST} ${PROJ_JAEGER_QUERY_PORT} || return 1
 
   # 检查 Jaeger UI 可访问性
   if command -v curl >/dev/null 2>&1; then
-    curl -f http://${PROJ_JAEGER_HOST}:${PROJ_JAEGER_UI_PORT} >/dev/null 2>&1 || {
+    curl -f http://${PROJ_JAEGER_HOST}:${PROJ_JAEGER_QUERY_PORT} >/dev/null 2>&1 || {
       proj::log::error "Jaeger UI access check failed, Jaeger maybe not initialized properly."
       return 1
     }

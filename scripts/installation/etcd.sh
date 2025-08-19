@@ -10,16 +10,19 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# 加载通用配置和版本管理
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
+
 # Environment variables for etcd configuration
 # Can be overridden by setting these variables before running the script
 PROJ_ETCD_HOST=${PROJ_ETCD_HOST:-127.0.0.1}                # etcd server host
 PROJ_ETCD_PORT=${PROJ_ETCD_PORT:-2379}                     # etcd client port
 PROJ_ETCD_PEER_PORT=${PROJ_ETCD_PEER_PORT:-2380}           # etcd peer port
 PROJ_ETCD_DATA_DIR=${PROJ_ETCD_DATA_DIR:-/var/lib/etcd}    # etcd data directory
-# 加载通用配置和版本管理
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/common.sh"
-
+ETCD_NODE_NAME=${ETCD_NODE_NAME:-etcd-node1}               # etcd node name
+ETCD_CLUSTER_TOKEN=${ETCD_CLUSTER_TOKEN:-etcd-cluster-1}   # etcd cluster token
+ETCD_CLUSTER_STATE=${ETCD_CLUSTER_STATE:-new}              # etcd cluster state
 # 版本信息从统一配置文件加载：PROJ_ETCD_VERSION 在 versions.sh 中定义
 ETCD_DOCKER_MNAME=${NETWORK_NAME}-etcd
 
@@ -68,38 +71,11 @@ proj::etcd::install() {
 
   # 创建 systemd 服务文件
   local etcd_service_file="/etc/systemd/system/etcd.service"
-
-  # 创建临时文件
+  local template_service_file="${SCRIPT_DIR}/etcd/etcd.service"
   local temp_service_file="/tmp/etcd.service.tmp"
-  cat > ${temp_service_file} << 'EOF'
-[Unit]
-Description=etcd key-value store
-Documentation=https://github.com/etcd-io/etcd
-After=network.target
 
-[Service]
-Type=notify
-User=etcd
-ExecStart=/usr/local/bin/etcd \
-  --name=etcd-node1 \
-  --data-dir=/var/lib/etcd \
-  --listen-client-urls=http://0.0.0.0:2379 \
-  --advertise-client-urls=http://127.0.0.1:2379 \
-  --listen-peer-urls=http://0.0.0.0:2380 \
-  --initial-advertise-peer-urls=http://127.0.0.1:2380 \
-  --initial-cluster=etcd-node1=http://127.0.0.1:2380 \
-  --initial-cluster-token=etcd-cluster-1 \
-  --initial-cluster-state=new \
-  --log-level=info \
-  --logger=zap \
-  --log-outputs=stderr
-Restart=always
-RestartSec=10s
-LimitNOFILE=40000
-
-[Install]
-WantedBy=multi-user.target
-EOF
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_service_file} > ${temp_service_file}
 
   # 复制到系统目录
   proj::util::sudo "cp ${temp_service_file} ${etcd_service_file}"
@@ -149,6 +125,12 @@ proj::etcd::pre_install() {
       proj::log::info "etcd already installed, skipping..."
     fi
   else
+    # 检查 envsubst (gettext-base)
+    if ! command -v envsubst >/dev/null 2>&1; then
+        proj::log::info "Installing gettext-base for envsubst..."
+        proj::util::sudo "apt install -y gettext-base"
+    fi
+
     # 检查必要的依赖
     if ! command -v curl >/dev/null 2>&1; then
       proj::log::info "Installing curl..."
@@ -172,6 +154,9 @@ proj::etcd::docker::install() {
   # 创建数据目录
   local etcd_data_dir="${PROJ_THIRDPARTY_INSTALL_DIR}/etcd"
   mkdir -p ${etcd_data_dir}
+
+  # 清理可能存在的同名容器
+  proj::common::docker::cleanup_container "${ETCD_DOCKER_MNAME}"
 
   docker run -d --name ${ETCD_DOCKER_MNAME} \
     --restart always \

@@ -1,0 +1,75 @@
+# Prometheus Configuration Template for Host Installation
+# Environment variables will be substituted by envsubst
+
+global:
+  scrape_interval: 15s # By default, scrape targets every 15 seconds.
+  scrape_timeout: 10s  # Timeout after 10 seconds
+  evaluation_interval: 15s # Evaluate rules every 15 seconds.
+
+# Alertmanager configuration (optional)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - "alertmanager:9093"
+          # - "${PROJ_ALERTMANAGER_HOST:-127.0.0.1}:${PROJ_ALERTMANAGER_PORT:-9093}"
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+# A scrape configuration containing exactly one endpoint to scrape:
+scrape_configs:
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['${PROJ_PROMETHEUS_HOST}:${PROJ_PROMETHEUS_PORT}']
+    scrape_interval: 5s
+    metrics_path: /metrics
+
+  # Scrape other services if available
+  - job_name: 'go-protoc-api'
+    static_configs:
+      - targets: ['${PROJ_PROMETHEUS_HOST}:8080']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    
+  # Node exporter for system metrics (if installed)  
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['${PROJ_PROMETHEUS_HOST}:9100']
+    scrape_interval: 15s
+    
+  # Jaeger metrics (if available)
+  - job_name: 'jaeger'
+    static_configs:
+      - targets: ['${PROJ_JAEGER_HOST:-127.0.0.1}:${PROJ_JAEGER_COLLECTOR_HTTP_PORT:-14268}']
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+  # VictoriaMetrics (if available)
+  - job_name: 'victoriametrics'
+    static_configs:
+      - targets: ['${PROJ_VICTORIAMETRICS_HOST:-127.0.0.1}:${PROJ_VICTORIAMETRICS_PORT:-8428}']
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+  # Redis metrics (if redis_exporter is installed)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['${PROJ_PROMETHEUS_HOST}:9121']
+    scrape_interval: 15s
+
+# Storage configuration  
+storage:
+  tsdb:
+    path: "${PROJ_PROMETHEUS_DATA_DIR}/data"
+    retention.time: 30d
+    retention.size: 10GB
+
+# Web console configuration
+web:
+  console:
+    libraries: "${PROJ_PROMETHEUS_DATA_DIR}/console_libraries"
+    templates: "${PROJ_PROMETHEUS_DATA_DIR}/consoles"

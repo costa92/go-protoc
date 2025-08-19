@@ -110,6 +110,9 @@ proj::victorialogs::docker::install() {
   proj::util::sudo "mkdir -p ${VICTORIALOGS_DATA_DIR}"
   proj::util::sudo "chmod -R 777 ${VICTORIALOGS_DATA_DIR}"
 
+  # 清理可能存在的同名容器
+  proj::common::docker::cleanup_container "${VICTORIALOGS_DOCKER_NAME}"
+
   # 启动 VictoriaLogs 服务
   proj::log::info "Starting VictoriaLogs server..."
   docker run -d --name ${VICTORIALOGS_DOCKER_NAME} \

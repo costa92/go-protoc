@@ -120,6 +120,9 @@ proj::vmagent::docker::install() {
   # 创建配置文件 (Docker 模式)
   proj::vmagent::create_docker_config
 
+  # 清理可能存在的同名容器
+  proj::common::docker::cleanup_container "${VMAGENT_DOCKER_NAME}"
+
   # 启动 vmagent 服务
   proj::log::info "Starting vmagent server..."
   docker run -d --name ${VMAGENT_DOCKER_NAME} \

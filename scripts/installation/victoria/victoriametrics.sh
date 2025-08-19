@@ -146,6 +146,9 @@ proj::victoriametrics::docker::install() {
   proj::util::sudo "mkdir -p ${VICTORIAMETRICS_DATA_DIR}"
   proj::util::sudo "chmod -R 777 ${VICTORIAMETRICS_DATA_DIR}"
 
+  # 清理可能存在的同名容器
+  proj::common::docker::cleanup_container "${VICTORIAMETRICS_DOCKER_NAME}"
+
   # 启动 VictoriaMetrics 主服务
   proj::log::info "Starting VictoriaMetrics server..."
   docker run -d --name ${VICTORIAMETRICS_DOCKER_NAME} \

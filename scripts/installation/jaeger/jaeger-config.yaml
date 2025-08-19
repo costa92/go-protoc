@@ -1,0 +1,55 @@
+# Jaeger Configuration Template for Host Installation
+# Environment variables will be substituted by envsubst
+
+# Storage configuration
+storage:
+  type: memory  # Use memory storage for development/testing
+  # For production, consider using elasticsearch, cassandra, or badger
+  # memory:
+  #   max-traces: 50000
+
+# Collector configuration  
+collector:
+  # HTTP endpoint for receiving spans
+  http:
+    host-port: "${PROJ_JAEGER_HOST}:${PROJ_JAEGER_COLLECTOR_HTTP_PORT:-14268}"
+  
+  # gRPC endpoint for receiving spans  
+  grpc:
+    host-port: "${PROJ_JAEGER_HOST}:${PROJ_JAEGER_COLLECTOR_GRPC_PORT:-14250}"
+
+# Query service configuration
+query:
+  # HTTP port for the query service and web UI
+  http:
+    host-port: "${PROJ_JAEGER_HOST}:${PROJ_JAEGER_QUERY_PORT:-16686}"
+  
+  # Base path for web UI (if behind proxy)
+  base-path: "/"
+  
+  # Static files directory (for UI assets)
+  static-files: "/go/jaeger-ui/"
+
+# Agent configuration (for jaeger-agent if used)
+agent:
+  # HTTP port for configuration and metrics
+  http:
+    host-port: "${PROJ_JAEGER_HOST}:${PROJ_JAEGER_AGENT_HTTP_PORT:-5778}"
+  
+  # UDP ports for receiving spans in different formats
+  jaeger:
+    thrift-compact:
+      host-port: "${PROJ_JAEGER_HOST}:${PROJ_JAEGER_AGENT_COMPACT_PORT:-6831}"
+    thrift-binary:
+      host-port: "${PROJ_JAEGER_HOST}:${PROJ_JAEGER_AGENT_BINARY_PORT:-6832}"
+
+# Logging configuration
+log:
+  level: info
+  format: text
+
+# Metrics configuration  
+metrics:
+  backend: prometheus
+  http:
+    route: "/metrics"

@@ -1,0 +1,51 @@
+# MariaDB Client Configuration Template
+# Environment variables will be substituted by envsubst
+
+[client]
+# Default connection settings
+host                    = ${PROJ_MYSQL_HOST}
+port                    = ${PROJ_MYSQL_PORT}
+user                    = ${PROJ_MYSQL_ADMIN_USERNAME}
+socket                  = /run/mysqld/mysqld.sock
+
+# Character set support
+default-character-set   = utf8mb4
+
+# SSL settings (optional)
+#ssl-ca                 = /etc/mysql/ssl/ca-cert.pem
+#ssl-cert               = /etc/mysql/ssl/client-cert.pem
+#ssl-key                = /etc/mysql/ssl/client-key.pem
+
+# Connection options
+connect-timeout         = 10
+
+[mysql]
+# MySQL CLI specific settings
+auto-rehash
+default-character-set   = utf8mb4
+prompt                  = 'MariaDB [\\d]> '
+pager                   = "less -niSFX"
+
+[mysqldump]
+# Backup utility settings
+single-transaction
+routines
+triggers
+default-character-set   = utf8mb4
+max_allowed_packet      = 1024M
+
+[mysqladmin]
+# Admin utility settings
+default-character-set   = utf8mb4
+
+[mysqlcheck]
+# Check utility settings
+default-character-set   = utf8mb4
+
+[mysqlimport]
+# Import utility settings
+default-character-set   = utf8mb4
+
+[mysqlshow]
+# Show utility settings
+default-character-set   = utf8mb4

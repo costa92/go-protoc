@@ -19,6 +19,8 @@ source "${SCRIPT_DIR}/common.sh"
 PROJ_REDIS_HOST=${PROJ_REDIS_HOST:-127.0.0.1}        # Redis server host
 PROJ_REDIS_PORT=${PROJ_REDIS_PORT:-6379}             # Redis server port
 PROJ_REDIS_PASSWORD=${PROJ_REDIS_PASSWORD:-proj(#)666}  # Redis authentication password
+PROJ_REDIS_DATA_DIR=${PROJ_REDIS_DATA_DIR:-/var/lib/redis}  # Redis data directory
+PROJ_REDIS_CONFIG_DIR=${PROJ_REDIS_CONFIG_DIR:-/etc/redis}  # Redis config directory
 # 版本信息从统一配置文件加载：REDIS_VERSION 在 versions.sh 中定义
 REDIS_DOCKER_MNAME=${NETWORK_NAME}-redis
 
@@ -27,32 +29,54 @@ REDIS_DOCKER_MNAME=${NETWORK_NAME}-redis
 proj::redis::install() {
   proj::redis::pre_install
 
-  # 创建 `/var/lib/redis` 目录，否则 `redis-server` 命令启动时
-  # 会报：`Can't chdir to '/var/lib/redis': No such file or directory` 错误
-  proj::util::sudo "mkdir -p /var/lib/redis"
+  # 创建 Redis 相关目录
+  proj::util::sudo "mkdir -p ${PROJ_REDIS_DATA_DIR}"
+  proj::util::sudo "mkdir -p ${PROJ_REDIS_CONFIG_DIR}"
+  proj::util::sudo "mkdir -p /var/log/redis"
+  proj::util::sudo "mkdir -p /run/redis"
+
+  # 创建 redis 用户（如果不存在）
+  if ! id -u redis >/dev/null 2>&1; then
+    proj::util::sudo "useradd --system --shell /bin/false redis"
+  fi
+
+  # 设置正确的目录所有权
+  proj::util::sudo "chown -R redis:redis ${PROJ_REDIS_DATA_DIR}"
+  proj::util::sudo "chown -R redis:redis ${PROJ_REDIS_CONFIG_DIR}"
+  proj::util::sudo "chown -R redis:redis /var/log/redis"
+  proj::util::sudo "chown -R redis:redis /run/redis"
 
   # 安装 Redis
   proj::util::sudo "apt install -y -o Dpkg::Options::="--force-confmiss" --reinstall redis-server"
 
-  # 配置 Redis
-  # 修改 `/etc/redis/redis.conf` 文件，将 daemonize 由 no 改成 yes，表示允许 Redis 在后台启动
-  redis_conf=/etc/redis/redis.conf
-  # 注意：有的系统 redis 配置文件路径为 `/etc/redis.conf`
-  [[ -f /etc/redis.conf ]] && redis_conf=/etc/redis.conf
+  # 创建 Redis 配置文件
+  local redis_conf_file="${PROJ_REDIS_CONFIG_DIR}/redis.conf"
+  local template_conf_file="${SCRIPT_DIR}/redis/redis.conf"
+  local temp_conf_file="/tmp/redis.conf.tmp"
 
-  echo ${LINUX_PASSWORD} | sudo -S sed -i '/^daemonize/{s/no/yes/}' ${redis_conf}
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_conf_file} > ${temp_conf_file}
 
-  # 修改 Redis 端口为 ${PROJ_REDIS_PORT}
-  echo ${LINUX_PASSWORD} | sudo -S sed -i "s/^port.*/port ${PROJ_REDIS_PORT}/g" ${redis_conf}
+  # 复制配置文件到系统目录
+  proj::util::sudo "cp ${temp_conf_file} ${redis_conf_file}"
+  proj::util::sudo "chown redis:redis ${redis_conf_file}"
+  rm -f ${temp_conf_file}
 
-  # 在 `bind 127.0.0.1` 前面添加 `#` 将其注释掉，默认情况下只允许本地连接，注释掉后外网可以连接 Redis
-  echo ${LINUX_PASSWORD} | sudo -S sed -i '/^bind .*127.0.0.1/s/^/# /' ${redis_conf}
+  # 创建 systemd 服务文件
+  local redis_service_file="/etc/systemd/system/redis.service"
+  local template_service_file="${SCRIPT_DIR}/redis/redis.service"
+  local temp_service_file="/tmp/redis.service.tmp"
 
-  # 修改 requirepass 配置，设置 Redis 密码
-  echo ${LINUX_PASSWORD} | sudo -S sed -i 's/^# requirepass.*$/requirepass '"${PROJ_REDIS_PASSWORD}"'/' ${redis_conf}
+  # 使用 envsubst 替换模板中的环境变量
+  envsubst < ${template_service_file} > ${temp_service_file}
 
-  # 因为我们上面配置了密码登录，需要将 protected-mode 设置为 no，关闭保护模式
-  echo ${LINUX_PASSWORD} | sudo -S sed -i '/^protected-mode/{s/yes/no/}' ${redis_conf}
+  # 复制服务文件到系统目录
+  proj::util::sudo "cp ${temp_service_file} ${redis_service_file}"
+  rm -f ${temp_service_file}
+
+  # 启动 Redis 服务
+  proj::util::sudo "systemctl daemon-reload"
+  proj::util::sudo "systemctl enable redis"
 
   # 为了能够远程连上 Redis，需要执行以下命令关闭防火墙，并禁止防火墙开机启动（如果不需要远程连接，可忽略此步骤）
   set +o errexit
@@ -101,10 +125,15 @@ proj::redis::pre_install(){
         else
             proj::log::info "redis-tools already installed, skipping..."
         fi
+
+        # 检查 envsubst (gettext-base)
+        if ! command -v envsubst >/dev/null 2>&1; then
+            proj::log::info "Installing gettext-base for envsubst..."
+            proj::util::sudo "apt install -y gettext-base"
+        fi
     fi
 }
 
-# Func
 # Install Redis using a Docker container.
 proj::redis::docker::install(){
     proj::log::info "Installing docker Redis..."
@@ -112,18 +141,32 @@ proj::redis::docker::install(){
     proj::redis::pre_install
     proj::common::network
 
+    # 清理可能存在的同名容器
+    proj::common::docker::cleanup_container "${REDIS_DOCKER_MNAME}"
+
+    # 创建 Redis 数据目录
+    proj::util::sudo "mkdir -p ${PROJ_THIRDPARTY_INSTALL_DIR}/redis"
+
+    # 创建 Redis Docker 配置文件
+    local redis_docker_conf_file="${PROJ_THIRDPARTY_INSTALL_DIR}/redis/redis.conf"
+    local template_docker_conf_file="${SCRIPT_DIR}/redis/redis-docker.conf"
+    local temp_docker_conf_file="/tmp/redis-docker.conf.tmp"
+
+    # 使用 envsubst 替换模板中的环境变量
+    envsubst < ${template_docker_conf_file} > ${temp_docker_conf_file}
+
+    # 复制配置文件到数据目录
+    proj::util::sudo "cp ${temp_docker_conf_file} ${redis_docker_conf_file}"
+    rm -f ${temp_docker_conf_file}
+
+    # 启动 Redis 容器，使用配置文件
     docker run -d --name ${REDIS_DOCKER_MNAME} \
       --restart always \
       --network ${NETWORK_NAME} \
       -v ${PROJ_THIRDPARTY_INSTALL_DIR}/redis:/data \
       -p ${PROJ_REDIS_HOST}:${PROJ_REDIS_PORT}:6379 \
-      redis:7.2.3 \
-      redis-server \
-      --appendonly yes \
-      --save 60 1 \
-      --protected-mode no \
-      --requirepass ${PROJ_REDIS_PASSWORD} \
-      --loglevel debug
+      redis:${REDIS_VERSION} \
+      redis-server /data/redis.conf
 
     sleep 2
     if proj::util::is_linux; then

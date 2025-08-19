@@ -1,0 +1,35 @@
+[Unit]
+Description=AlertManager
+Documentation=https://prometheus.io/docs/alerting/alertmanager/
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=alertmanager
+Group=alertmanager
+ExecReload=/bin/kill -HUP \$MAINPID
+ExecStart=/usr/local/bin/alertmanager \
+  --config.file=${PROJ_ALERTMANAGER_CONFIG_DIR}/alertmanager.yml \
+  --storage.path=${PROJ_ALERTMANAGER_DATA_DIR} \
+  --web.listen-address=0.0.0.0:${PROJ_ALERTMANAGER_PORT} \
+  --web.external-url=http://${PROJ_ALERTMANAGER_HOST}:${PROJ_ALERTMANAGER_PORT}/ \
+  --web.route-prefix=/ \
+  --cluster.listen-address= \
+  --log.level=info \
+  --log.format=logfmt
+
+SyslogIdentifier=alertmanager
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+# Security settings
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=${PROJ_ALERTMANAGER_DATA_DIR}
+
+[Install]
+WantedBy=multi-user.target

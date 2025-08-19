@@ -1,0 +1,60 @@
+# Jaeger Configuration Template for Docker Container Installation  
+# Environment variables will be substituted by envsubst
+
+# Storage configuration
+storage:
+  type: memory  # Use memory storage for development/testing
+  # For production, consider using elasticsearch, cassandra, or badger
+
+# Collector configuration
+collector:
+  # HTTP endpoint for receiving spans (container internal)
+  http:
+    host-port: "0.0.0.0:14268"
+  
+  # gRPC endpoint for receiving spans (container internal) 
+  grpc:
+    host-port: "0.0.0.0:14250"
+
+# Query service configuration
+query:
+  # HTTP port for the query service and web UI (container internal)
+  http:
+    host-port: "0.0.0.0:16686"
+  
+  # Base path for web UI
+  base-path: "/"
+  
+  # Static files directory (for UI assets)
+  static-files: "/go/jaeger-ui/"
+
+# Agent configuration (for jaeger-agent if used)
+agent:
+  # HTTP port for configuration and metrics (container internal)
+  http:
+    host-port: "0.0.0.0:5778"
+  
+  # UDP ports for receiving spans in different formats (container internal)
+  jaeger:
+    thrift-compact:
+      host-port: "0.0.0.0:6831"
+    thrift-binary:
+      host-port: "0.0.0.0:6832"
+
+# Logging configuration
+log:
+  level: info
+  format: text
+
+# Metrics configuration
+metrics:
+  backend: prometheus
+  http:
+    route: "/metrics"
+
+# Docker-specific settings
+sampling:
+  strategies:
+    default_strategy:
+      type: "probabilistic"
+      param: 1.0  # Sample 100% of traces in development
