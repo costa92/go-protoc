@@ -1,0 +1,138 @@
+# 动态生成的 OTEL Collector 配置
+# 基于 /Users/costalong/code/go/src/github.com/costa92/go-protoc/configs/apiserver.yaml 中的日志路径配置
+# 生成时间: 2025-08-20 00:04:33
+
+receivers:
+  filelog/apiserver:
+    include:
+          - "/app/api_startup*.log"
+          - "/app/logs/*.log"
+          - "/app/logs/apiserver/*.log"
+          - "/app/logs/apiserver/app.log"
+          - "/app/logs/apiserver/app*.log"
+    start_at: end
+    operators:
+      # JSON 解析器 - 处理结构化日志
+      - type: json_parser
+        id: json_parser
+        parse_from: attributes.log
+        parse_to: attributes
+        severity:
+          parse_from: attributes.level
+        timestamp:
+          parse_from: attributes.ts
+          layout_type: gotime
+          layout: '2006-01-02T15:04:05.000-0700'
+      
+      # 日志级别解析
+      - type: severity_parser
+        id: severity_parser
+        parse_from: attributes.level
+        
+      # 移动消息字段
+      - type: move
+        id: move_message
+        from: attributes.msg
+        to: body
+        
+      # 资源属性设置
+      - type: add
+        field: resource["service.name"]
+        value: "apiserver"
+        
+      - type: add  
+        field: resource["service.version"]
+        value: "v2.0.0"
+        
+      - type: add
+        field: resource["deployment.environment"] 
+        value: "development"
+
+processors:
+  # 批处理器 - 提高性能
+  batch:
+    send_batch_size: 100
+    send_batch_max_size: 1000
+    timeout: 1s
+    
+  # 资源处理器 - 添加通用属性
+  resource:
+    attributes:
+      - key: service.namespace
+        value: "go-protoc"
+        action: upsert
+      - key: telemetry.sdk.name
+        value: "otelcol"  
+        action: upsert
+      - key: host.name
+        value: "${env:HOSTNAME}"
+        action: upsert
+        
+  # 转换处理器 - 清理和格式化
+  transform:
+    log_statements:
+      - context: log
+        statements:
+          # 清理空属性
+          - delete_key(attributes, "log") where attributes["log"] == nil
+          - delete_key(attributes, "ts") where attributes["ts"] == nil
+          # 确保时间戳格式正确
+          - set(time_unix_nano, time_unix_nano) where time_unix_nano == nil
+          # 设置默认severity
+          - set(severity_text, "INFO") where severity_text == nil
+
+exporters:
+  # 调试输出
+  debug:
+    verbosity: detailed
+    sampling_initial: 1
+    sampling_thereafter: 1
+    
+  # 文件输出 - 本地备份
+  file/processed:
+    path: /app/logs/otelcol-processed.json
+    rotation:
+      max_megabytes: 100
+      max_days: 7
+      max_backups: 3
+      
+  # VictoriaLogs 输出
+  loki/victorialogs:
+    endpoint: "http://host.docker.internal:9428/insert/jsonline"
+    headers:
+      "Content-Type": "application/x-ndjson"
+    default_labels_enabled:
+      exporter: false
+      job: false
+    
+  # 文件输出 - VictoriaLogs 格式备份
+  file/victorialogs:
+    path: /app/logs/otelcol-victorialogs.json
+    rotation:
+      max_megabytes: 100
+      max_days: 7
+      max_backups: 3
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13136
+    path: "/health"
+
+service:
+  telemetry:
+    logs:
+      level: info
+      development: false
+      sampling:
+        enabled: true
+    metrics:
+      address: 0.0.0.0:8891
+      level: basic
+      
+  extensions: [health_check]
+  
+  pipelines:
+    logs:
+      receivers: [filelog/apiserver]
+      processors: [resource, transform, batch]
+      exporters: [debug, file/processed, loki/victorialogs, file/victorialogs]

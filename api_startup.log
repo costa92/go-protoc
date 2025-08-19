@@ -1,0 +1,150 @@
+2025/08/19 22:19:32 maxprocs: Leaving GOMAXPROCS=8: CPU quota undefined
+{"level":"info","ts":"2025-08-19T22:19:32.778+0800","caller":"app/app.go:215","msg":"buildCommand: Adding config flag to misc flagset","name":"apiserver","watch":false}
+{"level":"info","ts":"2025-08-19T22:19:32.779+0800","caller":"app/config.go:29","msg":"Adding configuration flag","name":"apiserver","watch":false,"cfgFile":""}
+{"level":"info","ts":"2025-08-19T22:19:32.779+0800","caller":"app/config.go:43","msg":"Reading configuration file","name":"apiserver","cfgFile":"configs/apiserver.yaml"}
+{"level":"info","ts":"2025-08-19T22:19:32.779+0800","caller":"app/config.go:63","msg":"Success to read configuration file","file":"configs/apiserver.yaml"}
+{"level":"info","ts":"2025-08-19T22:19:32.783+0800","caller":"app/app.go:284","msg":"Starting application","name":"apiserver","version":"{\"gitVersion\":\"v0.0.0-master+$Format:%h$\",\"gitCommit\":\"$Format:%H$\",\"gitTreeState\":\"\",\"buildDate\":\"1970-01-01T00:00:00Z\",\"goVersion\":\"go1.25.0\",\"compiler\":\"gc\",\"platform\":\"darwin/arm64\"}"}
+{"level":"info","ts":"2025-08-19T22:19:32.783+0800","caller":"app/app.go:285","msg":"Golang settings","GOGC":"","GOMAXPROCS":"","GOTRACEBACK":""}
+{"level":"debug","ts":"2025-08-19T22:19:32.783+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: redis.username=","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.783+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: mysql.log-level=1","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.783+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.level=debug","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.783+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.otlp.batch_size=100","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.783+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.otlp.enabled=true","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.783+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: feature-gates=","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.783+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.disable-caller=false","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.783+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.level-encoder=lowercase","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.783+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: mysql.max-idle-connections=100","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.783+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: jaeger.env=development","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.783+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.encoder-config.caller-encoder=short","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.783+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: sentry.enabled=false","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.783+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: mysql.max-connection-life-time=10s","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.783+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: sentry.send-default-pii=false","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.783+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: sentry.attach-stacktrace=true","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.783+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: http.timeout=10s","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.783+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.encoder-config.time-encoder=iso8601","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.message-key=msg","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log-flush-frequency=5s","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: redis.min-idle-conns=0","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.encoder-config.function-key=func","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: mysql.enable-trace=true","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: sentry.sample-rate=1","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.encoder-config.time-key=ts","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.output-paths=[stdout logs/app.log]","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: sentry.traces-sample-rate=0.1","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.format=json","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: sentry.flush-timeout=5s","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.otlp.resource_attributes.service.namespace=go-protoc","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: pool-monitor.redis.enabled=true","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: pool-monitor.database.enabled=true","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.max-backups=5","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.caller-skip=1","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: sentry.max-breadcrumbs=100","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.compress=true","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: jaeger.enabled=true","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: redis.dial-timeout=5s","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: jaeger.sampler-param=1","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.encoder-config.caller-key=caller","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: config=configs/apiserver.yaml","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: sentry.release=","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.level-key=level","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.initial-fields.environment=development","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.enable-color=false","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: redis.addr=127.0.0.1:6379","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: v=0","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.type=zap","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: jaeger.reporter-log-spans=true","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: pool-monitor.namespace=apiserver","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: help=false","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.initial-fields.service=apiserver","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: mysql.max-open-connections=100","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: redis.pool-size=10","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: jaeger.server=127.0.0.1:6831","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.otlp.endpoint=127.0.0.1:4327","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: redis.password=","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: sentry.server-name=","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.encoder-config.level-key=level","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.otlp.resource_attributes.service.version=v2.0.0","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: grpc.timeout=10s","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.otlp.resource_attributes.deployment.environment=development","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: jwt.max-refresh=2h","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: jaeger.service-name=apiserver","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.caller-key=caller","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.otlp.resource_attributes.service.name=apiserver","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: redis.write-timeout=3s","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: jwt.signing-method=HS512","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: pool-monitor.enabled=true","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: redis.pool-timeout=4s","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: sentry.environment=development","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: grpc.network=tcp","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: mysql.database=protoc","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: jaeger.sampler-type=const","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: jaeger.agent-port=6831","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.otlp.timeout=10s","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.error-output-paths=[stderr]","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: vmodule=","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.encoding=json","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.caller-encoder=short","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: pool-monitor.collect-interval=30s","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.disable-function-at-info=true","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: redis.max-retries=3","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: mysql.log-mode=1","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: jaeger.agent-host=127.0.0.1","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: sentry.enable-profiling=false","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.max-age=7","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: redis.database=0","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.time-key=ts","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: http.network=tcp","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: redis.read-timeout=3s","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: sentry.dsn=","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: sentry.profiles-sample-rate=0.1","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.encoder-config.stacktrace-key=stacktrace","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: jwt.expired=2h","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.784+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: version=false","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.stacktrace-key=stacktrace","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: sentry.ignore-errors=[]","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.encoder-config.level-encoder=lowercase","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: http.addr=0.0.0.0:8080","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: mysql.username=root","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: jwt.key=onex(#)666","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.development=false","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.otlp.export_timeout=30s","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: pool-monitor.database.slow-query=1s","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.max-size=100","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: mysql.host=127.0.0.1","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: mysql.password=proj(#)666","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: sentry.enable-tracing=true","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.disable-stacktrace=false","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.initial-fields.version=v2.0.0","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.otlp.insecure=true","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.encoder-config.message-key=msg","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: redis.enable-trace=true","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.dynamic=false","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: sentry.debug=false","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.function-key=func","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: grpc.addr=0.0.0.0:9090","type":"zap"}
+{"level":"debug","ts":"2025-08-19T22:19:32.785+0800","caller":"app/config.go:76","func":"github.com/costa92/go-protoc/v2/pkg/app.PrintConfig","msg":"CFG: log.time-encoder=iso8601","type":"zap"}
+{"level":"info","ts":"2025-08-19T22:19:32.785+0800","caller":"app/server.go:67","msg":"Connection pool metrics collection is enabled through dependency injection"}
+{"level":"info","ts":"2025-08-19T22:19:32.785+0800","caller":"app/server.go:68","msg":"Metrics will be automatically collected by the PoolMonitor when database connections are established"}
+{"level":"info","ts":"2025-08-19T22:19:32.785+0800","caller":"app/server.go:71","msg":"Database pool monitoring enabled","slow_query_threshold":1000,"collect_interval":30000}
+{"level":"info","ts":"2025-08-19T22:19:32.785+0800","caller":"app/server.go:77","msg":"Redis pool monitoring enabled","collect_interval":30000}
+{"level":"info","ts":"2025-08-19T22:19:32.786+0800","caller":"apiserver/server.go:67","msg":"Logger configuration","level":"debug","format":"json"}
+{"level":"debug","ts":"2025-08-19T22:19:32.786+0800","caller":"apiserver/server.go:68","func":"github.com/costa92/go-protoc/v2/internal/apiserver.(*Config).NewServer","msg":"Debug logging enabled","type":"zap","caller_skip":2,"enable_color":false}
+{"level":"info","ts":"2025-08-19T22:19:32.786+0800","caller":"apiserver/server.go:72","msg":"Validating service connections before startup..."}
+{"level":"info","ts":"2025-08-19T22:19:32.786+0800","caller":"apiserver/server.go:76","msg":"Testing MySQL connection..."}
+{"level":"info","ts":"2025-08-19T22:19:32.791+0800","caller":"apiserver/server.go:81","msg":"MySQL connection test passed"}
+{"level":"info","ts":"2025-08-19T22:19:32.791+0800","caller":"apiserver/server.go:86","msg":"Testing Redis connection..."}
+{"level":"info","ts":"2025-08-19T22:19:32.795+0800","caller":"apiserver/server.go:91","msg":"Redis connection test passed"}
+{"level":"info","ts":"2025-08-19T22:19:32.795+0800","caller":"apiserver/server.go:96","msg":"Testing Jaeger connection..."}
+{"level":"info","ts":"2025-08-19T22:19:32.795+0800","caller":"apiserver/server.go:101","msg":"Jaeger connection test passed"}
+{"level":"info","ts":"2025-08-19T22:19:32.795+0800","caller":"apiserver/server.go:104","msg":"All service connections validated successfully"}
+[Trace] 正在初始化全局追踪器...
+[Trace] 服务名称: apiserver
+[Trace] 使用 Agent 端点: 127.0.0.1:6831
+[Trace] 环境: development
+[Trace] 全局追踪器初始化成功! 采样率: 100%
+[Trace] 使用 UDP Agent 协议发送到 Jaeger
+[Trace] 请访问 Jaeger UI: http://localhost:16686
+{"level":"info","ts":"2025-08-19T22:19:32.912+0800","caller":"server/kratos_server.go:47","msg":"Start to listening the incoming requests","protocol":"kratos"}
+{"level":"info","ts":"2025-08-19T22:19:32.913+0800","caller":"logger/kratos_adapter.go:40","msg":"[HTTP] server listening on: [::]:8080","ts":"2025-08-19T22:19:32+08:00","caller":"http/server.go:330","msg":"[HTTP] server listening on: [::]:8080"}
+{"level":"info","ts":"2025-08-19T22:19:32.912+0800","caller":"logger/kratos_adapter.go:40","msg":"[gRPC] server listening on: [::]:9090","ts":"2025-08-19T22:19:32+08:00","caller":"grpc/server.go:220","msg":"[gRPC] server listening on: [::]:9090"}
+make: *** [run-api] Terminated: 15

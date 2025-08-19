@@ -1,0 +1,127 @@
+# OpenTelemetry Collector Configuration for Log Collection to VictoriaLogs
+# 专用于日志收集和转发到VictoriaLogs的配置
+---
+receivers:
+  # OTLP Receiver - 接收应用程序发送的OTLP格式日志
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4329  # gRPC端点，应用程序通过此端点发送日志
+      http:
+        endpoint: 0.0.0.0:4330  # HTTP端点，备用接收方式
+
+  # File Log Receiver - 监控应用程序日志文件
+  filelog/apiserver:
+    include:
+      - /app/logs/apiserver/*.log
+      - /app/logs/*.log
+      - /app/api_startup*.log
+    start_at: end  # 只读取新增的日志条目，避免重复
+    operators:
+      # 解析JSON格式的日志
+      - type: json_parser
+        id: json_parser
+        if: 'body matches "^\\{"'
+        timestamp:
+          parse_from: attributes.timestamp
+          layout: '%Y-%m-%d %H:%M:%S.%f'
+      # 解析日志级别
+      - type: severity_parser
+        id: severity_parser
+        parse_from: attributes.level
+        mapping:
+          debug: debug
+          info: info
+          warn: warn
+          warning: warn
+          error: error
+          fatal: fatal
+      # 移动消息到body
+      - type: move
+        from: attributes.message
+        to: body
+        if: 'attributes.message != nil'
+
+processors:
+  # 批量处理器 - 提高发送效率
+  batch:
+    timeout: 5s
+    send_batch_size: 100
+
+  # 内存限制器 - 防止内存溢出
+  memory_limiter:
+    limit_mib: 256
+    check_interval: 5s
+
+  # 资源处理器 - 添加服务信息
+  resource:
+    attributes:
+      - key: service.name
+        value: "apiserver"
+        action: upsert
+      - key: service.version
+        value: "v2.0.0"
+        action: upsert
+      - key: deployment.environment
+        value: "development"
+        action: upsert
+      - key: service.namespace
+        value: "go-protoc"
+        action: upsert
+
+  # 日志转换处理器 - 为VictoriaLogs优化字段
+  transform:
+    log_statements:
+      - context: log
+        statements:
+          # 确保必要字段存在
+          - set(attributes["service.name"], "apiserver") where attributes["service.name"] == nil
+          - set(attributes["level"], "info") where attributes["level"] == nil
+          # 添加时间戳字段供VictoriaLogs使用
+          - set(attributes["_time"], time_unix_nano)
+          # 创建VictoriaLogs标签用于过滤
+          - set(attributes["job"], "apiserver")
+          - set(attributes["instance"], "localhost:8080")
+          # 如果有trace_id，保留它用于链路追踪关联
+          - set(attributes["trace_id"], attributes["trace_id"]) where attributes["trace_id"] != nil
+
+exporters:
+  # Debug输出 - 用于调试
+  debug:
+    verbosity: normal
+    sampling_initial: 5
+    sampling_thereafter: 100
+
+  # File Export - 处理后的日志输出到文件（用于测试和备份）
+  file/processed:
+    path: /app/logs/otelcol-processed.json
+
+  # File Export - 格式化输出供VictoriaLogs消费
+  file/victorialogs:
+    path: /app/logs/otelcol-victorialogs.json
+    format: json
+
+service:
+  # 管道配置
+  pipelines:
+    logs:
+      receivers: [otlp, filelog/apiserver]
+      processors: [memory_limiter, resource, transform, batch]
+      exporters: [debug, file/processed, file/victorialogs]
+
+  # 扩展配置
+  extensions: [health_check]
+
+  # 遥测配置
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      level: detailed
+
+# 扩展
+extensions:
+  # 健康检查端点
+  health_check:
+    endpoint: 0.0.0.0:13134
+    path: "/health"

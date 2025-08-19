@@ -46,6 +46,19 @@ exporters:
       max_interval: 30s
       max_elapsed_time: 5m
 
+  # VictoriaLogs log exporter (native installation)
+  loki/victorialogs:
+    endpoint: http://${PROJ_VICTORIALOGS_HOST:-127.0.0.1}:${PROJ_VICTORIALOGS_PORT:-9428}/insert/loki/api/v1/push
+    tenant_id: ""
+    tls:
+      insecure: true
+    timeout: 30s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 5m
+
   # Optional: Add file exporter for logs
   file:
     path: /var/log/otelcol/otelcol-output.json
@@ -65,7 +78,7 @@ service:
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [logging, file]
+      exporters: [logging, loki/victorialogs, file]
 
   extensions: [health_check]
 

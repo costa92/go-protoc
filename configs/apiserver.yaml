@@ -49,7 +49,7 @@ log:
   disable-caller: false # 是否禁用调用者信息
   disable-stacktrace: false # 是否禁用堆栈跟踪
   enable-color: false # 启用控制台颜色输出（JSON格式不需要）
-  output-paths: ["stdout", "logs/app.log"] # 日志输出路径
+  output-paths: ["stdout", "logs/apiserver/app.log"] # 日志输出路径
   error-output-paths: ["stderr"] # 错误日志输出路径
   development: false # 开发模式（更详细的日志输出）
   encoding: "json" # 编码格式: json, console
@@ -59,7 +59,7 @@ log:
   compress: true # 压缩旧日志文件
   caller-skip: 1 # 调用者跳过的堆栈帧数
   disable-function-at-info: true # 在info级别日志中禁用函数名显示
-  
+
   # 编码器配置
   encoder-config:
     time-key: "ts" # 时间字段键名
@@ -71,9 +71,35 @@ log:
     time-encoder: "iso8601" # 时间编码格式
     level-encoder: "lowercase" # 级别编码格式
     caller-encoder: "short" # 调用者编码格式
-  
+
   # 初始字段（添加到所有日志条目）
   initial-fields:
     service: "apiserver"
     version: "v2.0.0"
     environment: "development"
+
+  # VictoriaLogs 集成配置（通过 OTEL Collector）
+  victoria-logs:
+    enabled: false # 禁用直连VictoriaLogs，改用OTEL Collector
+    endpoint: "http://127.0.0.1:9428" # VictoriaLogs API 端点（备用）
+    service: "apiserver" # 服务名称
+    version: "v2.0.0" # 服务版本
+    environment: "development" # 环境标识
+    buffer-size: 1000 # 缓冲区大小
+    batch-size: 100 # 批量发送大小
+    flush-interval: 5 # 强制刷新间隔（秒）
+    timeout: 10 # HTTP请求超时（秒）
+
+  # OpenTelemetry 日志集成配置
+  otlp:
+    enabled: true # 启用 OTLP 日志发送
+    endpoint: "127.0.0.1:4327" # OpenTelemetry Collector gRPC 端点
+    insecure: true # 使用非安全连接（开发环境）
+    timeout: 10s # 发送超时
+    batch_size: 100 # 批量发送大小
+    export_timeout: 30s # 导出超时
+    resource_attributes: # 资源属性
+      service.name: "apiserver"
+      service.version: "v2.0.0"
+      service.namespace: "go-protoc"
+      deployment.environment: "development"
