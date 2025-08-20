@@ -1,0 +1,208 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otelcol-config
+  namespace: logging
+  labels:
+    app: otelcol
+data:
+  config.yaml: |
+    # OpenTelemetry Collector Configuration for Kubernetes
+    # 支持 OTLP 协议接收、Kubernetes 日志收集、事件收集
+    
+    receivers:
+      # OTLP 接收器 - 接收应用程序直接发送的遥测数据
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+      
+      # Kubernetes 事件收集
+      k8s_events:
+        auth_type: serviceAccount
+        namespaces: [default, logging, kube-system]
+      
+      # 文件日志收集器 - 收集 Kubernetes Pod 日志
+      filelog:
+        include:
+          - /var/log/pods/*/*/*.log
+        exclude:
+          # 排除日志系统自身的日志避免循环
+          - /var/log/pods/logging_*/*/*.log
+          - /var/log/pods/kube-system_*/*/*.log
+        operators:
+          # 路由器：根据日志格式选择不同的解析器
+          - type: router
+            id: get-format
+            routes:
+              - output: parser-docker
+                expr: 'body matches "^\\{"'
+              - output: parser-crio
+                expr: 'body matches "^[^ ]+ "'
+              - output: parser-containerd
+                expr: 'true'
+          
+          # Docker 格式日志解析器
+          - type: json_parser
+            id: parser-docker
+            output: extract_metadata_from_filepath
+            timestamp:
+              parse_from: attributes.time
+              layout: '%Y-%m-%dT%H:%M:%S.%LZ'
+          
+          # CRI-O 格式日志解析器
+          - type: regex_parser
+            id: parser-crio
+            regex: '^(?P<time>[^ ]+) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) (?P<message>.*)$'
+            output: extract_metadata_from_filepath
+            timestamp:
+              parse_from: attributes.time
+              layout: '%Y-%m-%dT%H:%M:%S.%LZ'
+          
+          # Containerd 格式日志解析器
+          - type: regex_parser
+            id: parser-containerd
+            regex: '^(?P<time>[^ ]+) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) (?P<message>.*)$'
+            output: extract_metadata_from_filepath
+            timestamp:
+              parse_from: attributes.time
+              layout: '%Y-%m-%dT%H:%M:%S.%LZ'
+          
+          # 从文件路径提取 Kubernetes 元数据
+          - type: regex_parser
+            id: extract_metadata_from_filepath
+            regex: '^.*\/(?P<namespace>[^_]+)_(?P<pod_name>[^_]+)_(?P<uid>[a-f0-9\-]+)\/(?P<container_name>[^\._]+)\/(?P<restart_count>\d+)\.log$'
+            parse_from: attributes["log.file.path"]
+          
+          # 添加 Kubernetes 资源属性
+          - type: add
+            field: resource["k8s.namespace.name"]
+            value: 'EXPR(attributes.namespace)'
+          - type: add
+            field: resource["k8s.pod.name"]
+            value: 'EXPR(attributes.pod_name)'
+          - type: add
+            field: resource["k8s.pod.uid"]
+            value: 'EXPR(attributes.uid)'
+          - type: add
+            field: resource["k8s.container.name"]
+            value: 'EXPR(attributes.container_name)'
+          - type: add
+            field: resource["k8s.container.restart_count"]
+            value: 'EXPR(attributes.restart_count)'
+          
+          # 添加日志来源标识
+          - type: add
+            field: attributes.log_source
+            value: "kubernetes"
+          
+          # 移除临时属性
+          - type: remove
+            field: attributes.namespace
+          - type: remove
+            field: attributes.pod_name
+          - type: remove
+            field: attributes.uid
+          - type: remove
+            field: attributes.container_name
+          - type: remove
+            field: attributes.restart_count
+
+    processors:
+      # 批处理器 - 提高传输效率
+      batch:
+        timeout: 1s
+        send_batch_size: 1024
+        send_batch_max_size: 2048
+      
+      # 内存限制器 - 防止内存溢出
+      memory_limiter:
+        limit_mib: 1024
+        spike_limit_mib: 256
+        check_interval: 5s
+      
+      # Kubernetes 属性处理器 - 丰富 K8s 元数据
+      k8sattributes:
+        auth_type: "serviceAccount"
+        passthrough: false
+        filter:
+          node_from_env_var: NODE_NAME
+        extract:
+          metadata:
+            - k8s.pod.name
+            - k8s.pod.uid
+            - k8s.deployment.name
+            - k8s.namespace.name
+            - k8s.node.name
+            - k8s.pod.start_time
+          labels:
+            - tag_name: service.name
+              key: app
+              from: pod
+            - tag_name: service.version
+              key: version
+              from: pod
+            - tag_name: environment
+              key: environment
+              from: pod
+          annotations:
+            - tag_name: deployment.strategy
+              key: deployment.kubernetes.io/revision
+              from: pod
+      
+      # 资源处理器 - 添加全局资源属性
+      resource:
+        attributes:
+          - key: k8s.cluster.name
+            value: "${K8S_CLUSTER_NAME}"
+            action: upsert
+          - key: deployment.environment
+            value: "${DEPLOYMENT_ENVIRONMENT}"
+            action: upsert
+          - key: collector.version
+            value: "0.91.0"
+            action: upsert
+
+    exporters:
+      # VictoriaLogs 导出器
+      loki/victorialogs:
+        endpoint: http://victorialogs.logging.svc.cluster.local:9428/insert/loki/api/v1/push
+        tls:
+          insecure: true
+        timeout: 30s
+        retry_on_failure:
+          enabled: true
+          initial_interval: 5s
+          max_interval: 30s
+          max_elapsed_time: 5m
+        sending_queue:
+          enabled: true
+          num_consumers: 10
+          queue_size: 5000
+      
+      # 控制台输出（调试用）
+      logging:
+        verbosity: basic
+        sampling_initial: 2
+        sampling_thereafter: 500
+
+    service:
+      pipelines:
+        logs:
+          receivers: [otlp, filelog, k8s_events]
+          processors: [memory_limiter, k8sattributes, resource, batch]
+          exporters: [loki/victorialogs, logging]
+      
+      extensions: [health_check]
+      
+      telemetry:
+        logs:
+          level: "info"
+        metrics:
+          address: 0.0.0.0:8888
+
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133

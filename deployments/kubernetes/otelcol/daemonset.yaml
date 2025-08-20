@@ -1,0 +1,241 @@
+---
+# OpenTelemetry Collector Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: otelcol
+  namespace: logging
+  labels:
+    app: otelcol
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8888"
+    prometheus.io/path: "/metrics"
+spec:
+  selector:
+    app: otelcol
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+    - name: metrics
+      port: 8888
+      targetPort: 8888
+      protocol: TCP
+    - name: health
+      port: 13133
+      targetPort: 13133
+      protocol: TCP
+  type: ClusterIP
+
+---
+# OpenTelemetry Collector DaemonSet
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: otelcol
+  namespace: logging
+  labels:
+    app: otelcol
+    version: v0.91.0
+spec:
+  selector:
+    matchLabels:
+      app: otelcol
+  template:
+    metadata:
+      labels:
+        app: otelcol
+        version: v0.91.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8888"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: otelcol
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      containers:
+        - name: otelcol
+          image: otel/opentelemetry-collector-contrib:0.91.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: otlp-grpc
+              containerPort: 4317
+              protocol: TCP
+            - name: otlp-http
+              containerPort: 4318
+              protocol: TCP
+            - name: metrics
+              containerPort: 8888
+              protocol: TCP
+            - name: health
+              containerPort: 13133
+              protocol: TCP
+          env:
+            # Kubernetes 环境变量
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            
+            # 集群和环境信息
+            - name: K8S_CLUSTER_NAME
+              value: "production-cluster"  # 根据实际集群名称调整
+            - name: DEPLOYMENT_ENVIRONMENT
+              value: "production"          # 根据实际环境调整
+            
+            # OpenTelemetry 配置
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "k8s.pod.name=$(POD_NAME),k8s.pod.namespace=$(POD_NAMESPACE),k8s.node.name=$(NODE_NAME)"
+          
+          volumeMounts:
+            # OTEL Collector 配置文件
+            - name: config
+              mountPath: /etc/otelcol-contrib
+              readOnly: true
+            
+            # Kubernetes 日志目录（只读）
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+            
+            # Docker 容器日志目录（只读）
+            - name: varlibdockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+            
+            # Containerd 容器日志目录（只读）
+            - name: varlogpods
+              mountPath: /var/log/pods
+              readOnly: true
+          
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 13133
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 13133
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      
+      volumes:
+        # OTEL Collector 配置
+        - name: config
+          configMap:
+            name: otelcol-config
+            defaultMode: 0644
+        
+        # 系统日志目录
+        - name: varlog
+          hostPath:
+            path: /var/log
+            type: Directory
+        
+        # Docker 容器日志
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
+            type: DirectoryOrCreate
+        
+        # Kubernetes Pod 日志
+        - name: varlogpods
+          hostPath:
+            path: /var/log/pods
+            type: DirectoryOrCreate
+      
+      # 调度约束和容忍度
+      tolerations:
+        # 允许调度到所有节点，包括 master 节点
+        - operator: Exists
+          effect: NoSchedule
+        - operator: Exists
+          effect: NoExecute
+        - operator: Exists
+          effect: PreferNoSchedule
+      
+      # 节点选择器（可选）
+      nodeSelector:
+        kubernetes.io/os: linux
+      
+      # 亲和性规则
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+                      - arm64
+      
+      # 优先级类（可选）
+      priorityClassName: system-node-critical
+      
+      # DNS 配置
+      dnsPolicy: ClusterFirst
+      
+      # 重启策略
+      restartPolicy: Always
+      
+      # 终止宽限期
+      terminationGracePeriodSeconds: 30
+
+---
+# PodDisruptionBudget for high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: otelcol-pdb
+  namespace: logging
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: otelcol

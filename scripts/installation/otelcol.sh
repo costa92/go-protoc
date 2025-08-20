@@ -170,31 +170,45 @@ proj::otelcol::docker::install() {
   mkdir -p ${otelcol_data_dir}
   mkdir -p ${otelcol_config_dir}
 
-  # 选择配置文件模板
-  local template_conf_file="${SCRIPT_DIR}/otelcol/config-docker.yaml"
+  # 选择配置文件模板，优先使用文件监控配置
+  local template_conf_file="${SCRIPT_DIR}/otelcol/config-docker-files.yaml"
   
   # 检查是否有 Jaeger 容器运行，如果没有则使用独立配置
   if ! docker ps --format "table {{.Names}}" | grep -q "jaeger" 2>/dev/null; then
-    proj::log::info "No Jaeger container found, using standalone Docker configuration..."
-    template_conf_file="${SCRIPT_DIR}/otelcol/config-docker-standalone.yaml"
+    proj::log::info "No Jaeger container found, using file monitoring Docker configuration..."
   else
-    proj::log::info "Jaeger container detected, using networked Docker configuration..."
+    proj::log::info "Jaeger container detected, using file monitoring with networked Docker configuration..."
   fi
   
   # 使用 envsubst 替换模板中的环境变量
+  export PROJ_SERVICE_NAME="${PROJ_SERVICE_NAME:-apiserver}"
+  export PROJ_SERVICE_VERSION="${PROJ_SERVICE_VERSION:-v2.0.0}"
+  export PROJ_ENVIRONMENT="${PROJ_ENVIRONMENT:-development}"
   envsubst < ${template_conf_file} > ${otelcol_config_dir}/config.yaml
 
   # 清理可能存在的同名容器
   proj::common::docker::cleanup_container "${OTELCOL_DOCKER_MNAME}"
 
+  # 获取项目根目录以便映射日志文件
+  local project_root="${SCRIPT_DIR}/../.."
+  local logs_dir="$(cd "${project_root}/logs" && pwd)"
+  
+  # 确保日志目录存在
+  mkdir -p "${logs_dir}"
+  
   docker run -d --name ${OTELCOL_DOCKER_MNAME} \
     --restart always \
     --network ${NETWORK_NAME} \
     -v ${otelcol_config_dir}/config.yaml:/etc/otelcol-contrib/config.yaml \
+    -v ${logs_dir}:/host/logs:ro \
+    -v ${otelcol_data_dir}:/var/log/otelcol \
     -p 127.0.0.1:4328:4328 \
     -p 127.0.0.1:4327:4327 \
     -p 127.0.0.1:8888:8888 \
     -p 127.0.0.1:13133:13133 \
+    -e PROJ_SERVICE_NAME="${PROJ_SERVICE_NAME:-apiserver}" \
+    -e PROJ_SERVICE_VERSION="${PROJ_SERVICE_VERSION:-v2.0.0}" \
+    -e PROJ_ENVIRONMENT="${PROJ_ENVIRONMENT:-development}" \
     otel/opentelemetry-collector-contrib:${PROJ_OTELCOL_VERSION} \
     --config=/etc/otelcol-contrib/config.yaml
 

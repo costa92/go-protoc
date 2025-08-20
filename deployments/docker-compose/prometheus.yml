@@ -1,0 +1,35 @@
+# Prometheus 配置文件
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # Prometheus 自身监控
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # OpenTelemetry Collector 监控
+  - job_name: 'otelcol'
+    static_configs:
+      - targets: ['otelcol:8888']
+    scrape_interval: 10s
+    metrics_path: /metrics
+
+  # 应用程序监控（如果提供 /metrics 端点）
+  - job_name: 'apiserver'
+    static_configs:
+      - targets: ['apiserver:8080']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # VictoriaLogs 监控（如果提供指标）
+  - job_name: 'victorialogs'
+    static_configs:
+      - targets: ['victorialogs:9428']
+    metrics_path: /metrics
+    scrape_interval: 30s

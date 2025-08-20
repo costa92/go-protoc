@@ -328,116 +328,173 @@ Wire依赖注入 → PoolMonitor → pkg/db (可选监控) → pkg/metrics (指�
 - **项目重命名**: 使用 `make rename-project OLD_PATH=X NEW_PATH=Y` 更改模块路径
 - **Git 钩子**: 自动安装的 Git 钩子: githooks/{pre-commit,commit-msg,pre-push}
 
-## VictoriaLogs 日志集成
+## 统一日志收集系统
 
-### 🔥 已完成集成
-项目已完全集成 **VictoriaLogs** 作为统一日志管理解决方案，支持结构化日志存储、查询和可视化。
+### 🔥 已完成架构
+项目已完全实现基于 **OpenTelemetry Collector + VictoriaLogs** 的统一日志收集、存储和分析系统，支持本地开发、Docker 和 Kubernetes 多种部署环境。
 
 #### 📊 核心特性
-- ✅ **完全集成**: 基于 Zap 的高性能日志系统
-- ✅ **结构化日志**: JSON 格式，支持字段检索和过滤
-- ✅ **批量发送**: 异步处理，1000 条缓冲区，100 条批量发送
-- ✅ **多路输出**: 同时输出到控制台、文件和 VictoriaLogs
-- ✅ **UI 界面**: Web 界面支持实时日志查询和可视化
+- ✅ **双路收集**: OTLP 协议 + 文件监控
+- ✅ **结构化日志**: JSON 格式自动解析和字段提取
+- ✅ **实时监控**: 毫秒级日志收集延迟
+- ✅ **多环境支持**: 本地开发、Docker、Kubernetes
+- ✅ **统一配置**: 通过配置文件管理所有参数
+- ✅ **高可用性**: 容错机制和重试策略
+- ✅ **可视化界面**: VictoriaLogs UI + Grafana 集成
+
+#### 🚀 快速开始
+```bash
+# 本地开发环境
+./scripts/deploy-logging.sh local
+
+# Docker 环境
+./scripts/deploy-logging.sh docker
+
+# Kubernetes 环境
+./scripts/deploy-logging.sh k8s
+
+# 测试日志收集
+./scripts/deploy-logging.sh test local
+```
 
 #### 🌐 访问方式
 ```bash
-# Web UI 界面（推荐）
+# VictoriaLogs Web UI（推荐）
 http://127.0.0.1:9428/select/vmui/
 
 # API 查询接口
 curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=*'
+
+# Grafana 仪表板（Docker 环境）
+http://127.0.0.1:3000 (admin/admin)
 ```
 
-#### 🚀 管理命令
+#### 📋 管理命令
 ```bash
-# VictoriaLogs 服务管理
-make deploy.install.docker.victorialogs    # 安装服务
-make deploy.status.victorialogs             # 检查状态
-make deploy.uninstall.docker.victorialogs  # 卸载服务
+# 统一服务管理
+./scripts/installation/service.sh start all           # 启动所有服务
+./scripts/installation/service.sh stop all            # 停止所有服务
+./scripts/installation/service.sh status all          # 检查所有服务状态
 
-# Victoria 完整套件管理
-make deploy.install.all.victoria            # 安装所有组件
-make deploy.uninstall.all.victoria          # 卸载所有组件
-make deploy.status.victoria                 # 检查套件状态
+# 单独服务管理
+./scripts/installation/service.sh start victorialogs  # VictoriaLogs
+./scripts/installation/service.sh start otelcol       # OTEL Collector
 
-# 统一脚本管理
-./scripts/installation/victoria.sh install.all      # 安装所有组件
-./scripts/installation/victoria.sh uninstall.all    # 卸载所有组件
-./scripts/installation/victoria.sh status           # 检查状态
-
-# 直接服务管理
-./scripts/installation/service.sh start victorialogs
-./scripts/installation/service.sh stop victorialogs
+# 环境管理
+./scripts/deploy-logging.sh status docker             # 检查 Docker 环境
+./scripts/deploy-logging.sh clean k8s                 # 清理 K8s 环境
 ```
 
-#### 🔍 日志查询工具
-项目提供了专用的日志查询脚本：
-
-```bash
-# 使用查询脚本
-./scripts/victoria-logs-query.sh stats             # 日志统计
-./scripts/victoria-logs-query.sh recent            # 最近日志
-./scripts/victoria-logs-query.sh info              # Info 级别日志
-./scripts/victoria-logs-query.sh "_msg:*MySQL*"    # 自定义查询
-
-# 使用测试脚本
-./scripts/test-victorialogs-ui.sh                  # 完整集成测试
-```
-
-#### 📝 查询语法示例
+#### 🔍 日志查询语法
 ```bash
 # 基础查询
-*                           # 所有日志
-level:info                  # 按级别过滤
-_msg:*server*              # 消息内容包含 "server"
-_time:>2025-08-17          # 时间范围过滤
+*                                    # 所有日志
+level:error                          # 错误日志
+service.name:apiserver               # 特定服务
+_time:>now-1h                        # 最近1小时
 
 # 复合查询
-level:info AND _msg:*MySQL*     # Info 级别且包含 MySQL
-level:(error OR warn)           # 错误或警告级别
-service:apiserver               # 特定服务日志
+service.name:apiserver AND level:error AND _time:>now-30m
+level:(error OR warn) AND k8s.namespace.name:app
+
+# 正则查询
+msg:~"user.*login"                   # 用户登录相关
+error:~"database.*connection"        # 数据库连接错误
 ```
 
-#### ⚙️ 配置说明
-日志配置位于 `configs/apiserver.yaml`:
+#### ⚙️ 核心配置
+应用程序日志配置（`configs/apiserver.yaml`）：
 
 ```yaml
 log:
+  type: "zap"
   level: "info"
-  format: "json"                    # VictoriaLogs 推荐格式
-  output-paths: ["stdout", "logs/app.log"]
-  victoria-logs:
-    enabled: true                   # 启用 VictoriaLogs
-    endpoint: "http://127.0.0.1:9428"
-    service: "apiserver"
-    version: "v2.0.0"
-    environment: "development"
-    buffer-size: 1000              # 缓冲区大小
-    batch-size: 100                # 批量发送大小
-    flush-interval: 5              # 刷新间隔（秒）
-    timeout: 10                    # 请求超时（秒）
+  format: "json"
+  output-paths: ["stdout", "logs/apiserver/app.log"]
+  
+  # OTLP 配置
+  otlp:
+    enabled: true
+    endpoint: "127.0.0.1:4327"       # 本地/Docker
+    # endpoint: "otelcol.logging.svc.cluster.local:4317"  # K8s
+    insecure: true
+    batch_size: 100
+    resource_attributes:
+      service.name: "apiserver"
+      service.version: "v2.0.0"
+      deployment.environment: "development"
 ```
 
-#### 🏗️ 架构集成
+#### 🏗️ 架构流程
 ```
-应用程序 → Zap Logger → Tee Core → 多路输出:
-                                  ├─ 控制台 (开发调试)
-                                  ├─ 文件 (本地持久化)
-                                  └─ VictoriaLogs (集中管理)
+应用程序 → [多路输出] → OTEL Collector → VictoriaLogs → 查询/可视化
+    ↓           ↓              ↓              ↓           ↓
+1. 生成日志   2. OTLP发送     3. 统一收集    4. 高效存储   5. 实时查询
+             文件写入       文件监控      索引建立     UI展示
 ```
 
-#### 📈 监控指标
+#### 📁 项目结构
+```
+docs/
+├── logging-architecture.md          # 完整架构设计文档
+├── logging-development.md           # 开发使用指南
+├── logging-quick-start.md           # 快速开始指南
+└── logging-operations.md            # 运维操作手册
+
+deployments/
+├── docker-compose/                  # Docker 部署配置
+│   └── logging-stack.yml
+└── kubernetes/                      # K8s 部署配置
+    ├── namespace/
+    ├── victorialogs/
+    ├── otelcol/
+    └── app/
+
+scripts/
+├── deploy-logging.sh                # 统一部署脚本
+└── installation/
+    ├── otelcol/                     # OTEL Collector 配置
+    ├── otelcol.sh                   # OTEL Collector 管理
+    ├── victoria.sh                  # VictoriaLogs 管理
+    └── service.sh                   # 统一服务管理
+```
+
+#### 🔧 环境特定配置
+
+**本地开发**：
+- 使用脚本直接管理 Docker 容器
+- 文件日志监控 + OTLP 双路收集
+- 简化配置，便于调试
+
+**Docker 环境**：
+- Docker Compose 统一编排
+- 包含 Grafana、Prometheus 完整监控栈
+- 容器间网络通信和服务发现
+
+**Kubernetes 环境**：
+- DaemonSet 部署 OTEL Collector
+- 支持 Pod 日志自动收集
+- K8s 元数据自动注入
+- 高可用和自动扩缩容
+
+#### 📈 监控能力
 - **日志吞吐量**: 支持高并发日志写入
 - **查询性能**: 毫秒级日志检索响应
 - **存储效率**: 压缩存储，节省磁盘空间
-- **可视化**: 时间序列图表，日志分布统计
+- **可视化**: Grafana 仪表板、时间序列图表
+- **告警**: 基于日志错误率的智能告警
 
-#### 🔗 与其他组件集成
-- **Jaeger 追踪**: 日志中包含 trace_id 关联
-- **Prometheus 指标**: 日志错误率监控
+#### 🔗 集成组件
+- **追踪系统**: 与 Jaeger 集成，日志关联 trace_id
+- **指标监控**: Prometheus 指标收集和告警
 - **数据库日志**: GORM 查询日志自动收集
-- **中间件日志**: HTTP/gRPC 请求响应日志
+- **中间件日志**: HTTP/gRPC 请求响应完整记录
+- **Kubernetes**: Pod 日志、事件、元数据自动收集
+
+#### 📚 文档指南
+- **快速开始**: `docs/logging-quick-start.md`
+- **架构设计**: `docs/logging-architecture.md`
+- **开发指南**: `docs/logging-development.md`
 
 ## AI Agent 模块开发计划
 

@@ -1,0 +1,165 @@
+version: '3.8'
+
+# 完整的日志收集栈 Docker Compose 配置
+# 包含 VictoriaLogs, OpenTelemetry Collector, Grafana
+
+networks:
+  proj:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  victorialogs_data:
+    driver: local
+  grafana_data:
+    driver: local
+  prometheus_data:
+    driver: local
+
+services:
+  # VictoriaLogs - 高性能日志存储
+  victorialogs:
+    image: victoriametrics/victoria-logs:v1.28.0
+    container_name: proj-victorialogs
+    hostname: victorialogs
+    ports:
+      - "9428:9428"  # VictoriaLogs API
+    volumes:
+      - victorialogs_data:/victorialogs-data
+    command:
+      - -storageDataPath=/victorialogs-data
+      - -httpListenAddr=:9428
+      - -retentionPeriod=30d  # 保留30天
+      - -loggerLevel=INFO
+    environment:
+      - TZ=Asia/Shanghai
+    networks:
+      proj:
+        ipv4_address: 172.20.0.10
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9428/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # OpenTelemetry Collector - 日志收集和处理
+  otelcol:
+    image: otel/opentelemetry-collector-contrib:0.91.0
+    container_name: proj-otelcol
+    hostname: otelcol
+    ports:
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP  
+      - "8888:8888"    # Prometheus metrics
+      - "13133:13133"  # Health check
+    volumes:
+      - ../../scripts/installation/otelcol/config-docker-files.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - ../../logs:/host/logs:ro  # 宿主机日志文件挂载
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro  # Docker 容器日志
+    environment:
+      - PROJ_SERVICE_NAME=apiserver
+      - PROJ_SERVICE_VERSION=v2.0.0
+      - PROJ_ENVIRONMENT=development
+      - TZ=Asia/Shanghai
+    depends_on:
+      victorialogs:
+        condition: service_healthy
+    networks:
+      proj:
+        ipv4_address: 172.20.0.11
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:13133"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Prometheus - 指标收集（可选）
+  prometheus:
+    image: prom/prometheus:v2.48.1
+    container_name: proj-prometheus
+    hostname: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    networks:
+      proj:
+        ipv4_address: 172.20.0.12
+    restart: unless-stopped
+
+  # Grafana - 可视化面板
+  grafana:
+    image: grafana/grafana:10.2.4
+    container_name: proj-grafana
+    hostname: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=victoriametrics-datasource
+      - TZ=Asia/Shanghai
+    networks:
+      proj:
+        ipv4_address: 172.20.0.13
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # 示例应用程序（用于测试）
+  apiserver:
+    build:
+      context: ../../
+      dockerfile: Dockerfile.dev
+    container_name: proj-apiserver
+    hostname: apiserver
+    ports:
+      - "8080:8080"
+      - "9090:9090"  # gRPC
+    volumes:
+      - ../../configs:/app/configs:ro
+      - ../../logs:/app/logs
+    environment:
+      - LOG_LEVEL=debug
+      - LOG_FORMAT=json
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otelcol:4318
+      - OTEL_SERVICE_NAME=apiserver
+      - OTEL_SERVICE_VERSION=v2.0.0
+      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development,service.namespace=go-protoc
+      - TZ=Asia/Shanghai
+    depends_on:
+      otelcol:
+        condition: service_healthy
+    networks:
+      proj:
+        ipv4_address: 172.20.0.20
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
