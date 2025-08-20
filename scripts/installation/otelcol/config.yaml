@@ -1,87 +1,284 @@
-# OpenTelemetry Collector Configuration for Native/Host Installation
-# This configuration is designed for running on the host system directly
+# =============================================================================
+# OpenTelemetry Collector 配置文件 - Linux 原生安装版本
+# =============================================================================
+# 
+# 用途：专为在 Linux 宿主机上原生运行的 OpenTelemetry Collector 设计
+# 环境：生产环境、开发环境、测试环境
+# 部署方式：systemd 服务、二进制直接运行
+# 
+# 主要功能：
+# - 接收应用程序的 OTLP 遥测数据（日志、指标、链路追踪）
+# - 支持文件日志监控和实时收集
+# - 自动发送到 VictoriaLogs 进行日志存储
+# - 集成 Jaeger 进行分布式链路追踪
+# - 提供 Prometheus 指标导出
+# - 内置健康检查端点
+# 
+# 环境变量说明：
+# - PROJ_OTELCOL_GRPC_PORT: OTLP gRPC 接收端口，默认 4327
+# - PROJ_OTELCOL_HTTP_PORT: OTLP HTTP 接收端口，默认 4328  
+# - PROJ_OTELCOL_HEALTH_PORT: 健康检查端口，默认 13133
+# - PROJ_OTELCOL_HOST: Collector 主机地址，默认 127.0.0.1
+# - PROJ_VICTORIALOGS_HOST: VictoriaLogs 主机地址，默认 127.0.0.1
+# - PROJ_VICTORIALOGS_PORT: VictoriaLogs 端口，默认 9428
+# - PROJ_SERVICE_NAME: 服务名称，用于资源标识
+# - PROJ_SERVICE_VERSION: 服务版本，用于资源标识
+# - PROJ_ENVIRONMENT: 运行环境，用于资源标识
+# =============================================================================
 
+# 接收器配置 - 定义如何接收遥测数据
 receivers:
+  # OTLP 接收器 - 接收应用程序发送的标准 OpenTelemetry 数据
   otlp:
     protocols:
+      # gRPC 协议配置 - 高性能二进制协议，推荐用于生产环境
       grpc:
-        endpoint: 0.0.0.0:${PROJ_OTELCOL_GRPC_PORT}
+        endpoint: 0.0.0.0:${PROJ_OTELCOL_GRPC_PORT}  # 监听所有网络接口
+        # max_recv_msg_size: 4194304                   # 最大接收消息大小 4MB
+        # max_concurrent_streams: 16                   # 最大并发流数量
+      
+      # HTTP 协议配置 - 基于 HTTP/1.1，便于调试和测试
       http:
-        endpoint: 0.0.0.0:${PROJ_OTELCOL_HTTP_PORT}
+        endpoint: 0.0.0.0:${PROJ_OTELCOL_HTTP_PORT}  # 监听所有网络接口
+        # cors:                                        # CORS 跨域配置
+        #   allowed_origins: ["*"]
+        #   max_age: 7200
 
+  # 文件日志接收器 - 监控本地日志文件变化
+  filelog:
+    include:
+      - /var/log/app/**/*.log          # 应用日志文件模式
+      - /var/log/app/**/*.json         # JSON 格式日志文件  
+      - ${PROJ_LOG_PATH:-/tmp}/*.log   # 可配置的日志路径
+    exclude:
+      - /var/log/otelcol-*            # 排除 collector 自身日志
+    # 文件监控配置
+    start_at: end                     # 从文件末尾开始读取（避免重复处理历史日志）
+    poll_interval: 500ms              # 文件变化检测间隔，500ms 确保毫秒级响应
+    max_log_size: 1MiB               # 单条日志最大大小限制
+    max_concurrent_files: 1024       # 最大并发监控文件数量
+    # 日志解析操作链
+    operators:
+      # JSON 日志解析器 - 自动解析 JSON 格式的日志
+      - type: json_parser
+        if: 'body matches "^\\{.*\\}$"'  # 仅对 JSON 格式日志生效
+        parse_from: body                 # 解析源字段
+        parse_to: attributes             # 解析结果存储位置
+        
+      # 时间戳解析器 - 提取日志中的时间信息
+      - type: time_parser
+        if: 'attributes.ts != nil'       # 如果存在 ts 字段
+        parse_from: attributes.ts        # 解析时间字段
+        layout: '%Y-%m-%dT%H:%M:%S.%fZ' # 时间格式模式
+        
+      # 元数据增强 - 为日志添加收集器标识
+      - type: add
+        field: attributes.log_source
+        value: "file"                    # 标记为文件来源的日志
+      - type: add  
+        field: attributes.collector
+        value: "otelcol"                 # 标记收集器名称
+      - type: add
+        field: attributes.host
+        value: "${HOSTNAME:-localhost}"  # 添加主机名标识
+
+  # Prometheus 指标接收器 - 抓取 Prometheus 格式的指标
   prometheus:
     config:
+      global:
+        scrape_interval: 15s           # 全局抓取间隔
+        evaluation_interval: 15s       # 规则评估间隔
       scrape_configs:
-        - job_name: 'otelcol'
-          scrape_interval: 10s
+        # 监控 OTEL Collector 自身指标
+        - job_name: 'otelcol-self'
+          scrape_interval: 10s         # 自监控更频繁的抓取
           static_configs:
             - targets: ['localhost:8888']
+          metrics_path: /metrics       # 指标路径
+          
+        # 可添加更多应用程序指标抓取配置
+        # - job_name: 'app-metrics'
+        #   scrape_interval: 30s
+        #   static_configs:
+        #     - targets: ['localhost:9090']
 
+# 处理器配置 - 定义如何处理遥测数据
 processors:
+  # 批处理器 - 将多个数据点打包发送，提高传输效率
   batch:
-    timeout: 1s
-    send_batch_size: 1024
-
+    timeout: 1s              # 批处理超时时间，1秒确保低延迟
+    send_batch_size: 1024    # 批大小，1024个数据点触发发送
+    send_batch_max_size: 2048 # 批最大大小限制
+    
+  # 内存限制器 - 防止内存使用过高导致系统不稳定  
   memory_limiter:
-    limit_mib: 512
-    check_interval: 1s
+    limit_mib: 512           # 内存使用限制 512MB
+    spike_limit_mib: 128     # 内存峰值限制 128MB
+    check_interval: 1s       # 内存检查间隔
 
+  # 转换处理器 - VictoriaLogs _msg字段终极解决方案
+  transform/victorialogs_msg_final:
+    log_statements:
+      - context: log
+        statements:
+          # VictoriaLogs需要消息在body中，同时设置_msg属性作为Loki标签
+          # 方案4：复制消息到多个位置确保兼容
+          - set(body, attributes["msg"]) where attributes["msg"] != nil
+          - set(attributes["_msg"], attributes["msg"]) where attributes["msg"] != nil
+          # 备用消息字段
+          - set(body, attributes["message"]) where attributes["message"] != nil and attributes["msg"] == nil
+          - set(attributes["_msg"], attributes["message"]) where attributes["message"] != nil and attributes["msg"] == nil
+          - set(body, attributes["log_message"]) where attributes["log_message"] != nil and attributes["msg"] == nil and attributes["message"] == nil  
+          - set(attributes["_msg"], attributes["log_message"]) where attributes["log_message"] != nil and attributes["msg"] == nil and attributes["message"] == nil
+          # 如果都没有，使用body内容
+          - set(attributes["_msg"], body) where attributes["_msg"] == nil and body != nil
+          # 最后的安全网：确保_msg不为空
+          - set(attributes["_msg"], "[no message content]") where attributes["_msg"] == nil
+        
+  # 资源处理器 - 为所有遥测数据添加资源属性
+  resource:
+    attributes:
+      - key: service.name
+        value: "${PROJ_SERVICE_NAME:-otelcol}"
+        action: upsert       # 更新或插入
+      - key: service.version  
+        value: "${PROJ_SERVICE_VERSION:-unknown}"
+        action: upsert
+      - key: deployment.environment
+        value: "${PROJ_ENVIRONMENT:-development}"
+        action: upsert
+      - key: host.name
+        value: "${HOSTNAME:-localhost}"
+        action: upsert
+
+# 导出器配置 - 定义如何导出处理后的遥测数据
 exporters:
+  # 控制台日志导出器 - 用于调试，将数据输出到标准输出
   logging:
-    verbosity: detailed
+    verbosity: detailed      # 详细日志级别：normal, detailed
+    sampling_initial: 2      # 初始采样：每秒前N条
+    sampling_thereafter: 500 # 后续采样：每500条输出1条
 
+  # Prometheus 指标导出器 - 提供 Prometheus 兼容的指标端点
   prometheus:
-    endpoint: "0.0.0.0:8889"
+    endpoint: "0.0.0.0:8889"          # 指标服务端点
+    namespace: "otelcol"              # 指标命名空间前缀
+    const_labels:                     # 固定标签
+      collector: "otelcol"
+      version: "${PROJ_SERVICE_VERSION:-unknown}"
+    # metric_expiration: 5m           # 指标过期时间
+    # resource_to_telemetry_conversion:
+    #   enabled: true                 # 将资源属性转换为指标标签
 
-  # Use OTLP exporter for traces (compatible with Jaeger)
+  # Jaeger 链路追踪导出器 - 发送链路数据到 Jaeger
   otlp/jaeger:
-    endpoint: http://${PROJ_OTELCOL_HOST}:14268/api/traces
+    endpoint: http://${PROJ_OTELCOL_HOST}:14268/api/traces  # Jaeger HTTP 端点
     tls:
-      insecure: true
-    # Connection timeout and retry settings
-    timeout: 5s
+      insecure: true                  # 非安全连接（开发环境）
+    timeout: 10s                      # 请求超时时间
+    # 重试配置 - 提高可靠性
     retry_on_failure:
-      enabled: true
-      initial_interval: 1s
-      max_interval: 30s
-      max_elapsed_time: 5m
+      enabled: true                   # 启用失败重试
+      initial_interval: 2s            # 初始重试间隔
+      max_interval: 60s               # 最大重试间隔
+      max_elapsed_time: 10m           # 最大重试时间
+      multiplier: 2                   # 重试间隔倍数
+    # 队列配置 - 提高吞吐量
+    sending_queue:
+      enabled: true                   # 启用发送队列
+      num_consumers: 10               # 消费者数量
+      queue_size: 5000               # 队列大小
 
-  # VictoriaLogs log exporter (native installation)
+  # VictoriaLogs 日志导出器 - 通过Loki协议发送日志
   loki/victorialogs:
     endpoint: http://${PROJ_VICTORIALOGS_HOST:-127.0.0.1}:${PROJ_VICTORIALOGS_PORT:-9428}/insert/loki/api/v1/push
-    tenant_id: ""
     tls:
-      insecure: true
-    timeout: 30s
+      insecure: true                  # 非安全连接（内网环境）
+    timeout: 30s                      # 请求超时时间
+    # 重试配置 - 确保日志不丢失
     retry_on_failure:
-      enabled: true
-      initial_interval: 5s
-      max_interval: 30s
-      max_elapsed_time: 5m
+      enabled: true                   # 启用失败重试  
+      initial_interval: 5s            # 初始重试间隔
+      max_interval: 30s               # 最大重试间隔
+      max_elapsed_time: 5m            # 最大重试时间
+    
+  # 文件导出器 - 将日志写入本地文件作为备份
+  file/backup:
+    path: /var/log/otelcol/collected-logs.json  # 备份文件路径
+    rotation:
+      max_megabytes: 100             # 单文件最大大小 100MB
+      max_days: 7                    # 文件保留天数
+      max_backups: 5                 # 最大备份文件数量
+      compress: true                 # 压缩备份文件
 
-  # Optional: Add file exporter for logs
-  file:
-    path: /var/log/otelcol/otelcol-output.json
-
+# 服务配置 - 定义数据处理流水线
 service:
+  # 数据处理流水线定义
   pipelines:
+    # 链路追踪流水线
     traces:
-      receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [logging, otlp/jaeger]
+      receivers: [otlp]                          # 数据源：OTLP 接收器
+      processors: [memory_limiter, resource, batch]  # 处理链：内存限制→资源标记→批处理
+      exporters: [logging, otlp/jaeger]         # 输出：控制台日志 + Jaeger
 
+    # 指标流水线  
     metrics:
-      receivers: [otlp, prometheus]
-      processors: [memory_limiter, batch]
-      exporters: [logging, prometheus]
+      receivers: [otlp, prometheus]             # 数据源：OTLP + Prometheus
+      processors: [memory_limiter, resource, batch]  # 处理链：内存限制→资源标记→批处理
+      exporters: [logging, prometheus]          # 输出：控制台日志 + Prometheus
 
+    # 日志流水线
     logs:
-      receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [logging, loki/victorialogs, file]
+      receivers: [otlp, filelog]                # 数据源：OTLP + 文件监控
+      processors: [memory_limiter, resource, transform/victorialogs_msg_final, batch]  # 处理链：内存限制→资源标记→终极消息转换→批处理  
+      exporters: [logging, loki/victorialogs, file/backup]  # 输出：控制台+VictoriaLogs+文件备份
 
-  extensions: [health_check]
+  # 扩展服务配置
+  extensions: [health_check, pprof, zpages]
+  
+  # 遥测配置 - Collector 自身监控
+  telemetry:
+    logs:
+      level: "info"                   # 日志级别：debug, info, warn, error
+      development: false              # 生产模式
+      encoding: "json"                # 日志编码格式
+      disable_caller: false           # 显示调用者信息
+      disable_stacktrace: false       # 显示堆栈跟踪
+      output_paths: ["stdout"]        # 输出路径
+      error_output_paths: ["stderr"]  # 错误输出路径
+      initial_fields:                 # 初始字段
+        service: "otelcol"
+        version: "${PROJ_SERVICE_VERSION:-unknown}"
+    metrics:
+      level: detailed                 # 指标详细程度
+      address: localhost:8888         # 指标服务地址
 
+# 扩展配置 - 提供额外功能
 extensions:
+  # 健康检查扩展 - 提供服务健康状态端点
   health_check:
-    endpoint: 0.0.0.0:${PROJ_OTELCOL_HEALTH_PORT}
+    endpoint: 0.0.0.0:${PROJ_OTELCOL_HEALTH_PORT}  # 健康检查端点
+    tls:                              # TLS 配置（可选）
+      insecure: true                 # 非安全连接
+    path: "/"                        # 健康检查路径
+    response_body: '{"status": "ok", "timestamp": {{ unix }}}'  # 响应内容模板
+    check_collector_pipeline:
+      enabled: true                  # 启用流水线健康检查
+      interval: "5m"                 # 检查间隔
+      exporter_failure_threshold: 5  # 导出器失败阈值
+      
+  # 性能分析扩展 - 提供 Go pprof 性能分析端点  
+  pprof:
+    endpoint: localhost:1777         # pprof 服务端点（仅本机访问）
+    block_profile_fraction: 0        # 阻塞分析采样率
+    mutex_profile_fraction: 0        # 互斥锁分析采样率
+    save_to_file: ""                 # 保存分析结果到文件
+
+  # zPages 扩展 - 提供服务状态和调试信息的 Web 界面
+  zpages:
+    endpoint: localhost:55679        # zpages 服务端点（仅本机访问）
+    # 可访问的页面：
+    # /debug/tracez - 链路追踪信息
+    # /debug/pipelinez - 流水线状态  
+    # /debug/servicez - 服务状态
+    # /debug/extensionz - 扩展状态

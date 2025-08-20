@@ -131,15 +131,29 @@ proj::otelcol::pre_install() {
 
   # 判断是 mac 还是 linux
   if proj::util::is_mac; then
-    proj::log::info "Mac OS detected, checking for OpenTelemetry Collector installation..."
-    if ! command -v otelcol-contrib >/dev/null 2>&1; then
-      proj::log::info "Installing OpenTelemetry Collector Contrib via brew..."
-      brew install opentelemetry-collector-contrib
-    else
-      proj::log::info "OpenTelemetry Collector Contrib already installed, skipping..."
+    proj::log::info "Mac OS detected, Docker-only installation mode for OTEL Collector..."
+    # macOS 环境下 Docker 安装不需要本地二进制文件，跳过 brew 安装
+    # 只需要确保 Docker 可用和必要的工具存在
+    if ! command -v docker >/dev/null 2>&1; then
+      proj::log::error "Docker is required for macOS installation. Please install Docker first."
+      return 1
+    fi
+    
+    if ! command -v envsubst >/dev/null 2>&1; then
+      proj::log::info "Installing gettext for envsubst..."
+      if command -v brew >/dev/null 2>&1; then
+        brew install gettext
+        # 确保 envsubst 在 PATH 中
+        if [[ ":$PATH:" != *":/opt/homebrew/opt/gettext/bin:"* ]]; then
+          export PATH="/opt/homebrew/opt/gettext/bin:$PATH"
+        fi
+      else
+        proj::log::error "Homebrew is required to install gettext. Please install Homebrew first."
+        return 1
+      fi
     fi
   else
-    # 检查必要的依赖
+    # Linux 环境检查必要的依赖
     if ! command -v curl >/dev/null 2>&1; then
       proj::log::info "Installing curl..."
       proj::util::sudo "apt update && apt install -y curl"
@@ -170,8 +184,14 @@ proj::otelcol::docker::install() {
   mkdir -p ${otelcol_data_dir}
   mkdir -p ${otelcol_config_dir}
 
-  # 选择配置文件模板，优先使用文件监控配置
-  local template_conf_file="${SCRIPT_DIR}/otelcol/config-docker-files.yaml"
+  # 选择配置文件模板，使用标准化的 Docker 配置
+  local template_conf_file="${SCRIPT_DIR}/otelcol/config-docker.yaml"
+  
+  # 检查配置文件是否存在
+  if [[ ! -f "${template_conf_file}" ]]; then
+    proj::log::error "Configuration template file not found: ${template_conf_file}"
+    return 1
+  fi
   
   # 检查是否有 Jaeger 容器运行，如果没有则使用独立配置
   if ! docker ps --format "table {{.Names}}" | grep -q "jaeger" 2>/dev/null; then
@@ -184,22 +204,42 @@ proj::otelcol::docker::install() {
   export PROJ_SERVICE_NAME="${PROJ_SERVICE_NAME:-apiserver}"
   export PROJ_SERVICE_VERSION="${PROJ_SERVICE_VERSION:-v2.0.0}"
   export PROJ_ENVIRONMENT="${PROJ_ENVIRONMENT:-development}"
+  
+  # 检查 envsubst 是否可用
+  if ! command -v envsubst >/dev/null 2>&1; then
+    proj::log::error "envsubst command not found. Please install gettext package."
+    return 1
+  fi
+  
+  # 生成配置文件
   envsubst < ${template_conf_file} > ${otelcol_config_dir}/config.yaml
+  
+  # 验证配置文件生成成功
+  if [[ ! -f "${otelcol_config_dir}/config.yaml" ]]; then
+    proj::log::error "Failed to generate configuration file"
+    return 1
+  fi
 
   # 清理可能存在的同名容器
   proj::common::docker::cleanup_container "${OTELCOL_DOCKER_MNAME}"
 
   # 获取项目根目录以便映射日志文件
   local project_root="${SCRIPT_DIR}/../.."
-  local logs_dir="$(cd "${project_root}/logs" && pwd)"
+  local logs_dir="$(cd "${project_root}/logs" 2>/dev/null && pwd)"
   
   # 确保日志目录存在
-  mkdir -p "${logs_dir}"
+  if [[ -z "${logs_dir}" ]]; then
+    logs_dir="${project_root}/logs"
+    mkdir -p "${logs_dir}"
+  fi
+  
+  # 启动容器
+  proj::log::info "Starting OTEL Collector container with logs directory: ${logs_dir}"
   
   docker run -d --name ${OTELCOL_DOCKER_MNAME} \
     --restart always \
     --network ${NETWORK_NAME} \
-    -v ${otelcol_config_dir}/config.yaml:/etc/otelcol-contrib/config.yaml \
+    -v ${otelcol_config_dir}/config.yaml:/etc/otelcol-contrib/config.yaml:ro \
     -v ${logs_dir}:/host/logs:ro \
     -v ${otelcol_data_dir}:/var/log/otelcol \
     -p 127.0.0.1:4328:4328 \
@@ -212,10 +252,34 @@ proj::otelcol::docker::install() {
     otel/opentelemetry-collector-contrib:${PROJ_OTELCOL_VERSION} \
     --config=/etc/otelcol-contrib/config.yaml
 
-  sleep 5
-  if proj::util::is_linux; then
-    proj::otelcol::status || return 1
+  # 等待容器启动
+  proj::log::info "Waiting for OTEL Collector to start..."
+  sleep 8
+  
+  # 检查容器状态
+  if ! docker ps --filter "name=${OTELCOL_DOCKER_MNAME}" --filter "status=running" --format "{{.Names}}" | grep -q "^${OTELCOL_DOCKER_MNAME}$"; then
+    proj::log::error "OTEL Collector container failed to start. Checking logs..."
+    docker logs ${OTELCOL_DOCKER_MNAME} --tail 20 2>&1 || true
+    return 1
   fi
+  
+  # 健康检查
+  local max_retries=6
+  local retry_count=0
+  while [[ ${retry_count} -lt ${max_retries} ]]; do
+    if proj::otelcol::status; then
+      break
+    fi
+    retry_count=$((retry_count + 1))
+    proj::log::info "Health check failed, retrying... (${retry_count}/${max_retries})"
+    sleep 5
+  done
+  
+  if [[ ${retry_count} -eq ${max_retries} ]]; then
+    proj::log::error "OTEL Collector health check failed after ${max_retries} attempts"
+    return 1
+  fi
+  
   proj::otelcol::info
   proj::log::info "install otelcol successfully"
 }
@@ -242,17 +306,26 @@ proj::otelcol::docker::uninstall() {
 
 # Status check after docker or native installation
 proj::otelcol::status() {
-  proj::util::telnet ${PROJ_OTELCOL_HOST} ${PROJ_OTELCOL_HEALTH_PORT} || return 1
-
   # 检查 OpenTelemetry Collector 健康状态
   local health_check_url="http://${PROJ_OTELCOL_HOST}:${PROJ_OTELCOL_HEALTH_PORT}"
+  
   if command -v curl >/dev/null 2>&1; then
-    curl -f -s ${health_check_url} >/dev/null || {
-      proj::log::error "OpenTelemetry Collector health check failed, OpenTelemetry Collector maybe not initialized properly."
+    # 使用 curl 进行 HTTP 健康检查
+    if curl -f -s -m 10 ${health_check_url} >/dev/null 2>&1; then
+      return 0
+    else
+      proj::log::error "OpenTelemetry Collector health check failed at ${health_check_url}"
       return 1
-    }
+    fi
   else
-    proj::log::info "curl not found, skipping health check"
+    proj::log::warn "curl not found, trying basic port check..."
+    # 备用端口检查
+    if proj::util::telnet ${PROJ_OTELCOL_HOST} ${PROJ_OTELCOL_HEALTH_PORT}; then
+      return 0
+    else
+      proj::log::error "OpenTelemetry Collector port ${PROJ_OTELCOL_HEALTH_PORT} not accessible"
+      return 1
+    fi
   fi
 }
 

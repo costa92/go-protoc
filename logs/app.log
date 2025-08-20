@@ -8003,3 +8003,6 @@
 {"level":"info","ts":"2025-08-19T22:45:01.834+0800","caller":"logger/kratos_adapter.go:40","msg":"[HTTP] server stopping","ts":"2025-08-19T22:45:01+08:00","caller":"http/server.go:345","msg":"[HTTP] server stopping"}
 {"level":"info","ts":"2025-08-19T22:45:01.837+0800","caller":"server/kratos_server.go:54","msg":"Gracefully stop kratos application"}
 {"level":"info","ts":"2025-08-19T22:45:01.837+0800","caller":"server/server.go:35","msg":"Server exited successfully."}
+{"ts":"2025-08-20T22:55:30.123Z","level":"info","msg":"测试消息 - 检查字段转换功能","service":"apiserver","component":"test"}
+{"ts":"2025-08-20T23:02:00.123Z","level":"info","msg":"新测试消息 - 验证Body级别转换","service":"apiserver","component":"test"}
+{"ts":"2025-08-20T23:05:00.123Z","level":"info","msg":"最终测试 - 完整的_msg字段支持","service":"apiserver","component":"final_test"}
