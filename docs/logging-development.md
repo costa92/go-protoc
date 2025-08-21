@@ -769,6 +769,73 @@ curl -s "http://localhost:9428/select/logsql/query" \
 
 ## 🔧 故障排除
 
+### VictoriaLogs _msg 字段映射问题
+
+**问题描述**: 在VictoriaLogs中查询日志时出现 `"_msg":"missing _msg field"` 错误，无法正确显示日志消息内容。
+
+**根本原因**: VictoriaLogs要求日志消息必须存储在 `_msg` 字段中，但OpenTelemetry Collector的默认配置将消息映射到了 `body.msg` 字段。
+
+**解决方案**:
+
+1. **修改OpenTelemetry Collector配置文件**:
+   ```bash
+   # 找到实际使用的配置文件
+   docker inspect proj-otelcol | grep config
+   
+   # 修改配置文件中的字段映射操作符
+   vim /path/to/otelcol/config.yaml
+   ```
+
+2. **更新字段映射配置**:
+   ```yaml
+   receivers:
+     filelog:
+       operators:
+         - type: json_parser
+           id: parse_json
+         # ✅ 正确：映射到 attributes._msg 
+         - type: move
+           from: attributes.msg
+           to: attributes._msg
+         # ❌ 错误：映射到 body.msg (VictoriaLogs无法识别)
+         # - type: move
+         #   from: attributes.msg  
+         #   to: body.msg
+   ```
+
+3. **重启OpenTelemetry Collector**:
+   ```bash
+   docker restart proj-otelcol
+   ```
+
+4. **验证修复结果**:
+   ```bash
+   # 生成测试日志
+   echo '{"level":"info","ts":"'$(date -Iseconds)'","msg":"VictoriaLogs _msg field test"}' >> logs/apiserver/app.log
+   
+   # 等待几秒后查询验证
+   sleep 3
+   curl -s "http://localhost:9428/select/logsql/query" -d 'query=_msg:"VictoriaLogs _msg field test"'
+   ```
+
+5. **预期结果对比**:
+   ```bash
+   # ❌ 修复前: 
+   {"_msg":"missing _msg field; see https://docs.victoriametrics.com/victorialogs/keyconcepts/#message-field","attributes.msg":"actual message content"}
+   
+   # ✅ 修复后:
+   {"_msg":"actual message content","level":"info","ts":"2025-08-21T23:15:00+08:00"}
+   ```
+
+**配置文件位置参考**:
+- Docker部署: `/path/to/_thirdparty/otelcol/config/config.yaml`
+- 模板文件: `scripts/installation/otelcol/config-docker.yaml`
+
+**注意事项**:
+- 确保修改的是容器实际挂载的配置文件
+- 修改后必须重启容器才能生效
+- 建议同时更新模板文件以保持一致性
+
 ### 常见问题诊断
 
 ```bash

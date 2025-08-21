@@ -496,6 +496,41 @@ scripts/
 - **架构设计**: `docs/logging-architecture.md`
 - **开发指南**: `docs/logging-development.md`
 
+#### 🔧 常见问题解决
+
+**VictoriaLogs _msg 字段映射问题**
+
+如果在VictoriaLogs中查询时出现 `"_msg":"missing _msg field"` 错误：
+
+1. **问题原因**: VictoriaLogs需要 `_msg` 字段存储消息，但配置将消息映射到了 `body.msg`
+
+2. **解决方案**: 修改OpenTelemetry Collector配置
+   ```bash
+   # 找到配置文件
+   docker inspect proj-otelcol | grep config
+   
+   # 修改字段映射: attributes.msg → attributes._msg
+   # 位置: /path/to/_thirdparty/otelcol/config/config.yaml
+   ```
+
+3. **配置修正**:
+   ```yaml
+   operators:
+     - type: move
+       from: attributes.msg
+       to: attributes._msg  # ✅ 正确映射
+       # to: body.msg      # ❌ 错误映射
+   ```
+
+4. **验证修复**: 
+   ```bash
+   docker restart proj-otelcol
+   # 等待几秒后查询测试日志
+   curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=_msg:*'
+   ```
+
+详细解决步骤请参考 `docs/logging-development.md` 中的故障排除章节。
+
 ## AI Agent 模块开发计划
 
 ### 🤖 AI Agent 架构设计

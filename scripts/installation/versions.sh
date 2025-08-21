@@ -22,7 +22,8 @@ export MONGODB_VERSION=${MONGODB_VERSION:-7.0.5}
 
 # 分布式系统 (Distributed Systems)
 export ETCD_VERSION=${ETCD_VERSION:-v3.5.12}
-export KAFKA_VERSION=${KAFKA_VERSION:-3.6.1}
+export KAFKA_VERSION=${KAFKA_VERSION:-3.6}
+export ZOOKEEPER_VERSION=${ZOOKEEPER_VERSION:-latest}
 
 # 可观测性栈 (Observability Stack)
 export JAEGER_VERSION=${JAEGER_VERSION:-1.52.0}
@@ -31,6 +32,7 @@ export GRAFANA_VERSION=${GRAFANA_VERSION:-10.2.4}
 export ALERTMANAGER_VERSION=${ALERTMANAGER_VERSION:-0.26.0}
 export OTELCOL_VERSION=${OTELCOL_VERSION:-0.91.0}
 export SENTRY_VERSION=${SENTRY_VERSION:-latest}
+export LOKI_VERSION=${LOKI_VERSION:-3.0.0}
 
 # 日志管理 (Log Management)
 export VICTORIALOGS_VERSION=${VICTORIALOGS_VERSION:-1.28.0}
@@ -55,6 +57,10 @@ export PROJ_PROMETHEUS_VERSION=${PROMETHEUS_VERSION}
 export PROJ_ALERTMANAGER_VERSION=${ALERTMANAGER_VERSION}
 export PROJ_OTELCOL_VERSION=${OTELCOL_VERSION}
 export PROJ_VICTORIALOGS_VERSION=${VICTORIALOGS_VERSION}
+export PROJ_LOKI_VERSION=${LOKI_VERSION}
+export PROJ_KAFKA_VERSION=${KAFKA_VERSION}
+export PROJ_ZOOKEEPER_VERSION=${ZOOKEEPER_VERSION}
+export PROJ_REDIS_VERSION=${REDIS_VERSION}
 
 # =============================================================================
 # 版本检查函数 (Version Check Functions)
@@ -70,8 +76,8 @@ proj::versions::validate_version() {
     return 1
   fi
 
-  # 基本的版本格式检查（支持 v前缀和不带v的版本）
-  if [[ ! "$version" =~ ^v?[0-9]+\.[0-9]+(\.[0-9]+)?(-[a-zA-Z0-9\-]+)?$ ]]; then
+  # 基本的版本格式检查（支持 v前缀、不带v的版本和latest标签）
+  if [[ ! "$version" =~ ^(latest|v?[0-9]+\.[0-9]+(\.[0-9]+)?(-[a-zA-Z0-9\-]+)?)$ ]]; then
     echo "警告: $component 版本格式可能不正确: $version" >&2
   fi
 }
@@ -88,6 +94,7 @@ proj::versions::show_all() {
   echo "分布式系统:"
   echo "  etcd:         $ETCD_VERSION"
   echo "  Kafka:        $KAFKA_VERSION"
+  echo "  Zookeeper:    $ZOOKEEPER_VERSION"
   echo ""
   echo "可观测性栈:"
   echo "  Jaeger:       $JAEGER_VERSION"
@@ -98,6 +105,7 @@ proj::versions::show_all() {
   echo ""
   echo "日志管理:"
   echo "  VictoriaLogs: $VICTORIALOGS_VERSION"
+  echo "  Grafana Loki: $LOKI_VERSION"
   echo ""
   echo "VictoriaMetrics 监控栈:"
   echo "  VictoriaMetrics: $VICTORIAMETRICS_VERSION"
@@ -118,12 +126,14 @@ proj::versions::validate_all() {
   proj::versions::validate_version "$MONGODB_VERSION" "MongoDB"
   proj::versions::validate_version "$ETCD_VERSION" "etcd"
   proj::versions::validate_version "$KAFKA_VERSION" "Kafka"
+  proj::versions::validate_version "$ZOOKEEPER_VERSION" "Zookeeper"
   proj::versions::validate_version "$JAEGER_VERSION" "Jaeger"
   proj::versions::validate_version "$PROMETHEUS_VERSION" "Prometheus"
   proj::versions::validate_version "$GRAFANA_VERSION" "Grafana"
   proj::versions::validate_version "$ALERTMANAGER_VERSION" "AlertManager"
   proj::versions::validate_version "$OTELCOL_VERSION" "OpenTelemetry Collector"
   proj::versions::validate_version "$VICTORIALOGS_VERSION" "VictoriaLogs"
+  proj::versions::validate_version "$LOKI_VERSION" "Grafana Loki"
   proj::versions::validate_version "$VICTORIAMETRICS_VERSION" "VictoriaMetrics"
   proj::versions::validate_version "$VMAGENT_VERSION" "vmagent"
   proj::versions::validate_version "$VMALERT_VERSION" "vmalert"

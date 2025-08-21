@@ -1,328 +1,64 @@
-# =============================================================================
-# OpenTelemetry Collector 配置文件 - Docker 容器化安装版本
-# =============================================================================
-# 
-# 用途：专为在 Docker 容器中运行的 OpenTelemetry Collector 设计
-# 环境：开发环境、测试环境、容器化生产环境
-# 部署方式：Docker 容器、Docker Compose、Kubernetes
-# 
-# 主要功能：
-# - 接收应用程序的 OTLP 遥测数据（日志、指标、链路追踪）
-# - 支持宿主机文件日志监控（通过卷挂载）
-# - 自动发送到 VictoriaLogs 进行日志存储
-# - 集成 Jaeger 进行分布式链路追踪（容器网络）
-# - 提供 Prometheus 指标导出
-# - 内置健康检查端点
-# 
-# Docker 部署说明：
-# - 容器网络：使用自定义 Docker 网络（如 proj）进行服务间通信
-# - 卷挂载：宿主机日志目录挂载到 /host/logs（只读）
-# - 端口映射：4327(gRPC), 4328(HTTP), 8888(metrics), 13133(health)
-# - 配置挂载：配置文件挂载到 /etc/otelcol-contrib/config.yaml（只读）
-# 
-# 环境变量说明（通过 envsubst 模板替换）：
-# - PROJ_SERVICE_NAME: 服务名称，用于资源标识，默认 "apiserver"
-# - PROJ_SERVICE_VERSION: 服务版本，用于资源标识，默认 "v2.0.0"
-# - PROJ_ENVIRONMENT: 运行环境，用于资源标识，默认 "development"
-# 
-# Docker 启动命令示例：
-# docker run -d --name proj-otelcol \
-#   --network proj \
-#   -v /path/to/config.yaml:/etc/otelcol-contrib/config.yaml:ro \
-#   -v /host/logs:/host/logs:ro \
-#   -p 4327:4327 -p 4328:4328 -p 8888:8888 -p 13133:13133 \
-#   -e PROJ_SERVICE_NAME=apiserver \
-#   -e PROJ_SERVICE_VERSION=v2.0.0 \
-#   -e PROJ_ENVIRONMENT=development \
-#   otel/opentelemetry-collector-contrib:0.91.0
-# =============================================================================
-
-# 接收器配置 - 定义如何接收遥测数据
 receivers:
-  # OTLP 接收器 - 接收应用程序发送的标准 OpenTelemetry 数据
-  otlp:
-    protocols:
-      # gRPC 协议配置 - 高性能二进制协议，推荐用于生产环境
-      grpc:
-        endpoint: 0.0.0.0:4327           # 容器内监听所有网络接口
-        # Docker 容器网络优化配置
-        # max_recv_msg_size: 4194304       # 最大接收消息大小 4MB（可能不支持）
-        # max_concurrent_streams: 16       # 最大并发流数量（可能不支持）
-      
-      # HTTP 协议配置 - 基于 HTTP/1.1，便于调试和测试
-      http:
-        endpoint: 0.0.0.0:4328           # 容器内监听所有网络接口
-        cors:                            # CORS 跨域配置（容器环境）
-          allowed_origins: ["*"]         # 允许所有源（开发环境）
-          allowed_headers: ["*"]         # 允许所有头部
-          max_age: 7200                  # CORS 预检缓存时间
-
-  # 文件日志接收器 - 监控宿主机日志文件（通过卷挂载）
   filelog:
     include:
       - /host/logs/**/*.log              # 宿主机日志文件模式（通过卷挂载）
       - /host/logs/**/*.json             # JSON 格式日志文件
       - /host/logs/apiserver/app.log     # 特定应用日志文件
     exclude:
-      - /host/logs/otelcol-*            # 排除 collector 自身日志
-      - /host/logs/**/*test*            # 排除测试日志文件
-    # 文件监控配置（容器化环境优化）
-    start_at: end                       # 从文件末尾开始读取（避免重复处理历史日志）
-    poll_interval: 500ms                # 文件变化检测间隔，500ms 确保毫秒级响应
-    max_log_size: 1MiB                 # 单条日志最大大小限制
-    max_concurrent_files: 512          # 容器环境适中的并发文件数量
-    # 日志解析操作链
+      - /host/logs/otelcol-*             # 排除 collector 自身日志
+      - /host/logs/**/*test*             # 排除测试日志文件
+
+    start_at: end                        # 生产建议用 end，避免重放历史日志
+    include_file_name: false
+    include_file_path: false
+
+    # 文件监控配置（实时优化）
+    poll_interval: 100ms               # 更频繁的轮询，提高实时性
+    max_concurrent_files: 1024
+    encoding: utf-8
+
     operators:
-      # JSON 日志解析器 - 自动解析 JSON 格式的日志
       - type: json_parser
-        if: 'body matches "^\\{.*\\}$"'  # 仅对 JSON 格式日志生效
-        parse_from: body                 # 解析源字段
-        parse_to: attributes             # 解析结果存储位置
-        
-      # 时间戳解析器 - 提取日志中的时间信息
-      - type: time_parser
-        if: 'attributes.ts != nil'       # 如果存在 ts 字段
-        parse_from: attributes.ts        # 解析时间字段
-        layout: '%Y-%m-%dT%H:%M:%S.%fZ' # 时间格式模式
-        
-      # 元数据增强 - 为日志添加收集器和容器标识
-      - type: add
-        field: attributes.log_source
-        value: "file"                    # 标记为文件来源的日志
-      - type: add  
-        field: attributes.collector
-        value: "otelcol"                 # 标记收集器名称
-      - type: add
-        field: attributes.collector_mode
-        value: "docker"                  # 标记为 Docker 模式
-      - type: add
-        field: attributes.file_path
-        value: EXPR(attributes["log.file.path"])  # 添加文件路径信息
+        id: parse_json
+      # 为VictoriaLogs创建_msg字段
+      - type: move
+        from: attributes.msg
+        to: attributes._msg
+      # 保留时间戳
+      - type: move
+        from: attributes.ts
+        to: body.ts
 
-  # Prometheus 指标接收器 - 抓取 Prometheus 格式的指标
-  prometheus:
-    config:
-      global:
-        scrape_interval: 15s             # 全局抓取间隔
-        evaluation_interval: 15s         # 规则评估间隔
-        external_labels:                 # 外部标签（容器环境）
-          collector_mode: "docker"
-          container_name: "proj-otelcol"
-      scrape_configs:
-        # 监控 OTEL Collector 自身指标
-        - job_name: 'otelcol-docker'
-          scrape_interval: 10s           # 自监控更频繁的抓取
-          static_configs:
-            - targets: ['0.0.0.0:8888']  # 容器内地址
-          metrics_path: /metrics         # 指标路径
-          
-        # 如果需要监控其他容器服务的指标，可以添加：
-        # - job_name: 'app-metrics'
-        #   scrape_interval: 30s
-        #   static_configs:
-        #     - targets: ['app-container:9090']  # 通过容器网络访问
-
-# 处理器配置 - 定义如何处理遥测数据
 processors:
-  # 批处理器 - 将多个数据点打包发送，提高传输效率
   batch:
-    timeout: 1s                      # 批处理超时时间，1秒确保低延迟
-    send_batch_size: 1024            # 批大小，1024个数据点触发发送
-    send_batch_max_size: 2048        # 批最大大小限制
-    
-  # 内存限制器 - 防止容器内存使用过高
-  memory_limiter:
-    limit_mib: 512                   # 内存使用限制 512MB（适合容器环境）
-    spike_limit_mib: 128             # 内存峰值限制 128MB
-    check_interval: 1s               # 内存检查间隔
+    timeout: 500ms                     # 更短的批处理超时时间，提高实时性
+    send_batch_size: 100              # 较小的批处理大小，快速发送
+    send_batch_max_size: 200
 
-  # 转换处理器 - VictoriaLogs _msg字段终极解决方案
-  transform/victorialogs_msg_final:
-    log_statements:
-      - context: log
-        statements:
-          # VictoriaLogs需要消息在body中，同时设置_msg属性作为Loki标签
-          # 方案4：复制消息到多个位置确保兼容
-          - set(body, attributes["msg"]) where attributes["msg"] != nil
-          - set(attributes["_msg"], attributes["msg"]) where attributes["msg"] != nil
-          # 备用消息字段
-          - set(body, attributes["message"]) where attributes["message"] != nil and attributes["msg"] == nil
-          - set(attributes["_msg"], attributes["message"]) where attributes["message"] != nil and attributes["msg"] == nil
-          - set(body, attributes["log_message"]) where attributes["log_message"] != nil and attributes["msg"] == nil and attributes["message"] == nil  
-          - set(attributes["_msg"], attributes["log_message"]) where attributes["log_message"] != nil and attributes["msg"] == nil and attributes["message"] == nil
-          # 如果都没有，使用body内容
-          - set(attributes["_msg"], body) where attributes["_msg"] == nil and body != nil
-          # 最后的安全网：确保_msg不为空
-          - set(attributes["_msg"], "[no message content]") where attributes["_msg"] == nil
-        
-  # 资源处理器 - 为所有遥测数据添加资源属性
-  resource:
-    attributes:
-      - key: service.name
-        value: "${PROJ_SERVICE_NAME}"    # 通过环境变量注入
-        action: upsert
-      - key: service.version  
-        value: "${PROJ_SERVICE_VERSION}" # 通过环境变量注入
-        action: upsert
-      - key: deployment.environment
-        value: "${PROJ_ENVIRONMENT}"     # 通过环境变量注入
-        action: upsert
-      - key: container.name
-        value: "proj-otelcol"           # 容器名称标识
-        action: upsert
-      - key: collector.mode
-        value: "docker"                 # 运行模式标识
-        action: upsert
-
-# 导出器配置 - 定义如何导出处理后的遥测数据
 exporters:
-  # 控制台日志导出器 - 用于调试，输出到容器标准输出
-  logging:
-    verbosity: detailed              # 详细日志级别：normal, detailed
-    sampling_initial: 2              # 初始采样：每秒前N条
-    sampling_thereafter: 500         # 后续采样：每500条输出1条
-
-  # Prometheus 指标导出器 - 提供 Prometheus 兼容的指标端点
-  prometheus:
-    endpoint: "0.0.0.0:8889"          # 容器内指标服务端点
-    namespace: "otelcol"              # 指标命名空间前缀
-    const_labels:                     # 固定标签
-      collector: "otelcol"
-      mode: "docker"
-      version: "${PROJ_SERVICE_VERSION}"
-    metric_expiration: 5m             # 指标过期时间
-    resource_to_telemetry_conversion:
-      enabled: true                   # 将资源属性转换为指标标签
-
-  # Jaeger 链路追踪导出器 - 通过容器网络发送到 Jaeger
-  otlp/jaeger:
-    # 使用容器网络中的 Jaeger 服务名称
-    endpoint: http://jaeger:14268/api/traces  # 容器网络内 Jaeger 端点
-    tls:
-      insecure: true                  # 非安全连接（容器内网络）
-    timeout: 10s                      # 请求超时时间
-    # 重试配置 - 提高可靠性
-    retry_on_failure:
-      enabled: true                   # 启用失败重试
-      initial_interval: 2s            # 初始重试间隔
-      max_interval: 60s               # 最大重试间隔
-      max_elapsed_time: 10m           # 最大重试时间
-      multiplier: 2                   # 重试间隔倍数
-    # 队列配置 - 提高吞吐量
-    sending_queue:
-      enabled: true                   # 启用发送队列
-      num_consumers: 5                # 消费者数量（容器环境适中）
-      queue_size: 2000               # 队列大小（容器环境适中）
-
-  # VictoriaLogs 日志导出器 - 最终Loki协议解决方案
-  loki/victorialogs:
-    endpoint: http://proj-victorialogs:9428/insert/loki/api/v1/push
-    tls:
-      insecure: true                  # 非安全连接（容器内网络）
-    timeout: 30s                      # 请求超时时间
-    # 重试配置 - 确保日志不丢失
-    retry_on_failure:
-      enabled: true                   # 启用失败重试
-      initial_interval: 5s            # 初始重试间隔
-      max_interval: 30s               # 最大重试间隔
-      max_elapsed_time: 5m            # 最大重试时间
-
-# 服务配置 - 定义数据处理流水线
-service:
-  # 数据处理流水线定义
-  pipelines:
-    # 链路追踪流水线
-    traces:
-      receivers: [otlp]                          # 数据源：OTLP 接收器
-      processors: [memory_limiter, resource, batch]  # 处理链：内存限制→资源标记→批处理
-      exporters: [logging, otlp/jaeger]         # 输出：控制台日志 + Jaeger
-
-    # 指标流水线  
-    metrics:
-      receivers: [otlp, prometheus]             # 数据源：OTLP + Prometheus
-      processors: [memory_limiter, resource, batch]  # 处理链：内存限制→资源标记→批处理
-      exporters: [logging, prometheus]          # 输出：控制台日志 + Prometheus
-
-    # 日志流水线
-    logs:
-      receivers: [otlp, filelog]                # 数据源：OTLP + 文件监控
-      processors: [memory_limiter, resource, transform/victorialogs_msg_final, batch]  # 处理链：内存限制→资源标记→终极消息转换→批处理  
-      exporters: [logging, loki/victorialogs]   # 输出：控制台 + VictoriaLogs
-
-  # 扩展服务配置
-  extensions: [health_check]
+  file:
+    path: "/var/log/otelcol/logs.json"
   
-  # 遥测配置 - Collector 自身监控（容器优化）
-  telemetry:
-    logs:
-      level: "info"                   # 日志级别：debug, info, warn, error
-      development: false              # 生产模式
-      encoding: "json"                # 日志编码格式
-      disable_caller: false           # 显示调用者信息
-      disable_stacktrace: false       # 显示堆栈跟踪
-      output_paths: ["stdout"]        # 输出到容器标准输出
-      error_output_paths: ["stderr"]  # 错误输出到容器标准错误输出
-      initial_fields:                 # 初始字段
-        service: "otelcol"
-        mode: "docker"
-        container: "proj-otelcol"
-        version: "${PROJ_SERVICE_VERSION}"
-    metrics:
-      level: detailed                 # 指标详细程度
-      address: 0.0.0.0:8888          # 容器内指标服务地址
+  loki:
+    endpoint: "http://proj-loki:3100/loki/api/v1/push"
+    tls:
+      insecure: true
+  
+  # VictoriaLogs通过HTTP直接发送
+  otlphttp/victorialogs:
+    endpoint: "http://proj-victorialogs:9428/insert/opentelemetry"
+    tls:
+      insecure: true
+    compression: gzip
 
-# 扩展配置 - 提供额外功能
 extensions:
-  # 健康检查扩展 - 提供服务健康状态端点
   health_check:
-    endpoint: 0.0.0.0:13133          # 容器内健康检查端点
-    path: "/"                        # 健康检查路径
-    check_collector_pipeline:
-      enabled: true                  # 启用流水线健康检查
-      interval: "5m"                 # 检查间隔
-      exporter_failure_threshold: 5  # 导出器失败阈值
-      
-  # 注意：在容器环境中通常不启用 pprof 和 zpages 扩展，
-  # 如需调试可以取消注释以下配置：
-  #
-  # # 性能分析扩展 - 提供 Go pprof 性能分析端点  
-  # pprof:
-  #   endpoint: 0.0.0.0:1777         # pprof 服务端点
-  #   
-  # # zPages 扩展 - 提供服务状态和调试信息的 Web 界面
-  # zpages:
-  #   endpoint: 0.0.0.0:55679        # zpages 服务端点
+    endpoint: 0.0.0.0:13133
 
-# =============================================================================
-# Docker Compose 配置示例
-# =============================================================================
-# version: '3.8'
-# services:
-#   otelcol:
-#     image: otel/opentelemetry-collector-contrib:0.91.0
-#     container_name: proj-otelcol
-#     command: ["--config=/etc/otelcol-contrib/config.yaml"]
-#     volumes:
-#       - ./config-docker.yaml:/etc/otelcol-contrib/config.yaml:ro
-#       - /path/to/host/logs:/host/logs:ro
-#       - otelcol_data:/var/log/otelcol
-#     ports:
-#       - "4327:4327"   # OTLP gRPC
-#       - "4328:4328"   # OTLP HTTP
-#       - "8888:8888"   # metrics
-#       - "13133:13133" # health check
-#     environment:
-#       - PROJ_SERVICE_NAME=apiserver
-#       - PROJ_SERVICE_VERSION=v2.0.0
-#       - PROJ_ENVIRONMENT=development
-#     networks:
-#       - proj
-#     restart: unless-stopped
-#     
-# networks:
-#   proj:
-#     external: true
-#
-# volumes:
-#   otelcol_data:
-# =============================================================================
+service:
+  extensions: [health_check]
+  pipelines:
+    logs:
+      receivers: [filelog]
+      processors: [batch]
+      exporters: [file, loki, otlphttp/victorialogs]

@@ -1,0 +1,114 @@
+# =============================================================================
+# OpenTelemetry Collector 替代日志后端配置 - Docker 版本
+# =============================================================================
+# 支持多种日志存储后端：Grafana Loki、Elasticsearch、直接文件存储
+# =============================================================================
+
+receivers:
+  filelog:
+    include:
+      - /host/logs/**/*.log
+      - /host/logs/**/*.json
+      - /host/logs/apiserver/app.log
+    exclude:
+      - /host/logs/otelcol-*
+      - /host/logs/**/*test*
+
+    start_at: end
+    include_file_name: false
+    include_file_path: false
+    poll_interval: 500ms
+    max_concurrent_files: 1024
+    encoding: utf-8
+
+    operators:
+      - type: json_parser
+        id: parse_json
+      - type: move
+        from: attributes.msg
+        to: body
+      - type: add
+        field: attributes.log_source
+        value: "file"
+      - type: add
+        field: attributes.collector
+        value: "otelcol"
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+  
+  memory_limiter:
+    limit_mib: 512
+    spike_limit_mib: 128
+    check_interval: 1s
+
+  resource:
+    attributes:
+      - key: service.name
+        value: "${PROJ_SERVICE_NAME:-apiserver}"
+        action: upsert
+      - key: service.version
+        value: "${PROJ_SERVICE_VERSION:-v2.0.0}"
+        action: upsert
+      - key: deployment.environment
+        value: "${PROJ_ENVIRONMENT:-development}"
+        action: upsert
+
+exporters:
+  # 方案1：本地文件存储（始终可用）
+  file:
+    path: "/var/log/otelcol/logs.json"
+    rotation:
+      max_megabytes: 100
+      max_days: 7
+      max_backups: 5
+      compress: true
+
+  # 方案2：Grafana Loki（推荐的 Loki 兼容后端）
+  loki/grafana:
+    endpoint: "http://proj-loki:3100/loki/api/v1/push"
+    tls:
+      insecure: true
+    tenant_id: "tenant1"
+    labels:
+      attributes:
+        level: level
+        service: service.name
+      resource:
+        service.name: "service_name"
+        deployment.environment: "environment"
+
+  # 方案3：Elasticsearch/OpenSearch（企业级日志存储）
+  elasticsearch:
+    endpoints: ["http://proj-elasticsearch:9200"]
+    index: "otel-logs-%{+yyyy.MM.dd}"
+    timeout: 30s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+
+  # 方案4：控制台输出（调试用）
+  logging:
+    verbosity: detailed
+    sampling_initial: 2
+    sampling_thereafter: 500
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    logs:
+      receivers: [filelog]
+      processors: [memory_limiter, resource, batch]
+      # 选择你需要的导出器组合
+      exporters: [file, logging]  # 基础配置
+      # exporters: [file, loki/grafana, logging]      # 使用 Grafana Loki
+      # exporters: [file, elasticsearch, logging]     # 使用 Elasticsearch
+      # exporters: [file, loki/grafana, elasticsearch, logging]  # 多后端
