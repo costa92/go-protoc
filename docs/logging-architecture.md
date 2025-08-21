@@ -85,7 +85,7 @@ graph TB
 
 ## 📁 项目结构
 
-```
+```sh
 项目根目录/
 ├── configs/
 │   └── apiserver.yaml                    # 主配置文件
@@ -148,6 +148,7 @@ log:
 ### OTEL Collector 配置
 
 #### 本地开发环境 (config-local.yaml)
+
 ```yaml
 receivers:
   otlp:
@@ -179,6 +180,7 @@ service:
 ```
 
 #### Docker 环境 (config-docker-files.yaml)
+
 ```yaml
 receivers:
   otlp:
@@ -745,6 +747,7 @@ curl -s "http://127.0.0.1:9428/select/logsql/query" \
 ### 常见问题
 
 1. **OTEL Collector 连接失败**
+
    ```bash
    # 检查容器网络
    docker network inspect proj
@@ -753,6 +756,7 @@ curl -s "http://127.0.0.1:9428/select/logsql/query" \
    ```
 
 2. **文件日志不被收集**
+
    ```bash
    # 检查文件权限
    ls -la logs/apiserver/
@@ -761,6 +765,7 @@ curl -s "http://127.0.0.1:9428/select/logsql/query" \
    ```
 
 3. **VictoriaLogs 查询无结果**
+
    ```bash
    # 检查服务状态
    curl http://127.0.0.1:9428/health
@@ -819,18 +824,21 @@ resources:
 ## 🔮 未来规划
 
 ### 短期目标 (1-2 个月)
+
 - [ ] Grafana 仪表板集成
 - [ ] 告警规则配置
 - [ ] 日志采样策略
 - [ ] 性能基准测试
 
 ### 中期目标 (3-6 个月)
+
 - [ ] 多集群日志聚合
 - [ ] 日志分析和机器学习
 - [ ] 成本优化和存储压缩
 - [ ] 安全加固和访问控制
 
 ### 长期目标 (6-12 个月)
+
 - [ ] 分布式追踪集成
 - [ ] 实时日志流分析
 - [ ] 智能异常检测
@@ -843,6 +851,7 @@ resources:
 欢迎提交 Issue 和 Pull Request 来改进日志收集系统的设计和实现。
 
 ### 联系方式
+
 - 项目维护者：[项目团队]
 - 技术支持：[技术支持邮箱]
 - 文档更新：[文档维护团队]
