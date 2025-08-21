@@ -39,11 +39,6 @@ exporters:
   file:
     path: "/var/log/otelcol/logs.json"
   
-  loki:
-    endpoint: "http://proj-loki:3100/loki/api/v1/push"
-    tls:
-      insecure: true
-  
   # VictoriaLogs通过HTTP直接发送
   otlphttp/victorialogs:
     endpoint: "http://proj-victorialogs:9428/insert/opentelemetry"
@@ -61,4 +56,4 @@ service:
     logs:
       receivers: [filelog]
       processors: [batch]
-      exporters: [file, loki, otlphttp/victorialogs]
+      exporters: [file, otlphttp/victorialogs]
