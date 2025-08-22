@@ -25,6 +25,7 @@ source ${INSTALL_DIR}/grafana.sh
 source ${INSTALL_DIR}/prometheus.sh
 source ${INSTALL_DIR}/alertmanager.sh
 source ${INSTALL_DIR}/otelcol.sh
+source ${INSTALL_DIR}/pyroscope.sh
 source ${INSTALL_DIR}/victoria.sh
 source ${INSTALL_DIR}/sentry.sh
 

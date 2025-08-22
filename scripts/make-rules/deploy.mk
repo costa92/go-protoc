@@ -240,6 +240,27 @@ _uninstall.docker.otelcol: ## Uninstall docker install OpenTelemetry Collector
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::otelcol::docker::uninstall
 
 
+##@ Pyroscope Service
+# ==============================================================================
+# Pyroscope installation methods
+# ==============================================================================
+.PHONY: _install.pyroscope
+_install.pyroscope:  ## Install Pyroscope for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::pyroscope::install
+
+.PHONY: _uninstall.pyroscope
+_uninstall.pyroscope: ## Uninstall Pyroscope for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::pyroscope::uninstall
+
+.PHONY: _install.docker.pyroscope
+_install.docker.pyroscope: ## Install docker install Pyroscope
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::pyroscope::docker::install
+
+.PHONY: _uninstall.docker.pyroscope
+_uninstall.docker.pyroscope: ## Uninstall docker install Pyroscope
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::pyroscope::docker::uninstall
+
+
 
 ##@ Sentry Service
 # ==============================================================================
