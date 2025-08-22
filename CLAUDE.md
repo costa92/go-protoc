@@ -29,6 +29,30 @@
 - `make wire` - 重新生成依赖注入代码（结构变更后运行）
 - `buf generate` - 直接 protobuf 生成（buf.yaml 变更时使用）
 
+### 构建和版本管理
+项目实现了强大的版本感知构建系统，支持自动版本注入和多架构构建：
+
+#### 版本构建命令
+- `make build` - 构建带版本信息的二进制文件（自动注入 Git 版本信息）
+- `make build.multiarch` - 多架构构建（Linux amd64/arm64, macOS, Windows）
+- `SERVICE_NAME=myservice make build` - 自定义服务名构建
+- `make docker-build` - 构建 Docker 镜像（包含版本信息）
+- `make docker-build.multiarch` - 多架构 Docker 构建
+
+#### 版本信息注入
+构建系统自动注入以下版本信息：
+- **服务名称**: 通过 `SERVICE_NAME` 环境变量或默认 `apiserver`
+- **Git 版本**: `git describe --tags --always --dirty`
+- **Git 分支**: `git branch --show-current`
+- **Git 提交**: `git rev-parse HEAD`
+- **构建时间**: ISO8601 格式的当前时间
+- **Git 状态**: clean/dirty 状态检测
+
+#### 版本查看命令
+- `./bin/apiserver --version` - 显示简化版本信息
+- `./bin/apiserver version` - 显示详细版本信息（表格格式）
+- `./bin/apiserver version --output=json` - JSON 格式版本信息
+
 ### 工具安装
 - `make install-tools` - 仅安装 CI 相关工具
 - `make install-tools A=1` - 安装所有开发工具
@@ -161,7 +185,9 @@ pkg/                  → 可重用包（对外导出）
  ├── errorsx/          → 上下文感知错误系统（支持 i18n）
  ├── authn/           → JWT 身份认证工具
  ├── db/              → 数据库抽象
- ├── server/          → HTTP/gRPC 服务器配置
+ ├── logger/          → 统一日志接口和实现（支持版本信息）
+ ├── server/          → HTTP/gRPC 服务器配置（集成版本日志）
+ ├── version/         → 版本信息管理和注入系统
  └── options/         → 组件配置架构
 ```
 
@@ -176,6 +202,43 @@ HTTP 请求 → gRPC-Gateway → 处理器 → 业务层 → 存储层 → 数�
      ↓                                          ↓
   OpenAPI 文档（自动生成）        GORM + 上下文事务
 ```
+
+### 版本信息与日志集成
+
+项目实现了完整的版本信息管理和日志集成系统，提供全生命周期的服务版本可见性：
+
+#### 版本信息注入机制
+- **构建时注入**: 通过 `-ldflags` 在构建时注入版本信息
+- **Git 集成**: 自动检测 Git 版本、分支、提交状态
+- **动态服务名**: 支持通过 `SERVICE_NAME` 环境变量自定义服务名
+
+#### 版本日志记录点
+```
+应用启动 → API服务器初始化 → HTTP/gRPC服务器启动 → 运行中 → 优雅关闭 → 退出确认
+    ↓           ↓              ↓             ↓        ↓          ↓
+  完整版本    服务版本        协议版本      健康检查   关闭版本    最终版本
+```
+
+#### 日志字段标准
+所有版本相关日志使用统一的结构化字段：
+```json
+{
+  "service": "apiserver",           // 服务名称
+  "version": "v1.0.0",             // Git 版本
+  "branch": "feature/v2-log",      // Git 分支  
+  "commit": "13b9ba0a",            // Git 提交（短格式）
+  "build_date": "2025-08-22T10:25:16Z",  // 构建时间
+  "protocol": "http|grpc",         // 协议类型
+  "addr": "127.0.0.1:8080"        // 监听地址
+}
+```
+
+#### 版本信息可用位置
+- **命令行**: `./bin/apiserver --version`
+- **启动日志**: 服务器启动时完整版本信息
+- **健康检查**: `/health` 端点包含版本信息（如已实现）
+- **监控指标**: 版本作为 Prometheus 标签
+- **链路追踪**: Jaeger 中的服务版本标识
 
 ## 配置和环境
 
@@ -231,12 +294,67 @@ go test -tags=integration ./...   # 运行集成测试
 - **数据验证**：使用 protoc-gen-validate 注解
 - **国际化**：使用 `pkg/i18n/` 和上下文语言检测
 - **日志记录**：通过上下文中间件的结构化日志
+- **版本集成**：服务器自动记录版本信息，遵循统一日志字段标准
 - **测试**：测试名称遵循 `Test<Level><Description>` 模式
+
+### 版本感知开发模式
+在开发新功能时，充分利用版本信息进行调试和监控：
+
+#### 日志记录最佳实践
+```go
+// 在处理器中记录操作日志（版本信息会自动通过中间件添加）
+logger.Infow("Processing user request", 
+    "user_id", userID,
+    "operation", "create_user",
+    "request_id", requestID,
+)
+
+// 在错误处理中包含版本上下文
+logger.Errorw("Failed to process request", 
+    "error", err,
+    "user_id", userID,
+    "operation", "create_user",
+    // 版本信息通过中间件自动添加：service, version, branch, commit
+)
+```
+
+#### 版本相关调试
+```go
+// 获取当前版本信息进行条件处理
+versionInfo := version.Get()
+if versionInfo.GitBranch == "development" {
+    logger.Debugw("Development mode enabled", "debug_level", "verbose")
+}
+
+// 在关键业务逻辑中记录版本标识
+logger.Infow("Critical business operation", 
+    "operation", "payment_process",
+    "service_version", versionInfo.GitVersion,
+    "commit", versionInfo.GitCommit[:8],
+)
+```
+
+#### 功能标志与版本联动
+```go
+// 结合版本信息的功能开关
+if feature.IsEnabled("new_algorithm") && versionInfo.GitBranch != "production" {
+    // 新算法仅在非生产分支启用
+    result = newAlgorithm(input)
+    logger.Infow("Using new algorithm", 
+        "feature", "new_algorithm",
+        "branch", versionInfo.GitBranch,
+    )
+}
+```
 
 ## 包导航指南
 
 ### 起始点
 - **服务器启动**：`cmd/apiserver/app/server.go:Start()`
+- **版本信息**：`pkg/version/version.go:Get()` - 获取完整版本信息
+- **HTTP 服务器**：`pkg/server/http_server.go:RunOrDie()` - 版本日志集成
+- **gRPC 服务器**：`pkg/server/grpc_server.go:RunOrDie()` - 版本日志集成  
+- **日志记录器**：`pkg/logger/factory.go:GetDefaultLogger()` - 全局日志实例
 - **处理器示例**：`internal/apiserver/handler/user.go`
 - **Wire 设置**：`internal/apiserver/wire_gen.go:InitializeWebServer()`
 - **错误处理**：`pkg/errorsx/builder.go:NewCode()`
@@ -278,11 +396,50 @@ go test -tags=integration ./...   # 运行集成测试
 
 ### 监控端点
 - **健康检查**: `GET /health`
-- **指标**: `GET /metrics` (Prometheus) - 包含连接池监控指标
+- **指标**: `GET /metrics` (Prometheus) - 包含连接池监控指标和版本标签
 - **链路追踪**: `GET /jaeger` (Jaeger UI) - 分布式链路追踪
 - **Grafana**: `http://localhost:3000` - 统一监控面板
 - **Alertmanager**: `http://localhost:9093` - 告警管理界面
 - **调试**: `GET /debug/pprof` (启用时)
+
+### 版本感知监控
+
+项目的监控系统完全集成版本信息，提供版本维度的观测能力：
+
+#### 版本标签集成
+所有 Prometheus 指标自动包含版本标签：
+```prometheus
+# HTTP 请求指标
+http_requests_total{service="apiserver",version="v1.0.0",branch="main",method="GET",status="200"} 42
+
+# 数据库连接指标  
+database_pool_connections{service="apiserver",version="v1.0.0",branch="main",database="mysql"} 10
+
+# 应用信息指标
+application_info{service="apiserver",version="v1.0.0",branch="main",commit="abc12345",build_date="2025-08-22T10:25:16Z"} 1
+```
+
+#### 日志查询增强
+VictoriaLogs 支持基于版本的日志查询：
+```bash
+# 查询特定版本的错误日志
+curl -s "http://127.0.0.1:9428/select/logsql/query" \
+  -d 'query=level:error AND service.name:apiserver AND version:v1.0.0'
+
+# 查询特定分支的启动日志
+curl -s "http://127.0.0.1:9428/select/logsql/query" \
+  -d 'query=branch:feature/v2-log AND _msg:~"Starting.*server"'
+
+# 对比不同版本的性能
+curl -s "http://127.0.0.1:9428/select/logsql/query" \
+  -d 'query=operation:database_query AND (version:v1.0.0 OR version:v1.1.0)'
+```
+
+#### Grafana 版本维度面板
+- **版本部署时间线**: 显示各版本的部署和运行时间
+- **分支对比面板**: 对比不同分支的性能指标
+- **版本错误率**: 按版本统计错误率和异常趋势
+- **构建质量跟踪**: 追踪从构建到部署的质量指标
 
 ### 连接池监控功能
 

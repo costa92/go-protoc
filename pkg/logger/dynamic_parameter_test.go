@@ -62,9 +62,9 @@ func TestDynamicParameterFalse(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create logger: %v", err)
 			}
-			
+
 			tt.verify(t, logger)
-			
+
 			// 验证logger基本功能
 			logger.Info("Test message")
 		})
@@ -105,16 +105,16 @@ func TestDynamicParameterTrue(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create dynamic logger: %v", err)
 			}
-			
+
 			// 验证返回的是 DynamicLogger
 			dynamicLogger, ok := logger.(*DynamicLogger)
 			if !ok {
 				t.Errorf("Expected DynamicLogger when Dynamic=true, got %T", logger)
 			}
-			
+
 			// 验证基本日志功能
 			logger.Info("Test dynamic logger")
-			
+
 			// 验证可以获取配置
 			options := dynamicLogger.GetOptions()
 			if options.Type != tt.opts.Type {
@@ -137,32 +137,32 @@ func TestDynamicLoggerRuntimeUpdate(t *testing.T) {
 		Format:      "json",
 		OutputPaths: []string{"stdout"},
 	}
-	
+
 	logger, err := NewLogger(opts)
 	if err != nil {
 		t.Fatalf("Failed to create dynamic logger: %v", err)
 	}
-	
+
 	dynamicLogger, ok := logger.(*DynamicLogger)
 	if !ok {
 		t.Fatal("Expected DynamicLogger")
 	}
-	
+
 	// 测试更新级别
 	err = dynamicLogger.UpdateLevel("debug")
 	if err != nil {
 		t.Fatalf("Failed to update level: %v", err)
 	}
-	
+
 	// 验证级别已更新
 	options := dynamicLogger.GetOptions()
 	if options.Level != "debug" {
 		t.Errorf("Expected level debug, got %s", options.Level)
 	}
-	
+
 	// 测试日志输出（debug 现在应该可见）
 	dynamicLogger.Debug("This debug message should be visible")
-	
+
 	// 测试完整配置更新
 	newOpts := &LogsOptions{
 		Type:        LoggerTypeSlog, // 切换到 Slog
@@ -170,12 +170,12 @@ func TestDynamicLoggerRuntimeUpdate(t *testing.T) {
 		Format:      "text",
 		OutputPaths: []string{"stdout"},
 	}
-	
+
 	err = dynamicLogger.UpdateConfig(newOpts)
 	if err != nil {
 		t.Fatalf("Failed to update config: %v", err)
 	}
-	
+
 	// 验证配置已更新
 	options = dynamicLogger.GetOptions()
 	if options.Type != LoggerTypeSlog {
@@ -187,7 +187,7 @@ func TestDynamicLoggerRuntimeUpdate(t *testing.T) {
 	if options.Format != "text" {
 		t.Errorf("Expected format text, got %s", options.Format)
 	}
-	
+
 	// 测试日志输出
 	dynamicLogger.Warn("This warning message should be visible")
 	dynamicLogger.Info("This info message should NOT be visible (below warn level)")
@@ -202,20 +202,20 @@ func TestDynamicLoggerConcurrency(t *testing.T) {
 		Format:      "json",
 		OutputPaths: []string{"stdout"},
 	}
-	
+
 	logger, err := NewLogger(opts)
 	if err != nil {
 		t.Fatalf("Failed to create dynamic logger: %v", err)
 	}
-	
+
 	dynamicLogger, ok := logger.(*DynamicLogger)
 	if !ok {
 		t.Fatal("Expected DynamicLogger")
 	}
-	
+
 	// 并发读写测试
 	done := make(chan bool)
-	
+
 	// 启动多个 goroutine 进行日志记录
 	for i := 0; i < 10; i++ {
 		go func(id int) {
@@ -225,7 +225,7 @@ func TestDynamicLoggerConcurrency(t *testing.T) {
 			done <- true
 		}(i)
 	}
-	
+
 	// 启动 goroutine 进行配置更新
 	go func() {
 		for i := 0; i < 10; i++ {
@@ -236,7 +236,7 @@ func TestDynamicLoggerConcurrency(t *testing.T) {
 		}
 		done <- true
 	}()
-	
+
 	// 等待所有 goroutine 完成
 	for i := 0; i < 11; i++ {
 		select {
@@ -257,37 +257,37 @@ func TestDynamicLoggerInterface(t *testing.T) {
 		Format:      "json",
 		OutputPaths: []string{"stdout"},
 	}
-	
+
 	logger, err := NewLogger(opts)
 	if err != nil {
 		t.Fatalf("Failed to create dynamic logger: %v", err)
 	}
-	
+
 	// 验证实现了 Logger 接口
 	var _ Logger = logger
-	
+
 	// 测试所有日志级别方法
 	logger.Debug("Debug message")
 	logger.Info("Info message")
 	logger.Warn("Warn message")
 	logger.Error("Error message")
-	
+
 	// 测试格式化方法
 	logger.Debugf("Debug message: %s", "formatted")
 	logger.Infof("Info message: %d", 123)
 	logger.Warnf("Warn message: %v", true)
 	logger.Errorf("Error message: %f", 3.14)
-	
+
 	// 测试结构化方法
 	logger.Debugw("Debug message", "key", "value")
 	logger.Infow("Info message", "count", 42)
 	logger.Warnw("Warn message", "active", true)
 	logger.Errorw("Error message", "rate", 1.5)
-	
+
 	// 测试上下文方法
 	childLogger := logger.With("service", "test")
 	childLogger.Info("Message with context")
-	
+
 	skipLogger := logger.WithCallerSkip(1)
 	skipLogger.Info("Message with caller skip")
 }
@@ -295,7 +295,7 @@ func TestDynamicLoggerInterface(t *testing.T) {
 // TestDynamicParameterValidation 测试 Dynamic 参数的配置验证
 func TestDynamicParameterValidation(t *testing.T) {
 	validator := NewConfigValidator()
-	
+
 	// 测试 Dynamic=true 的有效配置
 	opts := &LogsOptions{
 		Type:             LoggerTypeZap,
@@ -305,12 +305,12 @@ func TestDynamicParameterValidation(t *testing.T) {
 		OutputPaths:      []string{"stdout"},
 		ErrorOutputPaths: []string{"stderr"},
 	}
-	
+
 	err := validator.Validate(opts)
 	if err != nil {
 		t.Errorf("Expected no error for valid dynamic config, got: %v", err)
 	}
-	
+
 	// Dynamic 参数本身不应该产生警告或错误
 	warnings := validator.GetWarnings()
 	for _, warning := range warnings {
@@ -322,9 +322,9 @@ func TestDynamicParameterValidation(t *testing.T) {
 
 // containsString 检查字符串是否包含子串
 func containsString(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || 
-		(len(s) > len(substr) && 
-			(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || 
+	return len(s) >= len(substr) && (s == substr ||
+		(len(s) > len(substr) &&
+			(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
 				containsSubstring(s[1:len(s)-1], substr))))
 }
 

@@ -280,7 +280,7 @@ func TestConfigValidator(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			warnings, err := logger.ValidateConfig(tt.opts)
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				if tt.checkError != nil && err != nil {
@@ -302,20 +302,20 @@ func TestConfigValidator(t *testing.T) {
 func TestConfigValidatorComprehensive(t *testing.T) {
 	tmpDir := t.TempDir()
 	validLogFile := filepath.Join(tmpDir, "valid.log")
-	
+
 	// 创建一个有效的日志文件路径
 	os.WriteFile(validLogFile, []byte(""), 0644)
 
 	opts := &logger.LogsOptions{
-		Type:        logger.LoggerTypeZap,
-		Level:       "info",
-		Format:      "json",
-		OutputPaths: []string{"stdout", validLogFile},
+		Type:             logger.LoggerTypeZap,
+		Level:            "info",
+		Format:           "json",
+		OutputPaths:      []string{"stdout", validLogFile},
 		ErrorOutputPaths: []string{"stderr"},
-		MaxSize:     100,
-		MaxAge:      30,
-		MaxBackups:  5,
-		Compress:    true,
+		MaxSize:          100,
+		MaxAge:           30,
+		MaxBackups:       5,
+		Compress:         true,
 		Sampling: &logger.SamplingConfig{
 			Initial:    100,
 			Thereafter: 10,
@@ -371,11 +371,11 @@ func TestValidatorWithActualLogger(t *testing.T) {
 		{
 			name: "warnings don't prevent creation",
 			opts: &logger.LogsOptions{
-				Type:        logger.LoggerTypeZap,  // use explicit type
-				Level:       "",  // will use default
-				OutputPaths: []string{}, // will use default
+				Type:        logger.LoggerTypeZap, // use explicit type
+				Level:       "",                   // will use default
+				OutputPaths: []string{},           // will use default
 			},
-			shouldValidate: true,  // passes with warnings
+			shouldValidate: true, // passes with warnings
 			shouldCreate:   true,
 		},
 	}
@@ -384,7 +384,7 @@ func TestValidatorWithActualLogger(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// 验证配置
 			warnings, err := logger.ValidateConfig(tt.opts)
-			
+
 			if tt.shouldValidate {
 				assert.NoError(t, err)
 			} else {
@@ -393,7 +393,7 @@ func TestValidatorWithActualLogger(t *testing.T) {
 
 			// 尝试创建 logger
 			l, err := logger.NewLogger(tt.opts)
-			
+
 			if tt.shouldCreate {
 				assert.NoError(t, err)
 				assert.NotNil(t, l)

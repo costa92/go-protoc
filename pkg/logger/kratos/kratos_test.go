@@ -102,21 +102,21 @@ func (m *MockLogger) SetLevel(level logger.Level) {
 func TestNewLogger(t *testing.T) {
 	mockLogger := &MockLogger{}
 	mockWithLogger := &MockLogger{}
-	
+
 	id := "test-service-id"
 	name := "test-service"
 	version := "v1.0.0"
-	
+
 	expectedWith := []interface{}{
 		"service.id", id,
 		"service.name", name,
 		"service.version", version,
 	}
-	
+
 	mockLogger.On("With", expectedWith).Return(mockWithLogger).Once()
-	
+
 	kratosLogger := NewLogger(mockLogger, id, name, version)
-	
+
 	assert.NotNil(t, kratosLogger)
 	mockLogger.AssertExpectations(t)
 }
@@ -124,12 +124,12 @@ func TestNewLogger(t *testing.T) {
 func TestKratosLoggerAdapter_Log_Debug(t *testing.T) {
 	mockLogger := &MockLogger{}
 	adapter := &kratosLoggerAdapter{logger: mockLogger}
-	
+
 	keyvals := []interface{}{"key1", "value1", "key2", "value2"}
 	mockLogger.On("Debugw", "", "key1", "value1", "key2", "value2").Once()
-	
+
 	err := adapter.Log(krtlog.LevelDebug, keyvals...)
-	
+
 	assert.NoError(t, err)
 	mockLogger.AssertExpectations(t)
 }
@@ -137,12 +137,12 @@ func TestKratosLoggerAdapter_Log_Debug(t *testing.T) {
 func TestKratosLoggerAdapter_Log_Info(t *testing.T) {
 	mockLogger := &MockLogger{}
 	adapter := &kratosLoggerAdapter{logger: mockLogger}
-	
+
 	keyvals := []interface{}{"message", "test info"}
 	mockLogger.On("Infow", "", "message", "test info").Once()
-	
+
 	err := adapter.Log(krtlog.LevelInfo, keyvals...)
-	
+
 	assert.NoError(t, err)
 	mockLogger.AssertExpectations(t)
 }
@@ -150,12 +150,12 @@ func TestKratosLoggerAdapter_Log_Info(t *testing.T) {
 func TestKratosLoggerAdapter_Log_Warn(t *testing.T) {
 	mockLogger := &MockLogger{}
 	adapter := &kratosLoggerAdapter{logger: mockLogger}
-	
+
 	keyvals := []interface{}{"warning", "test warning"}
 	mockLogger.On("Warnw", "", "warning", "test warning").Once()
-	
+
 	err := adapter.Log(krtlog.LevelWarn, keyvals...)
-	
+
 	assert.NoError(t, err)
 	mockLogger.AssertExpectations(t)
 }
@@ -163,12 +163,12 @@ func TestKratosLoggerAdapter_Log_Warn(t *testing.T) {
 func TestKratosLoggerAdapter_Log_Error(t *testing.T) {
 	mockLogger := &MockLogger{}
 	adapter := &kratosLoggerAdapter{logger: mockLogger}
-	
+
 	keyvals := []interface{}{"error", "test error"}
 	mockLogger.On("Errorw", "", "error", "test error").Once()
-	
+
 	err := adapter.Log(krtlog.LevelError, keyvals...)
-	
+
 	assert.NoError(t, err)
 	mockLogger.AssertExpectations(t)
 }
@@ -176,12 +176,12 @@ func TestKratosLoggerAdapter_Log_Error(t *testing.T) {
 func TestKratosLoggerAdapter_Log_Fatal(t *testing.T) {
 	mockLogger := &MockLogger{}
 	adapter := &kratosLoggerAdapter{logger: mockLogger}
-	
+
 	keyvals := []interface{}{"fatal", "test fatal"}
 	mockLogger.On("Fatalw", "", "fatal", "test fatal").Once()
-	
+
 	err := adapter.Log(krtlog.LevelFatal, keyvals...)
-	
+
 	assert.NoError(t, err)
 	mockLogger.AssertExpectations(t)
 }
@@ -189,12 +189,12 @@ func TestKratosLoggerAdapter_Log_Fatal(t *testing.T) {
 func TestKratosLoggerAdapter_Log_UnknownLevel(t *testing.T) {
 	mockLogger := &MockLogger{}
 	adapter := &kratosLoggerAdapter{logger: mockLogger}
-	
+
 	keyvals := []interface{}{"unknown", "test"}
 	mockLogger.On("Infow", "", "unknown", "test").Once() // Should default to Info
-	
+
 	err := adapter.Log(krtlog.Level(99), keyvals...) // Unknown level (use a level that doesn't exist)
-	
+
 	assert.NoError(t, err)
 	mockLogger.AssertExpectations(t)
 }
@@ -208,23 +208,23 @@ func TestKratosLoggerAdapter_Integration(t *testing.T) {
 		OutputPaths: []string{"stdout"},
 		Development: true,
 	}
-	
+
 	realLogger, err := logger.NewLogger(opts)
 	assert.NoError(t, err)
-	
+
 	kratosLogger := NewLogger(realLogger, "test-app", "test-service", "v1.0.0")
 	assert.NotNil(t, kratosLogger)
-	
+
 	// Test logging at different levels
 	err = kratosLogger.Log(krtlog.LevelDebug, "msg", "debug message", "component", "test")
 	assert.NoError(t, err)
-	
+
 	err = kratosLogger.Log(krtlog.LevelInfo, "msg", "info message", "service", "test")
 	assert.NoError(t, err)
-	
+
 	err = kratosLogger.Log(krtlog.LevelWarn, "msg", "warn message", "warning", true)
 	assert.NoError(t, err)
-	
+
 	err = kratosLogger.Log(krtlog.LevelError, "msg", "error message", "error", "test error")
 	assert.NoError(t, err)
 }
@@ -233,28 +233,28 @@ func TestKratosLoggerAdapter_Integration(t *testing.T) {
 func extractAdapter(t *testing.T, kratosLogger krtlog.Logger) *kratosLoggerAdapter {
 	// Since kratos.With wraps our adapter, we need to test through the wrapper
 	// or access the adapter directly for unit testing purposes
-	
+
 	// For testing, we'll create a simple adapter directly
 	mockLogger := &MockLogger{}
 	mockWithLogger := &MockLogger{}
 	mockLogger.On("With", mock.Anything).Return(mockWithLogger)
-	
+
 	// Create adapter directly for testing
 	adapter := &kratosLoggerAdapter{
 		logger: mockWithLogger,
 	}
-	
+
 	return adapter
 }
 
 func TestKratosLoggerAdapter_DirectAccess(t *testing.T) {
 	// Test the adapter directly without kratos.With wrapper
 	mockLogger := &MockLogger{}
-	
+
 	adapter := &kratosLoggerAdapter{
 		logger: mockLogger,
 	}
-	
+
 	tests := []struct {
 		name     string
 		level    krtlog.Level
@@ -267,14 +267,14 @@ func TestKratosLoggerAdapter_DirectAccess(t *testing.T) {
 		{"Error level", krtlog.LevelError, []interface{}{"error", "failed"}, "Errorw"},
 		{"Fatal level", krtlog.LevelFatal, []interface{}{"fatal", "critical"}, "Fatalw"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			args := append([]interface{}{""}, tt.keyvals...)
 			mockLogger.On(tt.expected, args...).Once()
-			
+
 			err := adapter.Log(tt.level, tt.keyvals...)
-			
+
 			assert.NoError(t, err)
 			mockLogger.AssertExpectations(t)
 		})

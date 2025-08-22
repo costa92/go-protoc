@@ -34,7 +34,7 @@ func createBenchmarkLogger(b *testing.B, loggerType logger.LoggerType, output io
 // BenchmarkZapLogger 测试 Zap logger 性能
 func BenchmarkZapLogger(b *testing.B) {
 	l := createBenchmarkLogger(b, logger.LoggerTypeZap, io.Discard)
-	
+
 	b.Run("Info", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -84,7 +84,7 @@ func BenchmarkZapLogger(b *testing.B) {
 // BenchmarkSlogLogger 测试 Slog logger 性能
 func BenchmarkSlogLogger(b *testing.B) {
 	l := createBenchmarkLogger(b, logger.LoggerTypeSlog, io.Discard)
-	
+
 	b.Run("Info", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -267,10 +267,10 @@ func BenchmarkLoggerWithFile(b *testing.B) {
 // BenchmarkDynamicLogger 测试动态 logger 性能
 func BenchmarkDynamicLogger(b *testing.B) {
 	opts := &logger.LogsOptions{
-		Type:        logger.LoggerTypeZap,
-		Level:       "info",
-		Format:      "json",
-		OutputPaths: []string{"stdout"},
+		Type:          logger.LoggerTypeZap,
+		Level:         "info",
+		Format:        "json",
+		OutputPaths:   []string{"stdout"},
 		DisableCaller: true,
 	}
 
@@ -309,7 +309,7 @@ func BenchmarkGlobalLogger(b *testing.B) {
 		OutputPaths:   []string{"stdout"},
 		DisableCaller: true,
 	}
-	
+
 	l, _ := logger.NewLogger(opts)
 	logger.SetDefaultLogger(l)
 

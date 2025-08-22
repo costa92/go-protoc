@@ -31,7 +31,7 @@ func NewZapLogger(opts *LogsOptions) (*ZapLogger, error) {
 
 	// Always use production config to avoid errorVerbose field
 	config := zap.NewProductionConfig()
-	
+
 	// Apply development settings manually if needed, but avoid errorVerbose
 	if opts.Development {
 		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
@@ -42,7 +42,7 @@ func NewZapLogger(opts *LogsOptions) (*ZapLogger, error) {
 	config.DisableCaller = opts.DisableCaller
 	config.DisableStacktrace = opts.DisableStacktrace
 	config.Development = opts.Development
-	
+
 	// Ensure stacktrace is enabled for error and fatal levels
 	if !config.DisableStacktrace {
 		config.EncoderConfig.StacktraceKey = "stacktrace"
@@ -84,7 +84,7 @@ func NewZapLogger(opts *LogsOptions) (*ZapLogger, error) {
 
 	for _, outputPath := range opts.OutputPaths {
 		var writer zapcore.WriteSyncer
-		
+
 		if outputPath == "stdout" {
 			writer = zapcore.AddSync(os.Stdout)
 		} else if outputPath == "stderr" {
@@ -118,20 +118,20 @@ func NewZapLogger(opts *LogsOptions) (*ZapLogger, error) {
 	}
 
 	core := zapcore.NewTee(cores...)
-	
+
 	// Create logger with stack trace support for error and fatal levels
 	loggerOptions := []zap.Option{
 		zap.AddCaller(),
 		zap.AddCallerSkip(opts.CallerSkip),
 	}
-	
+
 	// Add stack trace for error and fatal levels
 	if !opts.DisableStacktrace {
 		loggerOptions = append(loggerOptions, zap.AddStacktrace(zapcore.ErrorLevel))
 	}
-	
+
 	logger := zap.New(core, loggerOptions...)
-	
+
 	if opts.Development {
 		logger = logger.WithOptions(zap.Development())
 	}
@@ -162,7 +162,7 @@ func NewZapLogger(opts *LogsOptions) (*ZapLogger, error) {
 
 func buildZapEncoderConfig(cfg *EncoderConfig) zapcore.EncoderConfig {
 	encoderConfig := zap.NewProductionEncoderConfig()
-	
+
 	if cfg.TimeKey != "" {
 		encoderConfig.TimeKey = cfg.TimeKey
 	}

@@ -66,7 +66,7 @@ func (l *storeLoggerAdapter) Error(ctx context.Context, msg string, data ...inte
 func (l *storeLoggerAdapter) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 	elapsed := time.Since(begin)
 	sql, rows := fc()
-	
+
 	if err != nil {
 		l.logger.WithCtx(ctx, "sql", sql, "rows", rows, "elapsed", elapsed, "error", err).Errorw("SQL query failed",
 			"sql", sql,

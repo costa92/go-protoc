@@ -61,6 +61,17 @@ type ServerConfig struct {
 }
 
 func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
+	// 记录服务版本信息
+	versionInfo := version.Get()
+	logger.Infow("Initializing API server",
+		"service", versionInfo.ServiceName,
+		"version", versionInfo.GitVersion,
+		"branch", versionInfo.GitBranch,
+		"commit", versionInfo.GitCommit[:8],
+		"build_date", versionInfo.BuildDate,
+		"go_version", versionInfo.GoVersion,
+	)
+
 	// 日志库已在应用程序启动时初始化，包含context extractors配置
 	// 这里只记录配置信息
 	if cfg.LogOptions != nil {

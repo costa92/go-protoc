@@ -75,14 +75,14 @@ func TestDynamicLoggerConcurrentUpdate(t *testing.T) {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			
+
 			// 交替更新级别
 			if id%2 == 0 {
 				dl.UpdateLevel("debug")
 			} else {
 				dl.UpdateLevel("info")
 			}
-			
+
 			// 写一些日志
 			for j := 0; j < 10; j++ {
 				dl.Infow("concurrent log", "goroutine", id, "iteration", j)
@@ -96,7 +96,7 @@ func TestDynamicLoggerConcurrentUpdate(t *testing.T) {
 	// 验证没有 panic 并且日志被正确写入
 	content, err := os.ReadFile(logFile)
 	require.NoError(t, err)
-	
+
 	lines := strings.Split(strings.TrimSpace(string(content)), "\n")
 	assert.NotEmpty(t, lines)
 }
@@ -203,7 +203,7 @@ func TestDynamicLoggerWithMethods(t *testing.T) {
 	// 测试 With 方法
 	withLogger := dl.With("key1", "value1")
 	assert.NotNil(t, withLogger)
-	
+
 	// 测试 WithCtx 方法
 	ctxLogger := dl.WithCtx(nil, "key2", "value2")
 	assert.NotNil(t, ctxLogger)

@@ -18,17 +18,17 @@ func NewDynamicLogger(opts *LogsOptions) (*DynamicLogger, error) {
 	// 创建基础logger时需要临时禁用动态配置，避免无限递归
 	baseOpts := opts.clone()
 	baseOpts.Dynamic = false
-	
+
 	logger, err := NewLogger(baseOpts)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	dl := &DynamicLogger{
 		opts: opts.clone(),
 	}
 	dl.logger.Store(&logger)
-	
+
 	return dl, nil
 }
 
@@ -36,16 +36,16 @@ func NewDynamicLogger(opts *LogsOptions) (*DynamicLogger, error) {
 func (d *DynamicLogger) UpdateConfig(opts *LogsOptions) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	
+
 	// 创建新logger时需要临时禁用动态配置
 	baseOpts := opts.clone()
 	baseOpts.Dynamic = false
-	
+
 	logger, err := NewLogger(baseOpts)
 	if err != nil {
 		return err
 	}
-	
+
 	d.opts = opts.clone()
 	d.logger.Store(&logger)
 	return nil
@@ -55,18 +55,18 @@ func (d *DynamicLogger) UpdateConfig(opts *LogsOptions) error {
 func (d *DynamicLogger) UpdateLevel(level string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	
+
 	d.opts.Level = level
-	
+
 	// 创建新logger时需要临时禁用动态配置
 	baseOpts := d.opts.clone()
 	baseOpts.Dynamic = false
-	
+
 	logger, err := NewLogger(baseOpts)
 	if err != nil {
 		return err
 	}
-	
+
 	d.logger.Store(&logger)
 	return nil
 }

@@ -13,12 +13,12 @@ func TestFactoryFunctions(t *testing.T) {
 	Info("test info")
 	Warn("test warn")
 	Error("test error")
-	
+
 	Debugf("test %s", "debugf")
 	Infof("test %s", "infof")
 	Warnf("test %s", "warnf")
 	Errorf("test %s", "errorf")
-	
+
 	Debugw("test debugw", "key", "value")
 	Infow("test infow", "key", "value")
 	Warnw("test warnw", "key", "value")
@@ -52,12 +52,12 @@ func TestSetDefaultLogger(t *testing.T) {
 		OutputPaths: []string{"stdout"},
 		Development: true,
 	}
-	
+
 	newLogger, err := NewLogger(opts)
 	assert.NoError(t, err)
-	
+
 	SetDefaultLogger(newLogger)
-	
+
 	retrievedLogger := GetDefaultLogger()
 	assert.NotNil(t, retrievedLogger)
 }

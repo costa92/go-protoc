@@ -16,7 +16,7 @@ func NewKratosLogger(l Logger, id, name, version string) krtlog.Logger {
 			"service.version", version,
 		),
 	}
-	
+
 	return krtlog.With(kratosLogger,
 		"ts", krtlog.DefaultTimestamp,
 		"caller", krtlog.DefaultCaller,
@@ -32,7 +32,7 @@ type kratosLoggerAdapter struct {
 func (l *kratosLoggerAdapter) Log(level krtlog.Level, keyvals ...interface{}) error {
 	// Extract message from keyvals if present
 	msg := extractMessage(keyvals)
-	
+
 	switch level {
 	case krtlog.LevelDebug:
 		l.logger.Debugw(msg, keyvals...)
@@ -55,7 +55,7 @@ func extractMessage(keyvals ...interface{}) string {
 	if len(keyvals) == 0 {
 		return "Kratos log"
 	}
-	
+
 	// Flatten keyvals if it's nested (Kratos may pass keyvals as nested slice)
 	var flatKeyvals []interface{}
 	for _, kv := range keyvals {
@@ -67,7 +67,7 @@ func extractMessage(keyvals ...interface{}) string {
 			flatKeyvals = append(flatKeyvals, kv)
 		}
 	}
-	
+
 	// Collect all relevant fields
 	msg := ""
 	operation := ""
@@ -75,10 +75,10 @@ func extractMessage(keyvals ...interface{}) string {
 	kind := ""
 	caller := ""
 	code := ""
-	
+
 	// Parse keyvals pairs - we might have multiple 'msg' fields, prefer meaningful ones
 	var allMsgs []string
-	
+
 	for i := 0; i < len(flatKeyvals)-1; i += 2 {
 		if key, ok := flatKeyvals[i].(string); ok {
 			switch key {
@@ -112,7 +112,7 @@ func extractMessage(keyvals ...interface{}) string {
 			}
 		}
 	}
-	
+
 	// Prioritize messages: prefer Kratos framework messages first
 	for _, m := range allMsgs {
 		if strings.HasPrefix(m, "[HTTP]") || strings.HasPrefix(m, "[gRPC]") {
@@ -120,12 +120,12 @@ func extractMessage(keyvals ...interface{}) string {
 			break
 		}
 	}
-	
+
 	// If no framework message found, use the last meaningful message
 	if msg == "" && len(allMsgs) > 0 {
 		msg = allMsgs[len(allMsgs)-1]
 	}
-	
+
 	// Priority 1: Use original Kratos message if available and meaningful
 	if msg != "" {
 		// Clean up common Kratos message patterns
@@ -135,7 +135,7 @@ func extractMessage(keyvals ...interface{}) string {
 		// For other messages, return as-is
 		return msg
 	}
-	
+
 	// Priority 2: Construct from operation (API calls)
 	if operation != "" {
 		if strings.Contains(operation, "/") {
@@ -152,7 +152,7 @@ func extractMessage(keyvals ...interface{}) string {
 		}
 		return "API: " + operation
 	}
-	
+
 	// Priority 3: Construct from component and kind
 	if component != "" && kind != "" {
 		switch component {
@@ -164,7 +164,7 @@ func extractMessage(keyvals ...interface{}) string {
 			return component + " " + kind
 		}
 	}
-	
+
 	// Priority 4: Use component only
 	if component != "" {
 		switch component {
@@ -176,12 +176,12 @@ func extractMessage(keyvals ...interface{}) string {
 			return component + " event"
 		}
 	}
-	
+
 	// Priority 5: Use kind only
 	if kind != "" {
 		return "Server " + kind
 	}
-	
+
 	// Priority 6: Extract info from caller if available
 	if caller != "" {
 		// Extract meaningful part from caller like "http/server.go:330"
@@ -194,7 +194,7 @@ func extractMessage(keyvals ...interface{}) string {
 			}
 		}
 	}
-	
+
 	// Fallback: Generic message with context hint
 	return "Kratos event"
 }

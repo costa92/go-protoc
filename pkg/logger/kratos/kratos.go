@@ -20,7 +20,7 @@ func NewLogger(l logger.Logger, id, name, version string) krtlog.Logger {
 			"service.version", version,
 		),
 	}
-	
+
 	return krtlog.With(kratosLogger,
 		"ts", krtlog.DefaultTimestamp,
 		"caller", krtlog.DefaultCaller,

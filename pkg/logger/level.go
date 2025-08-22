@@ -3,7 +3,7 @@ package logger
 import (
 	"log/slog"
 	"strings"
-	
+
 	"go.uber.org/zap/zapcore"
 )
 

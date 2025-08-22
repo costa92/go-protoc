@@ -30,7 +30,7 @@ func NewSlogLogger(opts *LogsOptions) (*SlogLogger, error) {
 	var writers []io.Writer
 	for _, outputPath := range opts.OutputPaths {
 		var writer io.Writer
-		
+
 		if outputPath == "stdout" {
 			writer = os.Stdout
 		} else if outputPath == "stderr" {
@@ -109,7 +109,7 @@ func (h *callerHandler) Handle(ctx context.Context, r slog.Record) error {
 			if idx := strings.LastIndex(file, "/"); idx >= 0 {
 				file = file[idx+1:]
 			}
-			
+
 			fn := runtime.FuncForPC(pc)
 			function := "unknown"
 			if fn != nil {
@@ -118,7 +118,7 @@ func (h *callerHandler) Handle(ctx context.Context, r slog.Record) error {
 					function = function[idx+1:]
 				}
 			}
-			
+
 			r.AddAttrs(
 				slog.String("file", file),
 				slog.Int("line", line),

@@ -37,12 +37,12 @@ func GetDefaultLogger() Logger {
 	if logger := defaultLogger.Load(); logger != nil {
 		return *logger
 	}
-	
+
 	logger, err := NewLogger(DefaultOptions())
 	if err != nil {
 		panic(fmt.Sprintf("failed to create default logger: %v", err))
 	}
-	
+
 	SetDefaultLogger(logger)
 	return logger
 }

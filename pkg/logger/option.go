@@ -93,35 +93,35 @@ func (l *LogsOptions) clone() *LogsOptions {
 	if l == nil {
 		return &LogsOptions{}
 	}
-	
+
 	clone := &LogsOptions{
-		Type:              l.Type,
-		Dynamic:           l.Dynamic,
-		Level:             l.Level,
-		Format:            l.Format,
-		DisableCaller:     l.DisableCaller,
-		DisableStacktrace: l.DisableStacktrace,
-		EnableColor:       l.EnableColor,
-		Development:       l.Development,
-		Encoding:          l.Encoding,
-		MaxSize:           l.MaxSize,
-		MaxAge:            l.MaxAge,
-		MaxBackups:        l.MaxBackups,
-		Compress:          l.Compress,
-		CallerSkip:               l.CallerSkip,
-		DisableFunctionAtInfo:    l.DisableFunctionAtInfo,
+		Type:                  l.Type,
+		Dynamic:               l.Dynamic,
+		Level:                 l.Level,
+		Format:                l.Format,
+		DisableCaller:         l.DisableCaller,
+		DisableStacktrace:     l.DisableStacktrace,
+		EnableColor:           l.EnableColor,
+		Development:           l.Development,
+		Encoding:              l.Encoding,
+		MaxSize:               l.MaxSize,
+		MaxAge:                l.MaxAge,
+		MaxBackups:            l.MaxBackups,
+		Compress:              l.Compress,
+		CallerSkip:            l.CallerSkip,
+		DisableFunctionAtInfo: l.DisableFunctionAtInfo,
 	}
-	
+
 	if len(l.OutputPaths) > 0 {
 		clone.OutputPaths = make([]string, len(l.OutputPaths))
 		copy(clone.OutputPaths, l.OutputPaths)
 	}
-	
+
 	if len(l.ErrorOutputPaths) > 0 {
 		clone.ErrorOutputPaths = make([]string, len(l.ErrorOutputPaths))
 		copy(clone.ErrorOutputPaths, l.ErrorOutputPaths)
 	}
-	
+
 	if l.EncoderConfig != nil {
 		clone.EncoderConfig = &EncoderConfig{
 			TimeKey:       l.EncoderConfig.TimeKey,
@@ -136,21 +136,21 @@ func (l *LogsOptions) clone() *LogsOptions {
 			DurationUnit:  l.EncoderConfig.DurationUnit,
 		}
 	}
-	
+
 	if l.InitialFields != nil {
 		clone.InitialFields = make(map[string]interface{})
 		for k, v := range l.InitialFields {
 			clone.InitialFields[k] = v
 		}
 	}
-	
+
 	if l.Sampling != nil {
 		clone.Sampling = &SamplingConfig{
 			Initial:    l.Sampling.Initial,
 			Thereafter: l.Sampling.Thereafter,
 		}
 	}
-	
+
 	return clone
 }
 
@@ -208,19 +208,19 @@ func (l *LogsOptions) Validate() []error {
 
 func DefaultOptions() *LogsOptions {
 	return &LogsOptions{
-		Type:              LoggerTypeZap,
-		Dynamic:           false, // 默认禁用动态配置以保持性能
-		Level:             "info",
-		Format:            "json",
-		DisableCaller:     false,
-		DisableStacktrace: false,
-		EnableColor:       true,
-		OutputPaths:       []string{"stdout"},
-		ErrorOutputPaths:  []string{"stderr"},
-		Development:       false,
-		Encoding:          "json",
-		CallerSkip:               1,
-		DisableFunctionAtInfo:    true, // 默认在info级别禁用func字段
+		Type:                  LoggerTypeZap,
+		Dynamic:               false, // 默认禁用动态配置以保持性能
+		Level:                 "info",
+		Format:                "json",
+		DisableCaller:         false,
+		DisableStacktrace:     false,
+		EnableColor:           true,
+		OutputPaths:           []string{"stdout"},
+		ErrorOutputPaths:      []string{"stderr"},
+		Development:           false,
+		Encoding:              "json",
+		CallerSkip:            1,
+		DisableFunctionAtInfo: true, // 默认在info级别禁用func字段
 		EncoderConfig: &EncoderConfig{
 			TimeKey:       "ts",
 			LevelKey:      "level",

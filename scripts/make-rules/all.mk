@@ -3,6 +3,9 @@
 # Include project-specific commands.
 include scripts/make-rules/project.mk
 
+# Include build system commands.
+include scripts/make-rules/build.mk
+
 # Include core build tools and utility commands.
 include scripts/make-rules/tools.mk
 

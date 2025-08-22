@@ -6,6 +6,7 @@ import (
 
 	"github.com/costa92/go-protoc/v2/pkg/logger"
 	genericoptions "github.com/costa92/go-protoc/v2/pkg/options"
+	"github.com/costa92/go-protoc/v2/pkg/version"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/health"
@@ -51,16 +52,39 @@ func NewGRPCServer(
 
 // RunOrDie 启动 GRPC 服务器并在出错时记录致命错误.
 func (s *GRPCServer) RunOrDie() {
-	logger.Infow("Start to listening the incoming requests", "protocol", "grpc", "addr", s.lis.Addr().String())
+	versionInfo := version.Get()
+	logger.Infow("Starting gRPC server",
+		"protocol", "grpc",
+		"addr", s.lis.Addr().String(),
+		"service", versionInfo.ServiceName,
+		"version", versionInfo.GitVersion,
+		"branch", versionInfo.GitBranch,
+		"commit", versionInfo.GitCommit[:8], // 显示短commit hash
+		"build_date", versionInfo.BuildDate,
+	)
+
 	if err := s.srv.Serve(s.lis); err != nil {
-		logger.Fatalw("Failed to serve grpc server", "err", err)
+		logger.Fatalw("Failed to start gRPC server", "err", err,
+			"service", versionInfo.ServiceName,
+			"protocol", "grpc",
+			"addr", s.lis.Addr().String(),
+		)
 	}
 }
 
 // GracefulStop 优雅地关闭 GRPC 服务器.
 func (s *GRPCServer) GracefulStop(ctx context.Context) {
-	logger.Infow("Gracefully stop grpc server")
+	versionInfo := version.Get()
+	logger.Infow("Gracefully stopping gRPC server",
+		"service", versionInfo.ServiceName,
+		"protocol", "grpc",
+		"addr", s.lis.Addr().String(),
+	)
 	s.srv.GracefulStop()
+	logger.Infow("gRPC server stopped gracefully",
+		"service", versionInfo.ServiceName,
+		"protocol", "grpc",
+	)
 }
 
 // registerHealthServer 注册健康检查服务.

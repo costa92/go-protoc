@@ -30,9 +30,8 @@ clean-run: ## Clean ports and run the API server.
 generate: ## Generate code from protobuf definitions.
 	buf generate
 
-.PHONY: build
-build: ## Build the API server binary.
-	go build -o bin/apiserver cmd/apiserver/main.go
+# Note: Build commands have been moved to build.mk for enhanced functionality
+# Use 'make build' for standard builds or 'make build.help' for all build options
 
 .PHONY: apidiff
 apidiff: tools.verify.go-apidiff ## Run the go-apidiff to verify any API differences compared with origin/master.

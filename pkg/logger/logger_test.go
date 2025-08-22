@@ -42,8 +42,8 @@ func TestLoggerCreation(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "create logger with nil options uses defaults",
-			opts: nil,
+			name:    "create logger with nil options uses defaults",
+			opts:    nil,
 			wantErr: false,
 		},
 		{
@@ -93,7 +93,7 @@ func TestLoggerOutput(t *testing.T) {
 	l.Info("info message")
 	l.Warn("warn message")
 	l.Error("error message")
-	
+
 	// 给日志一点时间写入文件
 	time.Sleep(100 * time.Millisecond)
 
@@ -109,7 +109,7 @@ func TestLoggerOutput(t *testing.T) {
 		var logEntry map[string]interface{}
 		err := json.Unmarshal([]byte(line), &logEntry)
 		assert.NoError(t, err, "log line should be valid JSON")
-		
+
 		// 验证必要字段
 		assert.Contains(t, logEntry, "level")
 		assert.Contains(t, logEntry, "msg")
@@ -121,9 +121,9 @@ func TestLoggerOutput(t *testing.T) {
 // TestLoggerWithContext 测试上下文日志
 func TestLoggerWithContext(t *testing.T) {
 	opts := &logger.LogsOptions{
-		Type:   logger.LoggerTypeZap,
-		Level:  "info",
-		Format: "json",
+		Type:        logger.LoggerTypeZap,
+		Level:       "info",
+		Format:      "json",
 		OutputPaths: []string{"stdout"},
 	}
 
@@ -211,7 +211,7 @@ func TestLoggerLevel(t *testing.T) {
 			require.NoError(t, err)
 
 			contentStr := string(content)
-			
+
 			// 验证日志级别过滤
 			if tt.debugExpected {
 				assert.Contains(t, contentStr, "debug")
@@ -379,8 +379,8 @@ func TestLogRotation(t *testing.T) {
 		Level:       "info",
 		Format:      "json",
 		OutputPaths: []string{logFile},
-		MaxSize:     1,  // 1MB
-		MaxAge:      1,  // 1 day
+		MaxSize:     1, // 1MB
+		MaxAge:      1, // 1 day
 		MaxBackups:  3,
 		Compress:    true,
 	}
@@ -463,21 +463,21 @@ func TestGlobalLogger(t *testing.T) {
 	logger.Info("global info")
 	logger.Warn("global warn")
 	logger.Error("global error")
-	
+
 	logger.Debugf("global %s", "debugf")
 	logger.Infof("global %s", "infof")
 	logger.Warnf("global %s", "warnf")
 	logger.Errorf("global %s", "errorf")
-	
+
 	logger.Debugw("global debugw", "key", "value")
 	logger.Infow("global infow", "key", "value")
 	logger.Warnw("global warnw", "key", "value")
 	logger.Errorw("global errorw", "key", "value")
-	
+
 	// 测试 With 和 WithCtx
 	withLogger := logger.With("global", true)
 	assert.NotNil(t, withLogger)
-	
+
 	ctx := context.Background()
 	ctxLogger := logger.WithCtx(ctx, "request_id", "global-123")
 	assert.NotNil(t, ctxLogger)
@@ -522,7 +522,7 @@ func TestSlogLogger(t *testing.T) {
 	var logEntry map[string]interface{}
 	err = json.Unmarshal([]byte(lines[0]), &logEntry)
 	require.NoError(t, err)
-	
+
 	assert.Equal(t, "slog", logEntry["type"])
 	assert.Equal(t, "slog-test", logEntry["service"])
 	assert.Equal(t, "slog info message", logEntry["msg"])
@@ -670,7 +670,7 @@ func TestCallerSkip(t *testing.T) {
 
 	// 测试不同的 caller skip
 	l.Info("skip 0")
-	
+
 	skipLogger := l.WithCallerSkip(1)
 	skipLogger.Info("skip 1")
 

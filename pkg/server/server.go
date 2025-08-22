@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/costa92/go-protoc/v2/pkg/logger"
+	"github.com/costa92/go-protoc/v2/pkg/version"
 )
 
 type Server interface {
@@ -24,7 +25,11 @@ func Serve(ctx context.Context, srv Server) error {
 	<-ctx.Done()
 
 	// Shutdown the server gracefully.
-	logger.Infow("Shutting down server...")
+	versionInfo := version.Get()
+	logger.Infow("Shutting down server...",
+		"service", versionInfo.ServiceName,
+		"version", versionInfo.GitVersion,
+	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -32,7 +37,10 @@ func Serve(ctx context.Context, srv Server) error {
 	// Gracefully stop the server.
 	srv.GracefulStop(ctx)
 
-	logger.Infow("Server exited successfully.")
+	logger.Infow("Server exited successfully.",
+		"service", versionInfo.ServiceName,
+		"version", versionInfo.GitVersion,
+	)
 
 	return nil
 }

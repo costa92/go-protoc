@@ -19,9 +19,9 @@ type LevelAwareCore struct {
 // NewLevelAwareCore creates a new core that can exclude function information based on log level.
 func NewLevelAwareCore(core zapcore.Core, config zapcore.EncoderConfig, encoderType string) zapcore.Core {
 	return &LevelAwareCore{
-		Core:            core,
-		originalConfig:  config,
-		encoderType:     encoderType,
+		Core:           core,
+		originalConfig: config,
+		encoderType:    encoderType,
 		excludeAtLevels: map[zapcore.Level]bool{
 			zapcore.InfoLevel: true, // 在 info 级别时禁用 func 字段
 		},
@@ -53,10 +53,10 @@ func (c *LevelAwareCore) Write(ent zapcore.Entry, fields []zapcore.Field) error 
 		// Create a modified entry without caller info to exclude function
 		modifiedEntry := ent
 		modifiedEntry.Caller = zapcore.EntryCaller{}
-	
+
 		return c.Core.Write(modifiedEntry, fields)
 	}
-	
+
 	// For other levels, write normally
 	return c.Core.Write(ent, fields)
 }
