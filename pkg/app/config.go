@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/util/homedir"
 
 	"github.com/costa92/go-protoc/v2/pkg/logger"
+	"github.com/costa92/go-protoc/v2/pkg/version"
 )
 
 const ConfigFlagName = "config"
@@ -59,16 +60,119 @@ func AddConfigFlag(fs *pflag.FlagSet, name string, watch bool) {
 
 		if err := viper.ReadInConfig(); err != nil {
 			logger.Errorw("Failed to read configuration file", "error", err, "file", CfgFile)
+		} else {
+			logger.Infow("Success to read configuration file", "file", viper.ConfigFileUsed())
+			
+			// 配置文件读取成功后，立即重新初始化日志器以应用日志配置
+			reinitializeLoggerFromConfig()
 		}
-		logger.Infow("Success to read configuration file", "file", viper.ConfigFileUsed())
 
 		if watch {
 			viper.WatchConfig()
 			viper.OnConfigChange(func(e fsnotify.Event) {
 				logger.Debugw("Config file changed", "name", e.Name)
+				// 配置变更时重新初始化日志器
+				reinitializeLoggerFromConfig()
 			})
 		}
 	})
+}
+
+// reinitializeLoggerFromConfig 根据配置文件重新初始化日志器
+func reinitializeLoggerFromConfig() {
+	logOptions := logger.DefaultOptions()
+
+	// Configure logging options from viper
+	if viper.IsSet("log.type") {
+		logOptions.Type = logger.LoggerType(viper.GetString("log.type"))
+	}
+	if viper.IsSet("log.dynamic") {
+		logOptions.Dynamic = viper.GetBool("log.dynamic")
+	}
+	if viper.IsSet("log.disable-caller") {
+		logOptions.DisableCaller = viper.GetBool("log.disable-caller")
+	}
+	if viper.IsSet("log.disable-stacktrace") {
+		logOptions.DisableStacktrace = viper.GetBool("log.disable-stacktrace")
+	}
+	if viper.IsSet("log.enable-color") {
+		logOptions.EnableColor = viper.GetBool("log.enable-color")
+	}
+	if viper.IsSet("log.level") {
+		logOptions.Level = viper.GetString("log.level")
+	}
+	if viper.IsSet("log.format") {
+		logOptions.Format = viper.GetString("log.format")
+	}
+	if viper.IsSet("log.output-paths") {
+		logOptions.OutputPaths = viper.GetStringSlice("log.output-paths")
+	}
+	if viper.IsSet("log.error-output-paths") {
+		logOptions.ErrorOutputPaths = viper.GetStringSlice("log.error-output-paths")
+	}
+	if viper.IsSet("log.development") {
+		logOptions.Development = viper.GetBool("log.development")
+	}
+	if viper.IsSet("log.encoding") {
+		logOptions.Encoding = viper.GetString("log.encoding")
+	}
+	if viper.IsSet("log.max-size") {
+		logOptions.MaxSize = viper.GetInt("log.max-size")
+	}
+	if viper.IsSet("log.max-age") {
+		logOptions.MaxAge = viper.GetInt("log.max-age")
+	}
+	if viper.IsSet("log.max-backups") {
+		logOptions.MaxBackups = viper.GetInt("log.max-backups")
+	}
+	if viper.IsSet("log.compress") {
+		logOptions.Compress = viper.GetBool("log.compress")
+	}
+	if viper.IsSet("log.caller-skip") {
+		logOptions.CallerSkip = viper.GetInt("log.caller-skip")
+	}
+
+	// 处理初始字段配置 - 添加到所有日志条目的字段
+	if viper.IsSet("log.initial-fields") {
+		logOptions.InitialFields = make(map[string]interface{})
+		initialFieldsMap := viper.GetStringMap("log.initial-fields")
+		for k, v := range initialFieldsMap {
+			logOptions.InitialFields[k] = v
+		}
+	}
+
+	// 确保始终有服务信息，如果配置文件中没有设置则使用版本包的默认值
+	if logOptions.InitialFields == nil {
+		logOptions.InitialFields = make(map[string]interface{})
+	}
+
+	versionInfo := version.Get()
+	
+	// 如果配置中没有 service 字段，使用版本包的默认服务名
+	if _, exists := logOptions.InitialFields["service"]; !exists {
+		logOptions.InitialFields["service"] = versionInfo.ServiceName
+	}
+	
+	// 如果配置中没有 version 字段，使用版本包的版本信息
+	if _, exists := logOptions.InitialFields["version"]; !exists {
+		logOptions.InitialFields["version"] = versionInfo.GitVersion
+	}
+	
+	// 如果配置中没有 branch 字段，使用版本包的分支信息
+	if _, exists := logOptions.InitialFields["branch"]; !exists {
+		logOptions.InitialFields["branch"] = versionInfo.GitBranch
+	}
+
+	// Initialize the global logger
+	if globalLogger, err := logger.NewLogger(logOptions); err != nil {
+		logger.Errorw("Failed to reinitialize logger from config", "error", err)
+	} else {
+		logger.SetDefaultLogger(globalLogger)
+		logger.Infow("Logger reinitialized from configuration file", 
+			"level", logOptions.Level, 
+			"format", logOptions.Format,
+			"service", versionInfo.ServiceName)
+	}
 }
 
 func PrintConfig() {

@@ -154,9 +154,33 @@ func NewApp(name string, shortDesc string, opts ...Option) *App {
 		o(app)
 	}
 
+	// 初始化默认 logger，包含版本信息中的服务名
+	initializeEarlyLogger()
+
 	app.buildCommand()
 
 	return app
+}
+
+// initializeEarlyLogger 初始化早期 logger，包含默认的服务信息
+func initializeEarlyLogger() {
+	// 创建包含默认服务信息的 logger 选项
+	logOptions := logger.DefaultOptions()
+	
+	// 从版本包获取默认服务信息
+	versionInfo := version.Get()
+	logOptions.InitialFields = map[string]interface{}{
+		"service": versionInfo.ServiceName,
+		"version": versionInfo.GitVersion,
+		"branch":  versionInfo.GitBranch,
+	}
+
+	// 初始化早期 logger
+	if earlyLogger, err := logger.NewLogger(logOptions); err == nil {
+		logger.SetDefaultLogger(earlyLogger)
+		// 测试早期 logger
+		logger.Infow("Early logger initialized", "early_service", versionInfo.ServiceName)
+	}
 }
 
 // buildCommand is used to build a cobra command.
@@ -317,63 +341,18 @@ func formatBaseName(name string) string {
 }
 
 // initializeLogger sets up the logging system based on the configuration.
+// 注意：大部分配置已在 config.go 的 reinitializeLoggerFromConfig() 中处理
 func (app *App) initializeLogger() {
-	logOptions := logger.DefaultOptions()
-
-	// Configure logging options from viper
-	if viper.IsSet("log.type") {
-		logOptions.Type = logger.LoggerType(viper.GetString("log.type"))
+	// 这里可以添加应用层特定的日志初始化逻辑
+	// 比如添加上下文提取器
+	if app.contextExtractors != nil {
+		logger.Infow("Logger context extractors configured", "extractors", len(app.contextExtractors))
 	}
-	if viper.IsSet("log.dynamic") {
-		logOptions.Dynamic = viper.GetBool("log.dynamic")
-	}
-	if viper.IsSet("log.disable-caller") {
-		logOptions.DisableCaller = viper.GetBool("log.disable-caller")
-	}
-	if viper.IsSet("log.disable-stacktrace") {
-		logOptions.DisableStacktrace = viper.GetBool("log.disable-stacktrace")
-	}
-	if viper.IsSet("log.enable-color") {
-		logOptions.EnableColor = viper.GetBool("log.enable-color")
-	}
-	if viper.IsSet("log.level") {
-		logOptions.Level = viper.GetString("log.level")
-	}
-	if viper.IsSet("log.format") {
-		logOptions.Format = viper.GetString("log.format")
-	}
-	if viper.IsSet("log.output-paths") {
-		logOptions.OutputPaths = viper.GetStringSlice("log.output-paths")
-	}
-	if viper.IsSet("log.error-output-paths") {
-		logOptions.ErrorOutputPaths = viper.GetStringSlice("log.error-output-paths")
-	}
-	if viper.IsSet("log.development") {
-		logOptions.Development = viper.GetBool("log.development")
-	}
-	if viper.IsSet("log.encoding") {
-		logOptions.Encoding = viper.GetString("log.encoding")
-	}
-	if viper.IsSet("log.max-size") {
-		logOptions.MaxSize = viper.GetInt("log.max-size")
-	}
-	if viper.IsSet("log.max-age") {
-		logOptions.MaxAge = viper.GetInt("log.max-age")
-	}
-	if viper.IsSet("log.max-backups") {
-		logOptions.MaxBackups = viper.GetInt("log.max-backups")
-	}
-	if viper.IsSet("log.compress") {
-		logOptions.Compress = viper.GetBool("log.compress")
-	}
-	if viper.IsSet("log.caller-skip") {
-		logOptions.CallerSkip = viper.GetInt("log.caller-skip")
-	}
-
-	// Initialize the global logger
-	if globalLogger, err := logger.NewLogger(logOptions); err != nil {
-		panic("Failed to initialize logger: " + err.Error())
-	} else {
-		logger.SetDefaultLogger(globalLogger)
-	}
+	
+	// 打印最终的日志器状态确认
+	versionInfo := version.Get()
+	logger.Infow("Final logger configuration applied", 
+		"service", versionInfo.ServiceName, 
+		"version", versionInfo.GitVersion,
+		"branch", versionInfo.GitBranch)
 }

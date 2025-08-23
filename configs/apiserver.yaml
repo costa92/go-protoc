@@ -72,12 +72,6 @@ log:
     level-encoder: "lowercase" # 级别编码格式
     caller-encoder: "short" # 调用者编码格式
 
-  # 初始字段（添加到所有日志条目）
-  initial-fields:
-    service: "apiserver"
-    version: "v2.0.0"
-    environment: "development"
-
   # VictoriaLogs 集成配置（通过 OTEL Collector）
   victoria-logs:
     enabled: false # 禁用直连VictoriaLogs，改用OTEL Collector

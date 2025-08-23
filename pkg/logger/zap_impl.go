@@ -3,14 +3,12 @@ package logger
 import (
 	"context"
 	"fmt"
-	"os"
 	"runtime"
 	"strings"
 	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type ZapLogger struct {
@@ -66,7 +64,7 @@ func NewZapLogger(opts *LogsOptions) (*ZapLogger, error) {
 
 	// 合并初始字段，自动添加 logger 类型标识
 	config.InitialFields = make(map[string]interface{})
-	config.InitialFields["type"] = "zap"
+	config.InitialFields["logger_type"] = "zap" // 改用 logger_type 避免与配置冲突
 	if opts.InitialFields != nil {
 		for k, v := range opts.InitialFields {
 			config.InitialFields[k] = v
@@ -80,81 +78,18 @@ func NewZapLogger(opts *LogsOptions) (*ZapLogger, error) {
 		}
 	}
 
-	var cores []zapcore.Core
-
-	for _, outputPath := range opts.OutputPaths {
-		var writer zapcore.WriteSyncer
-
-		if outputPath == "stdout" {
-			writer = zapcore.AddSync(os.Stdout)
-		} else if outputPath == "stderr" {
-			writer = zapcore.AddSync(os.Stderr)
-		} else {
-			lumberJackLogger := &lumberjack.Logger{
-				Filename:   outputPath,
-				MaxSize:    opts.MaxSize,
-				MaxAge:     opts.MaxAge,
-				MaxBackups: opts.MaxBackups,
-				Compress:   opts.Compress,
-			}
-			writer = zapcore.AddSync(lumberJackLogger)
-		}
-
-		// Use level-aware encoder that can conditionally exclude function information
-		var encoder zapcore.Encoder
-		if opts.DisableFunctionAtInfo {
-			encoder = NewLevelAwareEncoder(config.EncoderConfig, opts.Encoding)
-		} else {
-			// Use standard encoder when function exclusion is disabled
-			if opts.Encoding == "console" {
-				encoder = zapcore.NewConsoleEncoder(config.EncoderConfig)
-			} else {
-				encoder = zapcore.NewJSONEncoder(config.EncoderConfig)
-			}
-		}
-
-		core := zapcore.NewCore(encoder, writer, config.Level)
-		cores = append(cores, core)
+	// 使用config.Build()而不是手动构建，InitialFields会自动处理
+	logger, err := config.Build(zap.AddCallerSkip(opts.CallerSkip))
+	if err != nil {
+		return nil, err
 	}
 
-	core := zapcore.NewTee(cores...)
-
-	// Create logger with stack trace support for error and fatal levels
-	loggerOptions := []zap.Option{
-		zap.AddCaller(),
-		zap.AddCallerSkip(opts.CallerSkip),
-	}
-
-	// Add stack trace for error and fatal levels
-	if !opts.DisableStacktrace {
-		loggerOptions = append(loggerOptions, zap.AddStacktrace(zapcore.ErrorLevel))
-	}
-
-	logger := zap.New(core, loggerOptions...)
-
-	if opts.Development {
-		logger = logger.WithOptions(zap.Development())
-	}
-
-	// 自动添加 logger 类型标识
-	logger = logger.With(zap.String("type", "zap"))
-
-	// 如果有初始字段配置，也添加进去
-	if config.InitialFields != nil && len(config.InitialFields) > 0 {
-		var fields []zap.Field
-		for k, v := range config.InitialFields {
-			if k != "type" { // 避免覆盖我们设置的 type 字段
-				fields = append(fields, zap.Any(k, v))
-			}
-		}
-		if len(fields) > 0 {
-			logger = logger.With(fields...)
-		}
-	}
+	// 创建SugaredLogger（InitialFields已经通过config.Build()包含）
+	sugaredLogger := logger.Sugar()
 
 	return &ZapLogger{
 		logger:        logger,
-		sugaredLogger: logger.Sugar(),
+		sugaredLogger: sugaredLogger,
 		opts:          opts,
 		level:         ParseLevel(opts.Level),
 	}, nil
