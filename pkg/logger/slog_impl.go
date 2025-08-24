@@ -77,7 +77,7 @@ func NewSlogLogger(opts *LogsOptions) (*SlogLogger, error) {
 	})
 
 	// 自动添加 logger 类型标识
-	logger = logger.With("type", "slog")
+	logger = logger.With("logger_type", "slog")
 
 	// 如果有初始字段配置，也添加进去
 	if opts.InitialFields != nil {

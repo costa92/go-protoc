@@ -42,7 +42,7 @@ jaeger:
 
 # Enhanced Logger Configuration (pkg/logger)
 log:
-  type: "zap" # 日志器类型: zap 或 slog
+  type: "slog" # 日志器类型: zap 或 slog
   dynamic: false # 启用动态配置功能（运行时调整日志配置）
   level: "debug" # 日志级别: debug, info, warn, error, fatal
   format: "json" # 日志格式: json, text, console
