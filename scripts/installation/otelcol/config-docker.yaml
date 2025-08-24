@@ -20,14 +20,15 @@ receivers:
     operators:
       - type: json_parser
         id: parse_json
-      # 为VictoriaLogs创建_msg字段
+        parse_from: body
+        parse_to: attributes
+      # 为VictoriaLogs创建_msg字段 - JSON解析后在attributes中
       - type: move
         from: attributes.msg
         to: attributes._msg
-      # 保留时间戳
-      - type: move
-        from: attributes.ts
-        to: body.ts
+      # 清理不需要的重复字段
+      - type: remove
+        field: body
 
 processors:
   batch:

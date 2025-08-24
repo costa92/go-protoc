@@ -98,6 +98,17 @@ data:
             field: attributes.log_source
             value: "kubernetes"
           
+          # JSON应用日志特殊处理 - 为VictoriaLogs创建_msg字段
+          - type: json_parser
+            id: parse_app_json
+            if: 'attributes.message matches "^\\{.*\\}$"'
+            parse_from: attributes.message
+            parse_to: attributes.app_log
+          - type: move
+            if: 'attributes.app_log.msg != nil'
+            from: attributes.app_log.msg
+            to: attributes._msg
+          
           # 移除临时属性
           - type: remove
             field: attributes.namespace
@@ -113,9 +124,9 @@ data:
     processors:
       # 批处理器 - 提高传输效率
       batch:
-        timeout: 1s
-        send_batch_size: 1024
-        send_batch_max_size: 2048
+        timeout: 500ms                     # 更短的批处理超时时间，提高实时性
+        send_batch_size: 100              # 较小的批处理大小，快速发送
+        send_batch_max_size: 200
       
       # 内存限制器 - 防止内存溢出
       memory_limiter:
@@ -166,21 +177,12 @@ data:
             action: upsert
 
     exporters:
-      # VictoriaLogs 导出器
-      loki/victorialogs:
-        endpoint: http://victorialogs.logging.svc.cluster.local:9428/insert/loki/api/v1/push
+      # VictoriaLogs 导出器 - 通过OTLP HTTP发送日志
+      otlphttp/victorialogs:
+        endpoint: "http://victorialogs.logging.svc.cluster.local:9428/insert/opentelemetry"
         tls:
           insecure: true
-        timeout: 30s
-        retry_on_failure:
-          enabled: true
-          initial_interval: 5s
-          max_interval: 30s
-          max_elapsed_time: 5m
-        sending_queue:
-          enabled: true
-          num_consumers: 10
-          queue_size: 5000
+        compression: gzip
       
       # 控制台输出（调试用）
       logging:
@@ -193,7 +195,7 @@ data:
         logs:
           receivers: [otlp, filelog, k8s_events]
           processors: [memory_limiter, k8sattributes, resource, batch]
-          exporters: [loki/victorialogs, logging]
+          exporters: [otlphttp/victorialogs, logging]
       
       extensions: [health_check]
       

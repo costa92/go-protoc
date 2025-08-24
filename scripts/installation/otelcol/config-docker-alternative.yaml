@@ -17,28 +17,28 @@ receivers:
     start_at: end
     include_file_name: false
     include_file_path: false
-    poll_interval: 500ms
+    poll_interval: 100ms               # 更频繁的轮询，提高实时性
     max_concurrent_files: 1024
     encoding: utf-8
 
     operators:
       - type: json_parser
         id: parse_json
+        parse_from: body
+        parse_to: attributes
+      # 为VictoriaLogs创建_msg字段 - JSON解析后在attributes中
       - type: move
         from: attributes.msg
-        to: body
-      - type: add
-        field: attributes.log_source
-        value: "file"
-      - type: add
-        field: attributes.collector
-        value: "otelcol"
+        to: attributes._msg
+      # 清理不需要的重复字段
+      - type: remove
+        field: body
 
 processors:
   batch:
-    timeout: 1s
-    send_batch_size: 1024
-    send_batch_max_size: 2048
+    timeout: 500ms                     # 更短的批处理超时时间，提高实时性
+    send_batch_size: 100              # 较小的批处理大小，快速发送
+    send_batch_max_size: 200
   
   memory_limiter:
     limit_mib: 512
@@ -61,11 +61,6 @@ exporters:
   # 方案1：本地文件存储（始终可用）
   file:
     path: "/var/log/otelcol/logs.json"
-    rotation:
-      max_megabytes: 100
-      max_days: 7
-      max_backups: 5
-      compress: true
 
   # 方案2：Grafana Loki（推荐的 Loki 兼容后端）
   loki/grafana:

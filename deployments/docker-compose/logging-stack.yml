@@ -21,7 +21,7 @@ volumes:
 services:
   # VictoriaLogs - 高性能日志存储
   victorialogs:
-    image: victoriametrics/victoria-logs:v1.28.0
+    image: victoriametrics/victoria-logs:v0.5.2-victorialogs
     container_name: proj-victorialogs
     hostname: victorialogs
     ports:
@@ -57,7 +57,7 @@ services:
       - "8888:8888"    # Prometheus metrics
       - "13133:13133"  # Health check
     volumes:
-      - ../../scripts/installation/otelcol/config-docker-files.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - ../../scripts/installation/otelcol/config-docker.yaml:/etc/otelcol-contrib/config.yaml:ro
       - ../../logs:/host/logs:ro  # 宿主机日志文件挂载
       - /var/lib/docker/containers:/var/lib/docker/containers:ro  # Docker 容器日志
     environment:
