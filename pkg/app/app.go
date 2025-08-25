@@ -154,9 +154,6 @@ func NewApp(name string, shortDesc string, opts ...Option) *App {
 		o(app)
 	}
 
-	// 初始化默认 logger，包含版本信息中的服务名
-	initializeEarlyLogger()
-
 	app.buildCommand()
 
 	return app
@@ -191,6 +188,10 @@ func (app *App) buildCommand() {
 		Long:  app.description,
 		RunE:  app.runCommand,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
+			// 在任何日志输出之前检查版本参数
+			version.PrintAndExitIfRequested()
+			// 现在可以安全地初始化日志
+			initializeEarlyLogger()
 			return nil
 		},
 		Args: app.args,
@@ -236,7 +237,6 @@ func (app *App) buildCommand() {
 
 		// 将配置标志添加到 fss 中的 "misc" 标志集中
 		if !app.noConfig {
-			logger.Infow("buildCommand: Adding config flag to misc flagset", "name", app.name, "watch", app.watch)
 			AddConfigFlag(fss.FlagSet("misc"), app.name, app.watch)
 		}
 
@@ -254,13 +254,11 @@ func (app *App) buildCommand() {
 
 		// 在 FlagSetOptions 分支中添加配置标志
 		if !app.noConfig {
-			logger.Infow("buildCommand: Adding config flag to persistent flags", "name", app.name, "watch", app.watch)
 			AddConfigFlag(fs, app.name, app.watch)
 		}
 	default:
 		// 在默认分支中添加配置标志
 		if !app.noConfig {
-			logger.Infow("buildCommand: Adding config flag to command flags", "name", app.name, "watch", app.watch)
 			AddConfigFlag(cmd.Flags(), app.name, app.watch)
 		}
 	}
@@ -277,9 +275,6 @@ func (app *App) Run() {
 }
 
 func (app *App) runCommand(cmd *cobra.Command, args []string) error {
-	// display application version information
-	version.PrintAndExitIfRequested()
-
 	if err := viper.BindPFlags(cmd.Flags()); err != nil {
 		return err
 	}

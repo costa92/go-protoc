@@ -27,7 +27,10 @@ func AddConfigFlag(fs *pflag.FlagSet, name string, watch bool) {
 	fs.StringVarP(&CfgFile, ConfigFlagName, "c", CfgFile, "Read configuration from specified `FILE`, "+
 		"support JSON, TOML, YAML, HCL, or Java properties formats.")
 
-	logger.Infow("Adding configuration flag", "name", name, "watch", watch, "cfgFile", CfgFile)
+	// 只有在logger已经初始化的情况下才输出日志
+	if logger.GetDefaultLogger() != nil {
+		logger.Infow("Adding configuration flag", "name", name, "watch", watch, "cfgFile", CfgFile)
+	}
 	// Enable viper's automatic environment variable parsing. This means
 	// that viper will automatically read values corresponding to viper
 	// variables from environment variables.
