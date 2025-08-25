@@ -9,6 +9,7 @@
 ## 快速开发命令
 
 ### 日常必备命令
+
 - `make help` - 查看所有可用命令
 - `make run-api` - 启动开发服务器（支持热重载）
 - `make build` - 构建优化二进制文件到 ./bin/apiserver
@@ -17,6 +18,7 @@
 - `make tidy` - 清理 go.mod 依赖
 
 ### 开发环境
+
 - `make dev-setup` - 完整开发环境设置（工具 + 服务 + 代码生成）
 - `make dev-clean` - 清理开发环境并停止服务
 - `make dev-quick` - 快速开发启动（跳过工具安装）
@@ -25,14 +27,17 @@
 - `make dev-bench` - 运行性能基准测试
 
 ### 代码生成
+
 - `make generate` - 使用 buf 生成 protobuf/gRPC/HTTP 代码
 - `make wire` - 重新生成依赖注入代码（结构变更后运行）
 - `buf generate` - 直接 protobuf 生成（buf.yaml 变更时使用）
 
 ### 构建和版本管理
+
 项目实现了强大的版本感知构建系统，支持自动版本注入和多架构构建：
 
 #### 版本构建命令
+
 - `make build` - 构建带版本信息的二进制文件（自动注入 Git 版本信息）
 - `make build.multiarch` - 多架构构建（Linux amd64/arm64, macOS, Windows）
 - `SERVICE_NAME=myservice make build` - 自定义服务名构建
@@ -40,7 +45,9 @@
 - `make docker-build.multiarch` - 多架构 Docker 构建
 
 #### 版本信息注入
+
 构建系统自动注入以下版本信息：
+
 - **服务名称**: 通过 `SERVICE_NAME` 环境变量或默认 `apiserver`
 - **Git 版本**: `git describe --tags --always --dirty`
 - **Git 分支**: `git branch --show-current`
@@ -49,71 +56,86 @@
 - **Git 状态**: clean/dirty 状态检测
 
 #### 版本查看命令
+
 - `./bin/apiserver --version` - 显示简化版本信息
 - `./bin/apiserver version` - 显示详细版本信息（表格格式）
 - `./bin/apiserver version --output=json` - JSON 格式版本信息
 
 ### 工具安装
+
 - `make install-tools` - 仅安装 CI 相关工具
 - `make install-tools A=1` - 安装所有开发工具
 - `make tools.install.<tool>` - 安装特定工具（wire, golangci-lint, buf 等）
 
 ### 统一服务管理
+
 项目现已实现统一的服务管理机制，支持通过 docker-compose 和安装脚本管理所有第三方服务。
 
 #### 数据库服务
+
 使用脚本管理数据库服务：
+
 ```bash
 ./scripts/installation/service.sh start redis
-./scripts/installation/service.sh start mariadb  
+./scripts/installation/service.sh start mariadb
 ./scripts/installation/service.sh start mongodb
 ```
 
 #### MySQL数据库管理（新增）
+
 项目新增了完整的MySQL数据库管理功能，支持自动化的数据库设置、迁移和维护：
 
 **快速开始**：
+
 - `make db-setup` - 一键完整数据库设置（启动 + 迁移）
 - `make db-start` - 启动MySQL容器
 - `make db-migrate` - 执行数据库迁移
 - `make db-help` - 查看所有数据库命令
 
 **数据库操作**：
+
 - `make db-connect` - 通过MySQL CLI连接数据库
 - `make db-shell` - 在Docker容器中打开MySQL shell
 - `make db-status` - 检查容器状态
 - `make db-logs` - 查看数据库日志
 
 **迁移管理**：
+
 - `make db-migrate-dry` - 查看迁移计划（干运行）
 - `make db-create-migration NAME=migration_name` - 创建新迁移文件
 
 **备份与恢复**：
+
 - `make db-backup` - 创建数据库备份
 - `make db-restore BACKUP_FILE=backup.sql` - 从备份恢复
 
 **维护命令**：
+
 - `make db-reset` - 重置数据库（删除所有数据）
 - `make db-clean` - 删除容器和卷（永久删除数据）
 
 **数据库配置**：
+
 - 数据库: `onex`
 - 主机: `127.0.0.1:3306`
 - 用户名: `root`
 - 密码: `proj(#)666`
 
 **默认用户表结构**：
+
 - `users` - 主用户表（用户名、邮箱、密码等基本信息）
 - `user_profiles` - 用户配置表（个人简介、偏好设置等）
 - `user_roles` - 用户角色表（权限管理）
 
 #### 其他服务
+
 使用脚本管理各类服务：
+
 ```bash
 # 消息队列服务
 ./scripts/installation/service.sh start kafka
 
-# 分布式服务  
+# 分布式服务
 ./scripts/installation/service.sh start etcd
 
 # 可观测性服务
@@ -126,6 +148,7 @@
 ```
 
 #### 服务组管理
+
 ```bash
 # 服务组操作
 ./scripts/installation/service.sh start all
@@ -138,6 +161,7 @@
 ```
 
 #### 直接脚本调用
+
 ```bash
 # 服务管理脚本支持更多操作
 ./scripts/installation/service.sh <action> <service|group>
@@ -148,6 +172,7 @@
 ```
 
 ### 版本管理
+
 所有第三方组件版本统一管理在 `scripts/installation/versions.sh` 中：
 
 ```bash
@@ -159,12 +184,14 @@
 ```
 
 当前管理的组件版本：
+
 - **数据库**: Redis 7.2.4, MariaDB 11.2.2, MongoDB 7.0.5
-- **分布式**: etcd v3.5.12, Kafka 3.6.1  
+- **分布式**: etcd v3.5.12, Kafka 3.6.1
 - **可观测性**: Jaeger 1.52.0, Prometheus 2.48.1, Grafana 10.2.4, AlertManager 0.26.0, OpenTelemetry Collector 0.91.0
 - **日志**: VictoriaLogs v0.5.2-victorialogs
 
 ### 文档生成
+
 - `make docs.dev` - 生成开发文档到 docs/DEVELOPMENT.md
 - `make docs.api` - 从 protobuf 生成 API 文档
 - `make docs.serve` - 本地提供文档服务
@@ -172,6 +199,7 @@
 ## 架构概览
 
 ### 清洁架构分层
+
 ```
 cmd/apiserver/          → 入口点和编排
  internal/apiserver/     → 核心业务逻辑
@@ -192,11 +220,13 @@ pkg/                  → 可重用包（对外导出）
 ```
 
 ### 依赖注入 (Wire)
+
 - **中心化在** `internal/apiserver/wire.go`
 - **生成的工厂** `internal/apiserver/wire_gen.go`
 - **自动发现** - 添加新依赖后运行 `make wire`
 
 ### 请求流程
+
 ```
 HTTP 请求 → gRPC-Gateway → 处理器 → 业务层 → 存储层 → 数据库
      ↓                                          ↓
@@ -208,11 +238,13 @@ HTTP 请求 → gRPC-Gateway → 处理器 → 业务层 → 存储层 → 数�
 项目实现了完整的版本信息管理和日志集成系统，提供全生命周期的服务版本可见性：
 
 #### 版本信息注入机制
+
 - **构建时注入**: 通过 `-ldflags` 在构建时注入版本信息
 - **Git 集成**: 自动检测 Git 版本、分支、提交状态
 - **动态服务名**: 支持通过 `SERVICE_NAME` 环境变量自定义服务名
 
 #### 版本日志记录点
+
 ```
 应用启动 → API服务器初始化 → HTTP/gRPC服务器启动 → 运行中 → 优雅关闭 → 退出确认
     ↓           ↓              ↓             ↓        ↓          ↓
@@ -220,12 +252,14 @@ HTTP 请求 → gRPC-Gateway → 处理器 → 业务层 → 存储层 → 数�
 ```
 
 #### 日志字段标准
+
 所有版本相关日志使用统一的结构化字段：
+
 ```json
 {
   "service": "apiserver",           // 服务名称
   "version": "v1.0.0",             // Git 版本
-  "branch": "feature/v2-log",      // Git 分支  
+  "branch": "feature/v2-log",      // Git 分支
   "commit": "13b9ba0a",            // Git 提交（短格式）
   "build_date": "2025-08-22T10:25:16Z",  // 构建时间
   "protocol": "http|grpc",         // 协议类型
@@ -234,6 +268,7 @@ HTTP 请求 → gRPC-Gateway → 处理器 → 业务层 → 存储层 → 数�
 ```
 
 #### 版本信息可用位置
+
 - **命令行**: `./bin/apiserver --version`
 - **启动日志**: 服务器启动时完整版本信息
 - **健康检查**: `/health` 端点包含版本信息（如已实现）
@@ -243,23 +278,27 @@ HTTP 请求 → gRPC-Gateway → 处理器 → 业务层 → 存储层 → 数�
 ## 配置和环境
 
 ### 本地设置
+
 1. 复制并编辑：`cp configs/apiserver.yaml configs/apiserver_local.yaml`
 2. 在本地配置中配置数据库
 3. 启动依赖服务：`./scripts/installation/service.sh start redis`（或 `docker-compose -f deployments/redis/docker-compose.yml up`）
 4. 运行：`go run cmd/apiserver/main.go -c configs/apiserver_local.yaml`
 
 ### 快速设置替代方案
+
 ```bash
 make dev-setup      # 安装工具 + 启动服务 + 生成代码
 make run-api        # 启动 API 服务器
 ```
 
 ### 开发依赖
+
 - **数据库**：MySQL 8.0+ 或 PostgreSQL 12+
 - **缓存**：Redis 6.2+（提供 docker-compose）
 - **可观测性**：Jaeger, Prometheus（提供 docker-compose）
 
 ### 配置文件
+
 - `configs/apiserver.yaml` - 默认配置
 - `configs/apiserver_v1.yaml` - 替代配置模板
 - 环境特定配置使用格式：`apiserver_<env>.yaml`
@@ -267,6 +306,7 @@ make run-api        # 启动 API 服务器
 ## 测试命令
 
 ### 标准测试
+
 ```bash
 go test ./...                    # 运行所有测试
 go test -v ./pkg/errorsx/       # 详细运行包测试
@@ -275,6 +315,7 @@ go test -bench=. ./...          # 运行性能测试
 ```
 
 ### 集成测试
+
 ```bash
 docker-compose -f deployments/redis/docker-compose.yml up -d
 go test -tags=integration ./...   # 运行集成测试
@@ -283,6 +324,7 @@ go test -tags=integration ./...   # 运行集成测试
 ## API 开发
 
 ### 添加新端点
+
 1. **API 定义**：编辑 `pkg/api/apiserver/v1/apiserver.proto`
 2. **生成代码**：`make generate`
 3. **实现处理器**：在 `internal/apiserver/handler/` 中创建
@@ -290,6 +332,7 @@ go test -tags=integration ./...   # 运行集成测试
 5. **文档**：自动生成在 `api/openapi/apiserver/v1/`
 
 ### 关键开发约定
+
 - **错误代码**：在 protobuf 中定义，使用 `protoc-gen-go-errors-code` 自动生成
 - **数据验证**：使用 protoc-gen-validate 注解
 - **国际化**：使用 `pkg/i18n/` 和上下文语言检测
@@ -298,19 +341,21 @@ go test -tags=integration ./...   # 运行集成测试
 - **测试**：测试名称遵循 `Test<Level><Description>` 模式
 
 ### 版本感知开发模式
+
 在开发新功能时，充分利用版本信息进行调试和监控：
 
 #### 日志记录最佳实践
+
 ```go
 // 在处理器中记录操作日志（版本信息会自动通过中间件添加）
-logger.Infow("Processing user request", 
+logger.Infow("Processing user request",
     "user_id", userID,
     "operation", "create_user",
     "request_id", requestID,
 )
 
 // 在错误处理中包含版本上下文
-logger.Errorw("Failed to process request", 
+logger.Errorw("Failed to process request",
     "error", err,
     "user_id", userID,
     "operation", "create_user",
@@ -319,6 +364,7 @@ logger.Errorw("Failed to process request",
 ```
 
 #### 版本相关调试
+
 ```go
 // 获取当前版本信息进行条件处理
 versionInfo := version.Get()
@@ -327,7 +373,7 @@ if versionInfo.GitBranch == "development" {
 }
 
 // 在关键业务逻辑中记录版本标识
-logger.Infow("Critical business operation", 
+logger.Infow("Critical business operation",
     "operation", "payment_process",
     "service_version", versionInfo.GitVersion,
     "commit", versionInfo.GitCommit[:8],
@@ -335,12 +381,13 @@ logger.Infow("Critical business operation",
 ```
 
 #### 功能标志与版本联动
+
 ```go
 // 结合版本信息的功能开关
 if feature.IsEnabled("new_algorithm") && versionInfo.GitBranch != "production" {
     // 新算法仅在非生产分支启用
     result = newAlgorithm(input)
-    logger.Infow("Using new algorithm", 
+    logger.Infow("Using new algorithm",
         "feature", "new_algorithm",
         "branch", versionInfo.GitBranch,
     )
@@ -350,10 +397,11 @@ if feature.IsEnabled("new_algorithm") && versionInfo.GitBranch != "production" {
 ## 包导航指南
 
 ### 起始点
+
 - **服务器启动**：`cmd/apiserver/app/server.go:Start()`
 - **版本信息**：`pkg/version/version.go:Get()` - 获取完整版本信息
 - **HTTP 服务器**：`pkg/server/http_server.go:RunOrDie()` - 版本日志集成
-- **gRPC 服务器**：`pkg/server/grpc_server.go:RunOrDie()` - 版本日志集成  
+- **gRPC 服务器**：`pkg/server/grpc_server.go:RunOrDie()` - 版本日志集成
 - **日志记录器**：`pkg/logger/factory.go:GetDefaultLogger()` - 全局日志实例
 - **处理器示例**：`internal/apiserver/handler/user.go`
 - **Wire 设置**：`internal/apiserver/wire_gen.go:InitializeWebServer()`
@@ -361,6 +409,7 @@ if feature.IsEnabled("new_algorithm") && versionInfo.GitBranch != "production" {
 - **数据库设置**：`pkg/db/mysql.go:NewMySQL()`
 
 ### 配置模式
+
 - **特性开关**：`pkg/feature/` - 按环境切换特性
 - **选项模式**：`pkg/options/` - 一致的组件配置
 - **环境变量覆盖**：Viper 自动处理环境变量到结构体映射
@@ -368,6 +417,7 @@ if feature.IsEnabled("new_algorithm") && versionInfo.GitBranch != "production" {
 ## 基础设施模板
 
 ### 可用的 Docker 服务
+
 - **Redis**：`./scripts/installation/service.sh start redis` 或 `docker-compose -f deployments/redis/docker-compose.yml up`
 - **Jaeger**：`./scripts/installation/service.sh start jaeger` 或 `docker-compose -f deployments/jaeger/docker-compose.yml up`
 - **Kafka**：`./scripts/installation/service.sh start kafka` 或 `docker-compose -f deployments/kafka/docker-compose.yml up`
@@ -386,6 +436,7 @@ if feature.IsEnabled("new_algorithm") && versionInfo.GitBranch != "production" {
 | **仪表板** | Grafana Dashboards | 预置监控面板 | 启动后访问 `localhost:3000` |
 
 ### 架构关系
+
 ```
 应用程序 → [OpenTelemetry Collector] → [Prometheus] → [Grafana]
      ↓                                ↓                ↓
@@ -395,6 +446,7 @@ if feature.IsEnabled("new_algorithm") && versionInfo.GitBranch != "production" {
 ```
 
 ### 监控端点
+
 - **健康检查**: `GET /health`
 - **指标**: `GET /metrics` (Prometheus) - 包含连接池监控指标和版本标签
 - **链路追踪**: `GET /jaeger` (Jaeger UI) - 分布式链路追踪
@@ -407,12 +459,14 @@ if feature.IsEnabled("new_algorithm") && versionInfo.GitBranch != "production" {
 项目的监控系统完全集成版本信息，提供版本维度的观测能力：
 
 #### 版本标签集成
+
 所有 Prometheus 指标自动包含版本标签：
+
 ```prometheus
 # HTTP 请求指标
 http_requests_total{service="apiserver",version="v1.0.0",branch="main",method="GET",status="200"} 42
 
-# 数据库连接指标  
+# 数据库连接指标
 database_pool_connections{service="apiserver",version="v1.0.0",branch="main",database="mysql"} 10
 
 # 应用信息指标
@@ -420,7 +474,9 @@ application_info{service="apiserver",version="v1.0.0",branch="main",commit="abc1
 ```
 
 #### 日志查询增强
+
 VictoriaLogs 支持基于版本的日志查询：
+
 ```bash
 # 查询特定版本的错误日志
 curl -s "http://127.0.0.1:9428/select/logsql/query" \
@@ -436,6 +492,7 @@ curl -s "http://127.0.0.1:9428/select/logsql/query" \
 ```
 
 #### Grafana 版本维度面板
+
 - **版本部署时间线**: 显示各版本的部署和运行时间
 - **分支对比面板**: 对比不同分支的性能指标
 - **版本错误率**: 按版本统计错误率和异常趋势
@@ -446,6 +503,7 @@ curl -s "http://127.0.0.1:9428/select/logsql/query" \
 项目实现了**依赖注入式连接池监控**，完美平衡了单一职责和监控需求：
 
 #### 设计特点
+
 - ✅ **完全解耦**: `pkg/db` 专注数据库连接，`pkg/metrics` 专门负责监控
 - ✅ **可选启用**: 通过 Wire 依赖注入，可选择性开启监控功能
 - ✅ **零侵入**: 不启用监控时，数据库包没有任何监控开销
@@ -454,43 +512,51 @@ curl -s "http://127.0.0.1:9428/select/logsql/query" \
 #### 使用方式
 
 **启用监控 (推荐)**:
+
 ```bash
 # 监控功能已通过 Wire 自动装配到项目中
 make run-api  # 启动时会显示: "Connection pool metrics collection is enabled through dependency injection"
 ```
 
 **监控指标**:
+
 - `database_pool_connections` - MySQL/PostgreSQL连接池状态
-- `redis_pool_connections` - Redis连接池状态  
+- `redis_pool_connections` - Redis连接池状态
 - `database_queries_total` - 数据库查询统计
 - `redis_commands_total` - Redis命令统计
 
 **查看指标**:
+
 ```bash
 curl http://localhost:8080/metrics | grep -E "(database_|redis_)"
 ```
 
 #### 架构关系
+
 ```
 Wire依赖注入 → PoolMonitor → pkg/db (可选监控) → pkg/metrics (指标收集)
 ```
 
 ## 模块信息
+
 - **Go 版本**: 需要 1.24.0+
 - **模块路径**: `github.com/costa92/go-protoc/v2`
 - **分支**: 当前在 `v2` 分支
 - **Protobuf**: 使用 buf.build 进行依赖管理
 
 ## 项目专用工具
+
 - **项目重命名**: 使用 `make rename-project OLD_PATH=X NEW_PATH=Y` 更改模块路径
 - **Git 钩子**: 自动安装的 Git 钩子: githooks/{pre-commit,commit-msg,pre-push}
 
 ## 统一日志收集系统
 
 ### 🔥 已完成架构
+
 项目已完全实现基于 **OpenTelemetry Collector + VictoriaLogs** 的统一日志收集、存储和分析系统，支持本地开发、Docker 和 Kubernetes 多种部署环境。
 
 #### 📊 核心特性
+
 - ✅ **双路收集**: OTLP 协议 + 文件监控
 - ✅ **结构化日志**: JSON 格式自动解析和字段提取
 - ✅ **实时监控**: 毫秒级日志收集延迟
@@ -500,6 +566,7 @@ Wire依赖注入 → PoolMonitor → pkg/db (可选监控) → pkg/metrics (指�
 - ✅ **可视化界面**: VictoriaLogs UI + Grafana 集成
 
 #### 🚀 快速开始
+
 ```bash
 # 本地开发环境
 ./scripts/deploy-logging.sh local
@@ -515,6 +582,7 @@ Wire依赖注入 → PoolMonitor → pkg/db (可选监控) → pkg/metrics (指�
 ```
 
 #### 🌐 访问方式
+
 ```bash
 # VictoriaLogs Web UI（推荐）
 http://127.0.0.1:9428/select/vmui/
@@ -527,6 +595,7 @@ http://127.0.0.1:3000 (admin/admin)
 ```
 
 #### 📋 管理命令
+
 ```bash
 # 统一服务管理
 ./scripts/installation/service.sh start all           # 启动所有服务
@@ -543,6 +612,7 @@ http://127.0.0.1:3000 (admin/admin)
 ```
 
 #### 🔍 日志查询语法
+
 ```bash
 # 基础查询
 *                                    # 所有日志
@@ -560,6 +630,7 @@ error:~"database.*connection"        # 数据库连接错误
 ```
 
 #### ⚙️ 核心配置
+
 应用程序日志配置（`configs/apiserver.yaml`）：
 
 ```yaml
@@ -568,7 +639,7 @@ log:
   level: "info"
   format: "json"
   output-paths: ["stdout", "logs/apiserver/app.log"]
-  
+
   # OTLP 配置
   otlp:
     enabled: true
@@ -583,6 +654,7 @@ log:
 ```
 
 #### 🏗️ 架构流程
+
 ```
 应用程序 → [多路输出] → OTEL Collector → VictoriaLogs → 查询/可视化
     ↓           ↓              ↓              ↓           ↓
@@ -591,6 +663,7 @@ log:
 ```
 
 #### 📁 项目结构
+
 ```
 docs/
 ├── logging-architecture.md          # 完整架构设计文档
@@ -619,22 +692,26 @@ scripts/
 #### 🔧 环境特定配置
 
 **本地开发**：
+
 - 使用脚本直接管理 Docker 容器
 - 文件日志监控 + OTLP 双路收集
 - 简化配置，便于调试
 
 **Docker 环境**：
+
 - Docker Compose 统一编排
 - 包含 Grafana、Prometheus 完整监控栈
 - 容器间网络通信和服务发现
 
 **Kubernetes 环境**：
+
 - DaemonSet 部署 OTEL Collector
 - 支持 Pod 日志自动收集
 - K8s 元数据自动注入
 - 高可用和自动扩缩容
 
 #### 📈 监控能力
+
 - **日志吞吐量**: 支持高并发日志写入
 - **查询性能**: 毫秒级日志检索响应
 - **存储效率**: 压缩存储，节省磁盘空间
@@ -642,6 +719,7 @@ scripts/
 - **告警**: 基于日志错误率的智能告警
 
 #### 🔗 集成组件
+
 - **追踪系统**: 与 Jaeger 集成，日志关联 trace_id
 - **指标监控**: Prometheus 指标收集和告警
 - **数据库日志**: GORM 查询日志自动收集
@@ -649,6 +727,7 @@ scripts/
 - **Kubernetes**: Pod 日志、事件、元数据自动收集
 
 #### 📚 文档指南
+
 - **快速开始**: `docs/logging-quick-start.md`
 - **架构设计**: `docs/logging-architecture.md`
 - **开发指南**: `docs/logging-development.md`
@@ -662,15 +741,17 @@ scripts/
 1. **问题原因**: VictoriaLogs需要 `_msg` 字段存储消息，但配置将消息映射到了 `body.msg`
 
 2. **解决方案**: 修改OpenTelemetry Collector配置
+
    ```bash
    # 找到配置文件
    docker inspect proj-otelcol | grep config
-   
+
    # 修改字段映射: attributes.msg → attributes._msg
    # 位置: /path/to/_thirdparty/otelcol/config/config.yaml
    ```
 
 3. **配置修正**:
+
    ```yaml
    operators:
      - type: move
@@ -679,7 +760,8 @@ scripts/
        # to: body.msg      # ❌ 错误映射
    ```
 
-4. **验证修复**: 
+4. **验证修复**:
+
    ```bash
    docker restart proj-otelcol
    # 等待几秒后查询测试日志
@@ -695,6 +777,7 @@ scripts/
 AI Agent 作为项目的核心扩展模块，旨在提供智能化的代码生成、项目分析和对话交互功能。
 
 #### 目录结构规划
+
 ```
 项目根目录/
 ├── cmd/ai/                          # AI服务入口（已存在）
@@ -722,6 +805,7 @@ AI Agent 作为项目的核心扩展模块，旨在提供智能化的代码生�
 ```
 
 #### 核心架构分层
+
 ```
 ┌─────────────────────────────────────┐
 │           Handler Layer             │ ← gRPC/HTTP API接口层
@@ -741,26 +825,28 @@ AI Agent 作为项目的核心扩展模块，旨在提供智能化的代码生�
 ### API 接口规划
 
 #### 核心服务接口
+
 ```protobuf
 service AIAgent {
   // 对话聊天接口 - 支持流式响应
   rpc Chat(ChatRequest) returns (stream ChatResponse);
-  
+
   // 代码生成接口 - 基于需求生成代码
   rpc GenerateCode(CodeGenRequest) returns (CodeGenResponse);
-  
+
   // 项目分析接口 - 分析项目结构和质量
   rpc AnalyzeProject(AnalysisRequest) returns (AnalysisResponse);
-  
+
   // 知识库管理 - 项目知识索引和搜索
   rpc UpdateKnowledge(KnowledgeRequest) returns (KnowledgeResponse);
-  
+
   // 工作流执行 - 复杂任务自动化
   rpc ExecuteWorkflow(WorkflowRequest) returns (stream WorkflowResponse);
 }
 ```
 
 #### HTTP 路由映射
+
 - `POST /v1/ai/chat` - 智能对话
 - `POST /v1/ai/code/generate` - 代码生成
 - `POST /v1/ai/analyze` - 项目分析
@@ -770,18 +856,21 @@ service AIAgent {
 ### 核心组件设计
 
 #### 1. LLM Provider 抽象层
+
 - **多Provider支持**: OpenAI、Claude、本地模型
 - **负载均衡**: 智能路由和容错机制
 - **成本控制**: Token使用统计和限流
 - **缓存策略**: 响应缓存和预热机制
 
 #### 2. 知识库管理系统
+
 - **项目索引**: 自动扫描和索引项目代码
 - **向量搜索**: 基于语义的代码和文档检索
 - **增量更新**: 监控文件变化，增量更新索引
 - **上下文增强**: RAG机制提供相关上下文
 
 #### 3. 工作流引擎
+
 - **任务编排**: 可视化的工作流定义
 - **并发执行**: 支持步骤间依赖和并行执行
 - **状态管理**: 完整的执行状态跟踪和恢复
@@ -790,6 +879,7 @@ service AIAgent {
 ### 数据模型设计
 
 #### 对话会话管理
+
 ```go
 type Conversation struct {
     ID        string    `gorm:"primaryKey"`
@@ -811,6 +901,7 @@ type Message struct {
 ```
 
 #### 知识库条目
+
 ```go
 type KnowledgeEntry struct {
     ID          string    `gorm:"primaryKey"`
@@ -824,6 +915,7 @@ type KnowledgeEntry struct {
 ```
 
 #### 工作流执行记录
+
 ```go
 type WorkflowExecution struct {
     ID         string              `gorm:"primaryKey"`
@@ -839,6 +931,7 @@ type WorkflowExecution struct {
 ### 配置管理
 
 #### AI 专用配置
+
 ```yaml
 # configs/ai/ai.yaml
 ai:
@@ -856,7 +949,7 @@ ai:
     rate_limit:
       requests_per_minute: 60
       tokens_per_day: 100000
-  
+
   knowledge:
     vectordb:
       type: "chroma"
@@ -865,7 +958,7 @@ ai:
       model: "text-embedding-ada-002"
       dimensions: 1536
     index_path: "./data/knowledge"
-  
+
   workflow:
     max_concurrent: 5
     timeout: "30m"
@@ -877,6 +970,7 @@ ai:
 ### 开发命令扩展
 
 #### AI 专用命令
+
 ```bash
 # AI 服务管理 (需要实现)
 # TODO: 以下命令待实现
@@ -902,6 +996,7 @@ ai:
 ### 可观测性增强
 
 #### AI 专用监控指标
+
 - `ai_llm_requests_total` - LLM调用总数
 - `ai_llm_request_duration_seconds` - LLM请求延迟
 - `ai_token_usage_total` - Token使用量统计
@@ -909,6 +1004,7 @@ ai:
 - `ai_workflow_execution_total` - 工作流执行统计
 
 #### 链路追踪增强
+
 - LLM Provider调用链路
 - 知识库检索操作追踪
 - 工作流步骤执行追踪
@@ -917,24 +1013,28 @@ ai:
 ### 实施路线图
 
 #### 阶段一：基础架构搭建 (2-3周)
+
 - [ ] AI API定义和代码生成
 - [ ] 基础存储层实现
 - [ ] 简单LLM Provider集成
 - [ ] 基础配置和依赖注入
 
 #### 阶段二：核心功能实现 (3-4周)
+
 - [ ] 对话功能完整实现
 - [ ] 代码生成功能开发
 - [ ] 基础知识库系统
 - [ ] 错误处理和中间件集成
 
 #### 阶段三：高级特性开发 (4-5周)
+
 - [ ] 工作流引擎实现
 - [ ] 多Provider支持和负载均衡
 - [ ] 向量搜索和RAG优化
 - [ ] 流式响应和实时更新
 
 #### 阶段四：生产优化 (2-3周)
+
 - [ ] 性能优化和缓存策略
 - [ ] 完整的监控和可观测性
 - [ ] 压力测试和稳定性优化
@@ -943,6 +1043,7 @@ ai:
 ### 集成策略
 
 #### 与现有架构的无缝集成
+
 1. **遵循清洁架构**: 使用相同的分层模式和依赖关系
 2. **Wire依赖注入**: 完全集成到现有的依赖注入体系
 3. **错误处理**: 使用统一的ErrorX错误处理机制
@@ -951,6 +1052,7 @@ ai:
 6. **可观测性**: 集成到现有的监控和追踪体系
 
 #### 数据库扩展
+
 - 复用现有的GORM配置和事务机制
 - 扩展数据库模型以支持AI相关数据
 - 保持数据库迁移的一致性
@@ -958,6 +1060,7 @@ ai:
 这个AI Agent模块设计充分利用了现有项目的成熟架构，保持了设计一致性，同时为未来的AI功能扩展提供了强大的基础设施支持。
 
 # important-instruction-reminders
+
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
