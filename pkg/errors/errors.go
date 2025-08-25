@@ -4,6 +4,9 @@ import (
 	"github.com/costa92/go-protoc/v2/pkg/errorsx"
 )
 
+// MinerStatusError defines errors states for Miner objects.
+type MinerStatusError string
+
 // Package errors 提供业务相关的预定义错误类型和构建器函数
 //
 // 本包基于 errorsx 包构建，提供了用户、认证、通用业务等领域的标准错误定义。
