@@ -4,54 +4,12 @@ import (
 	"github.com/costa92/go-protoc/v2/pkg/errorsx"
 )
 
-// 为了向后兼容，保留原有的错误类型定义
-// 但建议使用新的 errorsx 包中的错误处理机制
-
-// MinerStatusError 定义了矿工状态相关的错误类型.
-// Deprecated: 建议使用 errorsx.ErrorX 替代
-type MinerStatusError string
-
-// Error 实现了 error 接口.
-func (e MinerStatusError) Error() string {
-	return string(e)
-}
-
-// MinerSetStatusError 定义了矿工集状态相关的错误类型.
-// Deprecated: 建议使用 errorsx.ErrorX 替代
-type MinerSetStatusError string
-
-// Error 实现了 error 接口.
-func (e MinerSetStatusError) Error() string {
-	return string(e)
-}
-
-// 定义矿工相关的错误常量.
-// Deprecated: 建议使用新的错误定义
-const (
-	// InvalidConfigurationMinerError 表示矿工配置无效的错误.
-	InvalidConfigurationMinerError MinerStatusError = "InvalidConfiguration"
-
-	// UnsupportedChangeMinerError 表示不支持的矿工变更操作错误.
-	UnsupportedChangeMinerError MinerStatusError = "UnsupportedChange"
-
-	// InsufficientResourcesMinerError 表示矿工资源不足的错误.
-	InsufficientResourcesMinerError MinerStatusError = "InsufficientResources"
-
-	// CreateMinerError 表示创建矿工失败的错误.
-	CreateMinerError MinerStatusError = "CreateError"
-
-	// UpdateMinerError 表示更新矿工失败的错误.
-	UpdateMinerError MinerStatusError = "UpdateError"
-
-	// DeleteMinerError 表示删除矿工失败的错误.
-	DeleteMinerError MinerStatusError = "DeleteError"
-
-	// JoinClusterTimeoutMinerError 表示矿工加入集群超时的错误.
-	JoinClusterTimeoutMinerError MinerStatusError = "JoinClusterTimeoutError"
-
-	// InvalidConfigurationMinerSetError 表示矿工集配置无效的错误.
-	InvalidConfigurationMinerSetError MinerSetStatusError = "InvalidConfiguration"
-)
+// Package errors 提供业务相关的预定义错误类型和构建器函数
+//
+// 本包基于 errorsx 包构建，提供了用户、认证、通用业务等领域的标准错误定义。
+// 使用两层架构设计：
+//   - errorsx: 错误处理引擎（框架层）
+//   - errors: 业务错误目录（应用层）
 
 // 新的矿工相关错误定义，使用 errorsx 包
 var (
