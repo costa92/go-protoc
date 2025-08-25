@@ -145,6 +145,7 @@
 ./scripts/installation/service.sh start alertmanager
 ./scripts/installation/service.sh start otelcol
 ./scripts/installation/service.sh start victorialogs
+./scripts/installation/service.sh start pyroscope
 ```
 
 #### 服务组管理
@@ -167,7 +168,7 @@
 ./scripts/installation/service.sh <action> <service|group>
 
 # 可用操作: start, stop, restart, status, logs
-# 可用服务: redis, mariadb, mongodb, kafka, etcd, jaeger, prometheus, grafana, alertmanager, otelcol, victorialogs
+# 可用服务: redis, mariadb, mongodb, kafka, etcd, jaeger, prometheus, grafana, alertmanager, otelcol, victorialogs, pyroscope
 # 可用服务组: all, database, observability
 ```
 
@@ -189,6 +190,7 @@
 - **分布式**: etcd v3.5.12, Kafka 3.6.1
 - **可观测性**: Jaeger 1.52.0, Prometheus 2.48.1, Grafana 10.2.4, AlertManager 0.26.0, OpenTelemetry Collector 0.91.0
 - **日志**: VictoriaLogs v0.5.2-victorialogs
+- **性能分析**: Pyroscope (持续性能剖析)
 
 ### 文档生成
 
@@ -201,8 +203,12 @@
 ### 清洁架构分层
 
 ```
-cmd/apiserver/          → 入口点和编排
- internal/apiserver/     → 核心业务逻辑
+cmd/
+ ├── apiserver/         → API服务器入口点和编排
+ ├── ai/               → AI服务入口点（规划中）
+ └── pump/             → 数据泵服务入口点
+
+internal/apiserver/     → 核心业务逻辑
  ├── handler/           → HTTP/gRPC 处理器（交付层）
  ├── biz/              → 用例（应用层）
  ├── store/            → 数据访问（基础设施层）
@@ -421,7 +427,7 @@ if feature.IsEnabled("new_algorithm") && versionInfo.GitBranch != "production" {
 - **Redis**：`./scripts/installation/service.sh start redis` 或 `docker-compose -f deployments/redis/docker-compose.yml up`
 - **Jaeger**：`./scripts/installation/service.sh start jaeger` 或 `docker-compose -f deployments/jaeger/docker-compose.yml up`
 - **Kafka**：`./scripts/installation/service.sh start kafka` 或 `docker-compose -f deployments/kafka/docker-compose.yml up`
-- **所有服务**：`./scripts/installation/service.sh start all`（同时启动 Redis, Jaeger, Kafka）
+- **所有服务**：`./scripts/installation/service.sh start all`（同时启动 Redis, Jaeger, Kafka, Pyroscope 等）
 
 ### Observability Stack (统一收集与分析)
 
@@ -433,6 +439,7 @@ if feature.IsEnabled("new_algorithm") && versionInfo.GitBranch != "production" {
 | **链路追踪** | Jaeger + OpenTelemetry | 分布式请求追踪 | 已内置集成 |
 | **告警管理** | Alertmanager | 统一告警路由 | 与Prometheus集成 |
 | **日志采集** | OpenTelemetry Collector | 统一日志/指标/追踪收集 | `./scripts/installation/service.sh start otelcol` |
+| **性能剖析** | Pyroscope | 持续性能剖析和火焰图 | `./scripts/installation/service.sh start pyroscope` |
 | **仪表板** | Grafana Dashboards | 预置监控面板 | 启动后访问 `localhost:3000` |
 
 ### 架构关系
@@ -452,6 +459,7 @@ if feature.IsEnabled("new_algorithm") && versionInfo.GitBranch != "production" {
 - **链路追踪**: `GET /jaeger` (Jaeger UI) - 分布式链路追踪
 - **Grafana**: `http://localhost:3000` - 统一监控面板
 - **Alertmanager**: `http://localhost:9093` - 告警管理界面
+- **Pyroscope**: `http://localhost:4040` - 性能剖析界面
 - **调试**: `GET /debug/pprof` (启用时)
 
 ### 版本感知监控
@@ -722,6 +730,7 @@ scripts/
 
 - **追踪系统**: 与 Jaeger 集成，日志关联 trace_id
 - **指标监控**: Prometheus 指标收集和告警
+- **性能分析**: Pyroscope 持续性能剖析和火焰图
 - **数据库日志**: GORM 查询日志自动收集
 - **中间件日志**: HTTP/gRPC 请求响应完整记录
 - **Kubernetes**: Pod 日志、事件、元数据自动收集
