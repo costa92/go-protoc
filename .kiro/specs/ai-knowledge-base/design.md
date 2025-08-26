@@ -1,146 +1,1137 @@
 # AI知识库系统 - 设计文档
 
-## 1. 架构概述
+## 概述
 
-基于现有Kratos v2微服务架构，采用清洁架构分层设计，构建一个可扩展、高性能的AI知识库系统。系统采用事件驱动架构，支持异步处理和流式响应。
+基于现有Kratos v2微服务框架设计的AI知识库系统，严格遵循项目的pkg模块化设计模式。系统采用完全模块化的架构设计，每个组件都提供标准化接口，支持多种数据源接入、多LLM供应商集成，提供智能问答和知识检索功能。
 
-### 1.1 整体架构图
+### 设计目标
+
+- **完全模块化**: 严格遵循pkg设计模式，所有AI组件都作为独立的pkg模块
+- **接口标准化**: 每个模块都实现统一的接口规范，支持依赖注入
+- **配置统一**: 使用现有options包模式进行配置管理
+- **错误处理统一**: 集成现有errorsx包进行错误处理
+- **监控集成**: 完全集成现有metrics和logger系统
+- **高性能**: 支持100+并发用户，检索响应时间<1秒，问答响应<5秒
+- **高可用性**: 99.5%+可用性，多供应商故障转移机制
+
+### 核心架构原则
+
+1. **单一职责原则**: 每个pkg模块只负责一个特定功能
+2. **依赖倒置原则**: 通过接口定义依赖，支持Wire依赖注入
+3. **开放封闭原则**: 通过插件化设计支持扩展
+4. **组合优于继承**: 通过组合方式构建复杂功能
+
+## 系统架构
+
+### 整体架构图
 
 ```mermaid
 graph TB
-    %% 用户层
-    WebUI[Web界面]
-    MobileApp[移动应用]
-    ThirdParty[第三方应用]
-    
-    %% API网关层
-    Gateway[API Gateway<br/>认证/限流/路由]
-    
-    %% 微服务层
-    subgraph "核心服务"
-        KnowledgeAPI[Knowledge Service<br/>知识库管理]
-        ChatAPI[Chat Service<br/>对话服务]
-        RetrievalAPI[Retrieval Service<br/>检索服务]
-        LLMAPI[LLM Service<br/>大模型调用]
+    subgraph "客户端层"
+        Web[Web界面]
+        API[API客户端]
+        Mobile[移动端]
     end
-    
-    subgraph "支撑服务"
-        AuthAPI[Auth Service<br/>认证服务]
-        FileAPI[File Service<br/>文件服务]
-        NotificationAPI[Notification Service<br/>通知服务]
+
+    subgraph "网关层"
+        Gateway[API Gateway]
+        LB[负载均衡器]
     end
-    
-    %% 数据层
-    subgraph "数据存储"
-        MySQL[(MySQL<br/>结构化数据)]
-        Redis[(Redis<br/>缓存)]
-        Qdrant[(Qdrant<br/>向量数据库)]
-        FileStorage[(文件存储<br/>OSS/本地)]
+
+    subgraph "服务层"
+        KnowledgeService[Knowledge Service]
+        LLMService[LLM Service]
+        RetrievalService[Retrieval Service]
+        ChatService[Chat Service]
+        FileService[File Service]
     end
-    
-    %% 外部服务
-    subgraph "外部集成"
+
+    subgraph "数据层"
+        MySQL[(MySQL)]
+        Redis[(Redis)]
+        Qdrant[(Qdrant向量数据库)]
+        FileStorage[文件存储]
+    end
+
+    subgraph "外部服务"
         NotionAPI[Notion API]
-        FeishuAPI[飞书 API]
-        GoogleAPI[Google Drive API]
-        LLMProviders[LLM提供商<br/>DeepSeek/OpenAI/火山/阿里]
+        FeishuAPI[飞书API]
+        GoogleDriveAPI[Google Drive API]
+        LLMProviders[LLM供应商]
     end
-    
-    %% 连接关系
-    WebUI --> Gateway
-    MobileApp --> Gateway
-    ThirdParty --> Gateway
-    
-    Gateway --> KnowledgeAPI
-    Gateway --> ChatAPI
-    Gateway --> RetrievalAPI
-    Gateway --> AuthAPI
-    
-    KnowledgeAPI --> MySQL
-    KnowledgeAPI --> FileStorage
-    KnowledgeAPI --> NotionAPI
-    KnowledgeAPI --> FeishuAPI
-    KnowledgeAPI --> GoogleAPI
-    
-    ChatAPI --> MySQL
-    ChatAPI --> Redis
-    ChatAPI --> LLMAPI
-    ChatAPI --> RetrievalAPI
-    
-    RetrievalAPI --> Qdrant
-    RetrievalAPI --> MySQL
-    
-    LLMAPI --> LLMProviders
-    LLMAPI --> Redis
-    
-    FileAPI --> FileStorage
+
+    Web --> Gateway
+    API --> Gateway
+    Mobile --> Gateway
+    Gateway --> LB
+    LB --> KnowledgeService
+    LB --> LLMService
+    LB --> RetrievalService
+    LB --> ChatService
+    LB --> FileService
+
+    KnowledgeService --> MySQL
+    KnowledgeService --> Redis
+    KnowledgeService --> FileStorage
+    ChatService --> MySQL
+    ChatService --> Redis
+    RetrievalService --> Qdrant
+    RetrievalService --> MySQL
+    LLMService --> Redis
+    FileService --> FileStorage
+
+    KnowledgeService --> NotionAPI
+    KnowledgeService --> FeishuAPI
+    KnowledgeService --> GoogleDriveAPI
+    LLMService --> LLMProviders
 ```
 
-### 1.2 技术栈选择
+### pkg模块化架构设计
 
-**框架与库**：
-- **Web框架**：Gin（性能优秀，生态丰富）
-- **微服务框架**：Kratos v2（成熟稳定）
-- **依赖注入**：Wire（编译时依赖注入）
-- **配置管理**：Viper（支持多格式配置）
+严格遵循现有pkg设计模式的AI模块架构：
 
-**数据存储**：
-- **关系数据库**：MySQL 8.0+（ACID特性，成熟稳定）
+```mermaid
+graph LR
+    subgraph "pkg/ai 核心AI模块"
+        subgraph "知识库管理"
+            KnowledgeManager[knowledge/]
+            DocumentProcessor[processor/]
+            DataSourceConnector[datasource/]
+        end
+
+        subgraph "检索系统"
+            VectorDB[vectordb/]
+            Retriever[retrieval/]
+            Embedder[embedding/]
+        end
+
+        subgraph "LLM集成"
+            LLMProvider[llm/]
+            ChatEngine[chat/]
+            PromptTemplate[prompt/]
+        end
+
+        subgraph "工具组件"
+            FileHandler[file/]
+            Validator[validation/]
+            Config[config/]
+        end
+    end
+
+    subgraph "共享pkg模块"
+        ErrorsX[errorsx/]
+        Options[options/]
+        DB[db/]
+        Logger[logger/]
+        Metrics[metrics/]
+        I18n[i18n/]
+    end
+
+    KnowledgeManager --> ErrorsX
+    VectorDB --> Options
+    LLMProvider --> DB
+    ChatEngine --> Logger
+    DocumentProcessor --> Metrics
+    DataSourceConnector --> I18n
+```
+
+### 技术栈选择
+
+**框架与库（复用现有）**：
+
+- **微服务框架**：Kratos v2（现有框架）
+- **依赖注入**：Wire（现有编译时依赖注入）
+- **配置管理**：Viper + 现有options包（统一配置模式）
+- **错误处理**：现有errorsx包（统一错误处理）
+- **日志系统**：现有logger包（统一日志记录）
+- **监控系统**：现有metrics包（统一指标收集）
+
+**数据存储（基于现有设计）**：
+
+- **关系数据库**：MySQL 8.0+（复用现有db包）
 - **向量数据库**：Qdrant（Go支持好，性能优秀）
-- **缓存**：Redis 7.0+（高性能，丰富数据结构）
-- **文件存储**：本地存储 + OSS（成本可控，可扩展）
+- **缓存**：Redis 7.0+（复用现有cache包）
+- **文件存储**：本地存储 + OSS（可扩展）
 
-**外部服务集成**：
-- **Notion API**：jomei/notionapi（功能完整）
-- **飞书API**：larksuite/oapi-sdk-go（官方SDK）
-- **Google Drive API**：google.golang.org/api（官方SDK）
-- **LLM集成**：多SDK支持（go-deepseek/deepseek等）
+**AI特定技术选择**：
 
-## 2. 核心组件设计
+- **向量嵌入**：OpenAI text-embedding-ada-002 / 本地模型
+- **LLM集成**：多供应商支持（DeepSeek、OpenAI、火山引擎、阿里云）
+- **文档解析**：unidoc（PDF）、tika-go（多格式）
+- **向量检索**：Qdrant（cosine similarity、混合检索）
 
-### 2.1 Knowledge Service（知识库服务）
+### pkg模块依赖图
 
-**职责**：
-- 文档上传、解析、存储
-- 外部数据源同步
-- 文档向量化处理
-- 知识库元数据管理
+```mermaid
+graph TD
+    subgraph "AI Core Modules"
+        AI_Knowledge[pkg/ai/knowledge]
+        AI_Retrieval[pkg/ai/retrieval]
+        AI_LLM[pkg/ai/llm]
+        AI_Chat[pkg/ai/chat]
+        AI_File[pkg/ai/file]
+        AI_Options[pkg/ai/options]
+    end
 
-**核心接口**：
+    subgraph "Shared Modules"
+        ErrorsX[pkg/errorsx]
+        Options[pkg/options]
+        DB[pkg/db]
+        Logger[pkg/logger]
+        Metrics[pkg/metrics]
+        Cache[pkg/cache]
+        I18n[pkg/i18n]
+    end
+
+    AI_Knowledge --> ErrorsX
+    AI_Knowledge --> DB
+    AI_Knowledge --> Logger
+    AI_Knowledge --> AI_Options
+
+    AI_Retrieval --> ErrorsX
+    AI_Retrieval --> Metrics
+    AI_Retrieval --> Logger
+    AI_Retrieval --> AI_Options
+
+    AI_LLM --> ErrorsX
+    AI_LLM --> Cache
+    AI_LLM --> Logger
+    AI_LLM --> Metrics
+    AI_LLM --> AI_Options
+
+    AI_Chat --> ErrorsX
+    AI_Chat --> DB
+    AI_Chat --> Logger
+    AI_Chat --> AI_LLM
+    AI_Chat --> AI_Retrieval
+
+    AI_File --> ErrorsX
+    AI_File --> Logger
+    AI_File --> Metrics
+
+    AI_Options --> Options
+    AI_Options --> ErrorsX
+```
+
+## 核心组件设计
+
+### 1. 知识库管理模块 (pkg/ai/knowledge)
+
+严格遵循现有pkg设计模式，提供标准化接口和配置选项：
+
+#### 接口设计
 
 ```go
-type KnowledgeService interface {
+// KnowledgeManager 知识库管理器接口
+type KnowledgeManager interface {
     // 文档管理
-    UploadDocument(ctx context.Context, req *UploadDocumentRequest) (*DocumentResponse, error)
-    DeleteDocument(ctx context.Context, docID string) error
-    UpdateDocument(ctx context.Context, req *UpdateDocumentRequest) (*DocumentResponse, error)
-    GetDocument(ctx context.Context, docID string) (*DocumentResponse, error)
+    CreateDocument(ctx context.Context, req *CreateDocumentRequest) (*Document, error)
+    UpdateDocument(ctx context.Context, id string, req *UpdateDocumentRequest) error
+    DeleteDocument(ctx context.Context, id string) error
+    GetDocument(ctx context.Context, id string) (*Document, error)
     ListDocuments(ctx context.Context, req *ListDocumentsRequest) (*ListDocumentsResponse, error)
-    
-    // 外部数据源同步
-    SyncNotionPages(ctx context.Context, req *SyncNotionRequest) error
-    SyncFeishuDocs(ctx context.Context, req *SyncFeishuRequest) error
-    SyncGoogleDocs(ctx context.Context, req *SyncGoogleRequest) error
-    
-    // 知识库管理
-    CreateKnowledgeBase(ctx context.Context, req *CreateKnowledgeBaseRequest) (*KnowledgeBaseResponse, error)
-    UpdateKnowledgeBase(ctx context.Context, req *UpdateKnowledgeBaseRequest) (*KnowledgeBaseResponse, error)
-    DeleteKnowledgeBase(ctx context.Context, kbID string) error
+
+    // 批量操作
+    BatchCreateDocuments(ctx context.Context, reqs []*CreateDocumentRequest) error
+    BatchDeleteDocuments(ctx context.Context, ids []string) error
+
+    // 数据源同步
+    SyncDataSource(ctx context.Context, sourceID string) error
+    GetSyncStatus(ctx context.Context, sourceID string) (*SyncStatus, error)
+}
+
+// DocumentProcessor 文档处理器接口
+type DocumentProcessor interface {
+    // 处理文档内容
+    ProcessDocument(ctx context.Context, doc *RawDocument) (*ProcessedDocument, error)
+
+    // 支持的文档类型
+    SupportedTypes() []string
+
+    // 文档解析
+    ParseContent(ctx context.Context, content []byte, contentType string) (*ParsedContent, error)
+
+    // 文档分块
+    ChunkDocument(ctx context.Context, content string, opts *ChunkOptions) ([]*DocumentChunk, error)
+}
+
+// DataSourceConnector 数据源连接器接口
+type DataSourceConnector interface {
+    // 连接管理
+    Connect(ctx context.Context, config *DataSourceConfig) error
+    Disconnect(ctx context.Context) error
+    IsConnected() bool
+
+    // 数据获取
+    FetchDocuments(ctx context.Context, opts *FetchOptions) ([]*RawDocument, error)
+    FetchDocument(ctx context.Context, id string) (*RawDocument, error)
+
+    // 增量同步
+    FetchUpdates(ctx context.Context, since time.Time) ([]*RawDocument, error)
+
+    // 数据源信息
+    GetDataSourceInfo() *DataSourceInfo
 }
 ```
 
-**数据模型**：
+#### 配置选项设计
+
+遵循现有options包模式：
 
 ```go
-type KnowledgeBase struct {
-    ID          string    `gorm:"primaryKey"`
-    UserID      string    `gorm:"index"`
-    Name        string
-    Description string
-    Settings    JSON      `gorm:"type:json"`
-    CreatedAt   time.Time
-    UpdatedAt   time.Time
+// KnowledgeOptions 知识库配置选项
+type KnowledgeOptions struct {
+    // 文档处理配置
+    MaxFileSize    int64         `mapstructure:"max-file-size"`
+    AllowedTypes   []string      `mapstructure:"allowed-types"`
+    ChunkSize      int           `mapstructure:"chunk-size"`
+    ChunkOverlap   int           `mapstructure:"chunk-overlap"`
+
+    // 数据源配置
+    DataSources    []*DataSourceOptions `mapstructure:"datasources"`
+
+    // 处理配置
+    MaxConcurrency int           `mapstructure:"max-concurrency"`
+    Timeout        time.Duration `mapstructure:"timeout"`
+
+    // 监控配置
+    EnableMetrics  bool          `mapstructure:"enable-metrics"`
+    MetricsName    string        `mapstructure:"metrics-name"`
 }
+
+// DataSourceOptions 数据源配置选项
+type DataSourceOptions struct {
+    ID          string                 `mapstructure:"id"`
+    Type        string                 `mapstructure:"type"`
+    Name        string                 `mapstructure:"name"`
+    Config      map[string]interface{} `mapstructure:"config"`
+    Enabled     bool                   `mapstructure:"enabled"`
+    SyncFreq    time.Duration          `mapstructure:"sync-freq"`
+}
+
+// 实现IOptions接口
+func (o *KnowledgeOptions) Validate() []error {
+    var errs []error
+
+    if o.MaxFileSize <= 0 {
+        errs = append(errs, fmt.Errorf("max-file-size must be greater than 0"))
+    }
+
+    if o.ChunkSize <= 0 {
+        errs = append(errs, fmt.Errorf("chunk-size must be greater than 0"))
+    }
+
+    return errs
+}
+
+func (o *KnowledgeOptions) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+    prefix := joinPrefixes(prefixes...)
+
+    fs.Int64Var(&o.MaxFileSize, prefix+"max-file-size", 104857600, "Maximum file size in bytes")
+    fs.StringSliceVar(&o.AllowedTypes, prefix+"allowed-types", []string{"pdf", "docx", "txt", "md"}, "Allowed file types")
+    fs.IntVar(&o.ChunkSize, prefix+"chunk-size", 1000, "Document chunk size")
+    fs.IntVar(&o.ChunkOverlap, prefix+"chunk-overlap", 200, "Document chunk overlap")
+    fs.BoolVar(&o.EnableMetrics, prefix+"enable-metrics", true, "Enable metrics collection")
+}
+
+// 工厂方法，遵循现有pkg模式
+func NewKnowledgeOptions() *KnowledgeOptions {
+    return &KnowledgeOptions{
+        MaxFileSize:    104857600, // 100MB
+        AllowedTypes:   []string{"pdf", "docx", "txt", "md", "html"},
+        ChunkSize:      1000,
+        ChunkOverlap:   200,
+        MaxConcurrency: 10,
+        Timeout:        30 * time.Second,
+        EnableMetrics:  true,
+        MetricsName:    "ai_knowledge",
+    }
+}
+
+func (o *KnowledgeOptions) NewKnowledgeManager(db *gorm.DB, logger logger.Logger) (KnowledgeManager, error) {
+    return NewKnowledgeManagerImpl(&KnowledgeManagerConfig{
+        Options: o,
+        DB:      db,
+        Logger:  logger,
+    })
+}
+```
+
+#### 核心数据结构
+
+```go
+// Document 文档结构
+type Document struct {
+    ID          string                 `json:"id" gorm:"primaryKey"`
+    Title       string                 `json:"title" gorm:"not null"`
+    Content     string                 `json:"content" gorm:"type:longtext"`
+    ContentType string                 `json:"content_type"`
+    Source      string                 `json:"source"`
+    SourceID    string                 `json:"source_id"`
+    URL         string                 `json:"url"`
+    Tags        []string               `json:"tags" gorm:"serializer:json"`
+    Metadata    map[string]interface{} `json:"metadata" gorm:"serializer:json"`
+    Hash        string                 `json:"hash" gorm:"index"`
+    Status      DocumentStatus         `json:"status"`
+    CreatedAt   time.Time              `json:"created_at"`
+    UpdatedAt   time.Time              `json:"updated_at"`
+}
+
+// DocumentChunk 文档分块
+type DocumentChunk struct {
+    ID         string                 `json:"id" gorm:"primaryKey"`
+    DocumentID string                 `json:"document_id" gorm:"index"`
+    ChunkIndex int                    `json:"chunk_index"`
+    Content    string                 `json:"content" gorm:"type:text"`
+    Tokens     int                    `json:"tokens"`
+    Metadata   map[string]interface{} `json:"metadata" gorm:"serializer:json"`
+    Embedding  []float32              `json:"-"` // 存储在向量数据库中
+    CreatedAt  time.Time              `json:"created_at"`
+}
+
+// DataSourceConfig 数据源配置
+type DataSourceConfig struct {
+    ID       string                 `json:"id"`
+    Type     DataSourceType         `json:"type"`
+    Name     string                 `json:"name"`
+    Config   map[string]interface{} `json:"config"`
+    Enabled  bool                   `json:"enabled"`
+    SyncFreq time.Duration          `json:"sync_freq"`
+}
+```
+
+### 2. 向量检索模块 (pkg/ai/vectordb)
+
+基于Qdrant向量数据库的检索模块，遵循pkg设计模式：
+
+#### 接口设计
+
+```go
+// VectorDB 向量数据库接口
+type VectorDB interface {
+    // 集合管理
+    CreateCollection(ctx context.Context, name string, config *CollectionConfig) error
+    DeleteCollection(ctx context.Context, name string) error
+    ListCollections(ctx context.Context) ([]string, error)
+
+    // 向量操作
+    Insert(ctx context.Context, collection string, vectors []*Vector) error
+    Update(ctx context.Context, collection string, vectors []*Vector) error
+    Delete(ctx context.Context, collection string, ids []string) error
+
+    // 检索操作
+    Search(ctx context.Context, req *SearchRequest) (*SearchResponse, error)
+    BatchSearch(ctx context.Context, reqs []*SearchRequest) ([]*SearchResponse, error)
+
+    // 状态管理
+    GetCollectionInfo(ctx context.Context, collection string) (*CollectionInfo, error)
+    GetStats(ctx context.Context) (*VectorDBStats, error)
+}
+
+// Retriever 检索器接口
+type Retriever interface {
+    // 语义检索
+    SemanticSearch(ctx context.Context, query string, opts *SearchOptions) (*SearchResult, error)
+
+    // 混合检索（向量+关键词）
+    HybridSearch(ctx context.Context, req *HybridSearchRequest) (*SearchResult, error)
+
+    // 相似文档
+    FindSimilar(ctx context.Context, docID string, opts *SimilarOptions) (*SearchResult, error)
+
+    // 批量检索
+    BatchRetrieve(ctx context.Context, queries []string, opts *SearchOptions) ([]*SearchResult, error)
+}
+
+// Embedder 向量化接口
+type Embedder interface {
+    // 文本向量化
+    EmbedText(ctx context.Context, text string) ([]float32, error)
+    EmbedTexts(ctx context.Context, texts []string) ([][]float32, error)
+
+    // 查询向量化
+    EmbedQuery(ctx context.Context, query string) ([]float32, error)
+
+    // 获取向量维度
+    GetDimensions() int
+
+    // 获取模型信息
+    GetModelInfo() *EmbedModelInfo
+}
+```
+
+#### 配置选项设计
+
+```go
+// VectorDBOptions 向量数据库配置选项
+type VectorDBOptions struct {
+    Type       string `mapstructure:"type"`
+    Host       string `mapstructure:"host"`
+    Port       int    `mapstructure:"port"`
+    Username   string `mapstructure:"username"`
+    Password   string `mapstructure:"password"`
+    Database   string `mapstructure:"database"`
+    Collection string `mapstructure:"collection"`
+
+    // 连接池配置
+    MaxConnections     int           `mapstructure:"max-connections"`
+    MaxIdleConnections int           `mapstructure:"max-idle-connections"`
+    ConnTimeout        time.Duration `mapstructure:"conn-timeout"`
+
+    // 性能配置
+    BatchSize       int    `mapstructure:"batch-size"`
+    VectorDimension int    `mapstructure:"vector-dimension"`
+    DistanceMetric  string `mapstructure:"distance-metric"`
+
+    // 监控配置
+    EnableMetrics bool   `mapstructure:"enable-metrics"`
+    MetricsName   string `mapstructure:"metrics-name"`
+}
+
+func (o *VectorDBOptions) Validate() []error {
+    var errs []error
+
+    if o.Host == "" {
+        errs = append(errs, fmt.Errorf("host is required"))
+    }
+
+    if o.Port <= 0 || o.Port > 65535 {
+        errs = append(errs, fmt.Errorf("port must be between 1 and 65535"))
+    }
+
+    if o.VectorDimension <= 0 {
+        errs = append(errs, fmt.Errorf("vector-dimension must be greater than 0"))
+    }
+
+    return errs
+}
+
+func (o *VectorDBOptions) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+    prefix := joinPrefixes(prefixes...)
+
+    fs.StringVar(&o.Type, prefix+"type", "qdrant", "Vector database type")
+    fs.StringVar(&o.Host, prefix+"host", "localhost", "Vector database host")
+    fs.IntVar(&o.Port, prefix+"port", 6333, "Vector database port")
+    fs.IntVar(&o.MaxConnections, prefix+"max-connections", 10, "Maximum connections")
+    fs.DurationVar(&o.ConnTimeout, prefix+"conn-timeout", 10*time.Second, "Connection timeout")
+    fs.IntVar(&o.VectorDimension, prefix+"vector-dimension", 1536, "Vector dimension")
+    fs.StringVar(&o.DistanceMetric, prefix+"distance-metric", "cosine", "Distance metric")
+    fs.BoolVar(&o.EnableMetrics, prefix+"enable-metrics", true, "Enable metrics collection")
+}
+
+// 工厂方法
+func NewVectorDBOptions() *VectorDBOptions {
+    return &VectorDBOptions{
+        Type:               "qdrant",
+        Host:               "localhost",
+        Port:               6333,
+        MaxConnections:     10,
+        MaxIdleConnections: 5,
+        ConnTimeout:        10 * time.Second,
+        BatchSize:          100,
+        VectorDimension:    1536,
+        DistanceMetric:     "cosine",
+        EnableMetrics:      true,
+        MetricsName:        "ai_vectordb",
+    }
+}
+
+func (o *VectorDBOptions) NewVectorDB(logger logger.Logger) (VectorDB, error) {
+    return NewQdrantClient(&QdrantConfig{
+        Options: o,
+        Logger:  logger,
+    })
+}
+```
+
+#### 核心数据结构
+
+```go
+// Vector 向量结构
+type Vector struct {
+    ID       string                 `json:"id"`
+    Values   []float32              `json:"values"`
+    Metadata map[string]interface{} `json:"metadata"`
+}
+
+// SearchRequest 检索请求
+type SearchRequest struct {
+    Collection string                 `json:"collection"`
+    Query      []float32              `json:"query"`
+    Filter     map[string]interface{} `json:"filter,omitempty"`
+    TopK       int                    `json:"top_k"`
+    WithPayload bool                  `json:"with_payload"`
+}
+
+// SearchResponse 检索响应
+type SearchResponse struct {
+    Results []*SearchResult `json:"results"`
+    Total   int64           `json:"total"`
+    Took    time.Duration   `json:"took"`
+}
+
+// SearchResult 检索结果
+type SearchResult struct {
+    ID       string                 `json:"id"`
+    Score    float32                `json:"score"`
+    Payload  map[string]interface{} `json:"payload"`
+    Document *DocumentChunk         `json:"document,omitempty"`
+}
+```
+
+### 3. LLM集成模块 (pkg/ai/llm)
+
+多LLM供应商支持的模块，采用provider抽象模式：
+
+#### 接口设计
+
+```go
+// LLMProvider LLM供应商接口
+type LLMProvider interface {
+    // 基本信息
+    GetProviderName() string
+    GetSupportedModels() []string
+
+    // 聊天完成
+    ChatCompletion(ctx context.Context, req *ChatCompletionRequest) (*ChatCompletionResponse, error)
+    ChatCompletionStream(ctx context.Context, req *ChatCompletionRequest) (<-chan *ChatCompletionChunk, error)
+
+    // 文本嵌入
+    CreateEmbedding(ctx context.Context, req *EmbeddingRequest) (*EmbeddingResponse, error)
+
+    // 配置和状态
+    Configure(config *ProviderConfig) error
+    GetUsageStats() *UsageStats
+    IsAvailable(ctx context.Context) bool
+}
+
+// LLMManager LLM管理器接口
+type LLMManager interface {
+    // 供应商管理
+    RegisterProvider(name string, provider LLMProvider) error
+    GetProvider(name string) (LLMProvider, error)
+    ListProviders() []string
+
+    // 负载均衡
+    SelectProvider(ctx context.Context, req *ChatCompletionRequest) (LLMProvider, error)
+
+    // 统一调用接口
+    ChatCompletion(ctx context.Context, req *ChatCompletionRequest) (*ChatCompletionResponse, error)
+    ChatCompletionStream(ctx context.Context, req *ChatCompletionRequest) (<-chan *ChatCompletionChunk, error)
+
+    // 使用统计
+    GetGlobalUsageStats() *GlobalUsageStats
+}
+
+// ChatEngine 聊天引擎接口
+type ChatEngine interface {
+    // 对话管理
+    CreateConversation(ctx context.Context, req *CreateConversationRequest) (*Conversation, error)
+    GetConversation(ctx context.Context, id string) (*Conversation, error)
+    DeleteConversation(ctx context.Context, id string) error
+
+    // 消息处理
+    SendMessage(ctx context.Context, req *SendMessageRequest) (*MessageResponse, error)
+    SendMessageStream(ctx context.Context, req *SendMessageRequest) (<-chan *MessageChunk, error)
+
+    // RAG集成
+    RAGChat(ctx context.Context, req *RAGChatRequest) (*MessageResponse, error)
+    RAGChatStream(ctx context.Context, req *RAGChatRequest) (<-chan *MessageChunk, error)
+}
+
+// PromptTemplate 提示模板接口
+type PromptTemplate interface {
+    // 模板管理
+    Render(ctx context.Context, template string, data map[string]interface{}) (string, error)
+
+    // 预定义模板
+    GetSystemPrompt(taskType TaskType) string
+    GetRAGPrompt(context string, question string) string
+    GetSummarizationPrompt(content string) string
+
+    // 自定义模板
+    RegisterTemplate(name string, template string) error
+    GetTemplate(name string) (string, error)
+}
+```
+
+#### 配置选项设计
+
+```go
+// LLMOptions LLM配置选项
+type LLMOptions struct {
+    DefaultProvider string                         `mapstructure:"default-provider"`
+    Providers       map[string]*ProviderOptions    `mapstructure:"providers"`
+    RateLimit       *RateLimitOptions             `mapstructure:"rate-limit"`
+    LoadBalancer    *LoadBalancerOptions          `mapstructure:"load-balancer"`
+    EnableMetrics   bool                          `mapstructure:"enable-metrics"`
+    MetricsName     string                        `mapstructure:"metrics-name"`
+}
+
+// ProviderOptions 供应商配置选项
+type ProviderOptions struct {
+    Name        string                 `mapstructure:"name"`
+    APIKey      string                 `mapstructure:"api-key"`
+    BaseURL     string                 `mapstructure:"base-url"`
+    Model       string                 `mapstructure:"model"`
+    MaxTokens   int                    `mapstructure:"max-tokens"`
+    Temperature float32                `mapstructure:"temperature"`
+    Timeout     time.Duration          `mapstructure:"timeout"`
+    RetryConfig *RetryOptions          `mapstructure:"retry"`
+    Extra       map[string]interface{} `mapstructure:"extra"`
+}
+
+// RateLimitOptions 限流配置
+type RateLimitOptions struct {
+    RequestsPerMinute int `mapstructure:"requests-per-minute"`
+    TokensPerDay      int `mapstructure:"tokens-per-day"`
+    Burst             int `mapstructure:"burst"`
+}
+
+// LoadBalancerOptions 负载均衡配置
+type LoadBalancerOptions struct {
+    Strategy           string            `mapstructure:"strategy"` // round_robin, weighted, least_connections
+    HealthCheckInterval time.Duration    `mapstructure:"health-check-interval"`
+    Weights            map[string]float32 `mapstructure:"weights"`
+}
+
+func (o *LLMOptions) Validate() []error {
+    var errs []error
+
+    if o.DefaultProvider == "" {
+        errs = append(errs, fmt.Errorf("default-provider is required"))
+    }
+
+    if len(o.Providers) == 0 {
+        errs = append(errs, fmt.Errorf("at least one provider must be configured"))
+    }
+
+    if _, exists := o.Providers[o.DefaultProvider]; !exists {
+        errs = append(errs, fmt.Errorf("default provider %s not found in providers", o.DefaultProvider))
+    }
+
+    for name, provider := range o.Providers {
+        if provider.APIKey == "" {
+            errs = append(errs, fmt.Errorf("provider %s: api-key is required", name))
+        }
+        if provider.Model == "" {
+            errs = append(errs, fmt.Errorf("provider %s: model is required", name))
+        }
+    }
+
+    return errs
+}
+
+func (o *LLMOptions) AddFlags(fs *pflag.FlagSet, prefixes ...string) {
+    prefix := joinPrefixes(prefixes...)
+
+    fs.StringVar(&o.DefaultProvider, prefix+"default-provider", "deepseek", "Default LLM provider")
+    fs.BoolVar(&o.EnableMetrics, prefix+"enable-metrics", true, "Enable LLM metrics collection")
+    fs.StringVar(&o.MetricsName, prefix+"metrics-name", "ai_llm", "Metrics name prefix")
+}
+
+// 工厂方法
+func NewLLMOptions() *LLMOptions {
+    return &LLMOptions{
+        DefaultProvider: "deepseek",
+        Providers: map[string]*ProviderOptions{
+            "deepseek": {
+                Name:        "deepseek",
+                BaseURL:     "https://api.deepseek.com",
+                Model:       "deepseek-chat",
+                MaxTokens:   4000,
+                Temperature: 0.7,
+                Timeout:     30 * time.Second,
+            },
+            "openai": {
+                Name:        "openai",
+                BaseURL:     "https://api.openai.com/v1",
+                Model:       "gpt-4",
+                MaxTokens:   4000,
+                Temperature: 0.7,
+                Timeout:     30 * time.Second,
+            },
+        },
+        RateLimit: &RateLimitOptions{
+            RequestsPerMinute: 60,
+            TokensPerDay:      100000,
+            Burst:             10,
+        },
+        LoadBalancer: &LoadBalancerOptions{
+            Strategy:            "round_robin",
+            HealthCheckInterval: 30 * time.Second,
+        },
+        EnableMetrics: true,
+        MetricsName:   "ai_llm",
+    }
+}
+
+func (o *LLMOptions) NewLLMManager(cache cache.Cache, logger logger.Logger, metrics metrics.Manager) (LLMManager, error) {
+    return NewLLMManagerImpl(&LLMManagerConfig{
+        Options: o,
+        Cache:   cache,
+        Logger:  logger,
+        Metrics: metrics,
+    })
+}
+```
+
+#### 核心数据结构
+
+```go
+// ChatCompletionRequest 聊天完成请求
+type ChatCompletionRequest struct {
+    Provider    string     `json:"provider,omitempty"`
+    Model       string     `json:"model"`
+    Messages    []*Message `json:"messages"`
+    MaxTokens   int        `json:"max_tokens,omitempty"`
+    Temperature float32    `json:"temperature,omitempty"`
+    Stream      bool       `json:"stream,omitempty"`
+}
+
+// ChatCompletionResponse 聊天完成响应
+type ChatCompletionResponse struct {
+    ID      string    `json:"id"`
+    Content string    `json:"content"`
+    Usage   *Usage    `json:"usage"`
+    Created time.Time `json:"created"`
+}
+
+// Message 消息结构
+type Message struct {
+    Role    MessageRole `json:"role"`
+    Content string      `json:"content"`
+}
+
+// Conversation 对话结构
+type Conversation struct {
+    ID          string    `json:"id" gorm:"primaryKey"`
+    UserID      string    `json:"user_id" gorm:"index"`
+    Title       string    `json:"title"`
+    Messages    []*Message `json:"messages" gorm:"serializer:json"`
+    Metadata    map[string]interface{} `json:"metadata" gorm:"serializer:json"`
+    CreatedAt   time.Time `json:"created_at"`
+    UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// ProviderConfig 供应商配置
+type ProviderConfig struct {
+    Name        string                 `json:"name"`
+    APIKey      string                 `json:"api_key"`
+    BaseURL     string                 `json:"base_url,omitempty"`
+    Model       string                 `json:"model"`
+    MaxTokens   int                    `json:"max_tokens"`
+    Temperature float32                `json:"temperature"`
+    Timeout     time.Duration          `json:"timeout"`
+    RateLimit   *RateLimitConfig       `json:"rate_limit,omitempty"`
+    Retry       *RetryConfig           `json:"retry,omitempty"`
+    Extra       map[string]interface{} `json:"extra,omitempty"`
+}
+```
+
+## 错误处理设计
+
+严格遵循现有errorsx包设计模式，扩展AI相关错误处理：
+
+### AI错误码定义
+
+```go
+// AI相关错误定义，使用现有errorsx模式
+var (
+    // 知识库错误 (20000-20099)
+    ErrDocumentNotFound = errorsx.NotFound("DOCUMENT_NOT_FOUND").
+        WithI18nKey("ai.errors.document_not_found").
+        WithMessage("Document not found")
+
+    ErrDocumentProcessingFailed = errorsx.InternalError("DOCUMENT_PROCESSING_FAILED").
+        WithI18nKey("ai.errors.document_processing_failed").
+        WithMessage("Failed to process document")
+
+    ErrInvalidDocumentType = errorsx.BadRequest("INVALID_DOCUMENT_TYPE").
+        WithI18nKey("ai.errors.invalid_document_type").
+        WithMessage("Unsupported document type")
+
+    // LLM错误 (20100-20199)
+    ErrLLMProviderNotAvailable = errorsx.InternalError("LLM_PROVIDER_NOT_AVAILABLE").
+        WithI18nKey("ai.errors.llm_provider_not_available").
+        WithMessage("LLM provider is not available")
+
+    ErrLLMQuotaExceeded = errorsx.TooManyRequests("LLM_QUOTA_EXCEEDED").
+        WithI18nKey("ai.errors.llm_quota_exceeded").
+        WithMessage("LLM API quota exceeded")
+
+    ErrInvalidLLMRequest = errorsx.BadRequest("INVALID_LLM_REQUEST").
+        WithI18nKey("ai.errors.invalid_llm_request").
+        WithMessage("Invalid LLM request")
+
+    // 向量数据库错误 (20200-20299)
+    ErrVectorDBConnectionFailed = errorsx.InternalError("VECTORDB_CONNECTION_FAILED").
+        WithI18nKey("ai.errors.vectordb_connection_failed").
+        WithMessage("Failed to connect to vector database")
+
+    ErrVectorSearchFailed = errorsx.InternalError("VECTOR_SEARCH_FAILED").
+        WithI18nKey("ai.errors.vector_search_failed").
+        WithMessage("Vector search operation failed")
+
+    ErrInvalidVectorDimension = errorsx.BadRequest("INVALID_VECTOR_DIMENSION").
+        WithI18nKey("ai.errors.invalid_vector_dimension").
+        WithMessage("Invalid vector dimension")
+
+    // 外部集成错误 (20300-20399)
+    ErrNotionAPIFailed = errorsx.InternalError("NOTION_API_FAILED").
+        WithI18nKey("ai.errors.notion_api_failed").
+        WithMessage("Notion API request failed")
+
+    ErrFeishuAPIFailed = errorsx.InternalError("FEISHU_API_FAILED").
+        WithI18nKey("ai.errors.feishu_api_failed").
+        WithMessage("Feishu API request failed")
+
+    ErrGoogleAPIFailed = errorsx.InternalError("GOOGLE_API_FAILED").
+        WithI18nKey("ai.errors.google_api_failed").
+        WithMessage("Google API request failed")
+)
+
+// 错误包装示例
+func (km *knowledgeManager) CreateDocument(ctx context.Context, req *CreateDocumentRequest) (*Document, error) {
+    logger := logger.FromContext(ctx)
+
+    // 参数验证
+    if req.Content == "" {
+        return nil, ErrInvalidDocumentType.
+            WithMetadata(map[string]any{"content_type": req.ContentType}).
+            BuildWithContext(ctx)
+    }
+
+    // 处理文档
+    doc, err := km.processor.ProcessDocument(ctx, &RawDocument{
+        Content:     req.Content,
+        ContentType: req.ContentType,
+    })
+    if err != nil {
+        logger.Errorw("文档处理失败", "error", err)
+        return nil, ErrDocumentProcessingFailed.
+            WithCause(err).
+            WithMetadata(map[string]any{
+                "content_type": req.ContentType,
+                "content_size": len(req.Content),
+            }).
+            BuildWithContext(ctx)
+    }
+
+    // 保存到数据库
+    if err := km.repo.Create(ctx, doc); err != nil {
+        return nil, errorsx.Wrap(err, ErrDocumentProcessingFailed)
+    }
+
+    return doc, nil
+}
+```
+
+## 数据模型设计
+
+### MySQL数据模型
+
+```sql
+-- 知识库表
+CREATE TABLE knowledge_bases (
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    settings JSON,
+    status VARCHAR(32) DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_user_id (user_id),
+    INDEX idx_status (status)
+);
+
+-- 文档表
+CREATE TABLE documents (
+    id VARCHAR(64) PRIMARY KEY,
+    knowledge_base_id VARCHAR(64) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    content_type VARCHAR(64) NOT NULL,
+    source_type VARCHAR(64) NOT NULL,
+    source_id VARCHAR(255),
+    file_path VARCHAR(512),
+    file_hash VARCHAR(128),
+    file_size BIGINT,
+    status VARCHAR(32) DEFAULT 'processing',
+    metadata JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_kb_id (knowledge_base_id),
+    INDEX idx_status (status),
+    INDEX idx_file_hash (file_hash)
+);
+
+-- 文档分块表
+CREATE TABLE document_chunks (
+    id VARCHAR(64) PRIMARY KEY,
+    document_id VARCHAR(64) NOT NULL,
+    content TEXT NOT NULL,
+    chunk_index INT NOT NULL,
+    token_count INT,
+    metadata JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_document_id (document_id),
+    INDEX idx_chunk_index (document_id, chunk_index)
+);
+
+-- 对话表
+CREATE TABLE conversations (
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL,
+    knowledge_base_id VARCHAR(64),
+    title VARCHAR(255) NOT NULL,
+    context JSON,
+    settings JSON,
+    status VARCHAR(32) DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_user_id (user_id),
+    INDEX idx_kb_id (knowledge_base_id)
+);
+
+-- 消息表
+CREATE TABLE messages (
+    id VARCHAR(64) PRIMARY KEY,
+    conversation_id VARCHAR(64) NOT NULL,
+    role VARCHAR(32) NOT NULL,
+    content TEXT NOT NULL,
+    sources JSON,
+    token_usage JSON,
+    metadata JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_conversation_id (conversation_id),
+    INDEX idx_created_at (created_at)
+);
+```
+
+### Qdrant向量数据模型
+
+```json
+{
+  "collection_name": "knowledge_vectors",
+  "vector_config": {
+    "size": 1536,
+    "distance": "Cosine"
+  },
+  "payload_schema": {
+    "document_id": "keyword",
+    "chunk_id": "keyword",
+    "knowledge_base_id": "keyword",
+    "content": "text",
+    "metadata": "json"
+  }
+}
+```
+
+## 测试策略
+
+### 单元测试
+
+每个pkg模块都包含完整的单元测试：
+
+```go
+// pkg/ai/knowledge/manager_test.go
+func TestKnowledgeManager(t *testing.T) {
+    tests := []struct {
+        name string
+        setup func(*testing.T) KnowledgeManager
+        test func(*testing.T, KnowledgeManager)
+    }{
+        {
+            name: "CreateDocument_Success",
+            setup: func(t *testing.T) KnowledgeManager {
+                mockDB := setupMockDB(t)
+                mockProcessor := &MockDocumentProcessor{}
+                logger := logger.NewTestLogger()
+
+                return NewKnowledgeManagerImpl(&KnowledgeManagerConfig{
+                    Options:   NewKnowledgeOptions(),
+                    DB:        mockDB,
+                    Processor: mockProcessor,
+                    Logger:    logger,
+                })
+            },
+            test: func(t *testing.T, km KnowledgeManager) {
+                req := &CreateDocumentRequest{
+                    Title:       "Test Document",
+                    Content:     "Test content",
+                    ContentType: "text/plain",
+                }
+
+                doc, err := km.CreateDocument(context.Background(), req)
+                assert.NoError(t, err)
+                assert.Equal(t, req.Title, doc.Title)
+                assert.Equal(t, req.Content, doc.Content)
+            },
+        },
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            km := tt.setup(t)
+            tt.test(t, km)
+        })
+    }
+}
+```
+
+### 集成测试
+
+```go
+// tests/integration/ai_integration_test.go
+func TestAIKnowledgeBaseIntegration(t *testing.T) {
+    if testing.Short() {
+        t.Skip("跳过集成测试")
+    }
+
+    // 启动测试依赖
+    testContainer := setupTestContainers(t)
+    defer testContainer.Cleanup()
+
+    // 测试完整工作流
+    t.Run("DocumentUploadToQuery", func(t *testing.T) {
+        // 1. 上传文档
+        doc := uploadTestDocument(t, testContainer)
+
+        // 2. 等待处理完成
+        waitForDocumentProcessing(t, testContainer, doc.ID)
+
+        // 3. 执行语义检索
+        results := performSemanticSearch(t, testContainer, "test query")
+        assert.NotEmpty(t, results)
+
+        // 4. 生成AI回答
+        response := generateAIResponse(t, testContainer, "test question", results)
+        assert.NotEmpty(t, response.Content)
+    })
+}
+```
+
+### 性能测试
+
+```go
+// tests/benchmark/ai_benchmark_test.go
+func BenchmarkVectorSearch(b *testing.B) {
+    vectorDB := setupBenchmarkVectorDB(b)
+
+    b.ResetTimer()
+    for i := 0; i < b.N; i++ {
+        _, err := vectorDB.Search(context.Background(), &SearchRequest{
+            Collection: "test_collection",
+            Query: generateRandomVector(),
+            TopK: 10,
+        })
+        if err != nil {
+            b.Fatal(err)
+        }
+    }
+}
+```
 
 type Document struct {
     ID             string    `gorm:"primaryKey"`
@@ -167,6 +1158,7 @@ type DocumentChunk struct {
     Metadata   JSON    `gorm:"type:json"`
     CreatedAt  time.Time
 }
+
 ```
 
 ### 2.2 Chat Service（对话服务）
@@ -186,12 +1178,12 @@ type ChatService interface {
     GetConversation(ctx context.Context, conversationID string) (*ConversationResponse, error)
     ListConversations(ctx context.Context, req *ListConversationsRequest) (*ListConversationsResponse, error)
     DeleteConversation(ctx context.Context, conversationID string) error
-    
+
     // 消息处理
     SendMessage(ctx context.Context, req *SendMessageRequest) (*MessageResponse, error)
     SendMessageStream(ctx context.Context, req *SendMessageRequest, stream ChatService_SendMessageStreamServer) error
     GetMessages(ctx context.Context, req *GetMessagesRequest) (*GetMessagesResponse, error)
-    
+
     // 上下文管理
     UpdateContext(ctx context.Context, req *UpdateContextRequest) error
     ClearContext(ctx context.Context, conversationID string) error
@@ -237,6 +1229,7 @@ type ConversationSettings struct {
 ### 2.3 Retrieval Service（检索服务）
 
 **职责**：
+
 - 向量相似性搜索
 - 混合检索（向量+全文）
 - 检索结果排序和过滤
@@ -249,12 +1242,12 @@ type RetrievalService interface {
     // 向量检索
     SearchSimilar(ctx context.Context, req *SearchSimilarRequest) (*SearchResponse, error)
     SearchHybrid(ctx context.Context, req *SearchHybridRequest) (*SearchResponse, error)
-    
+
     // 索引管理
     CreateIndex(ctx context.Context, req *CreateIndexRequest) error
     UpdateIndex(ctx context.Context, req *UpdateIndexRequest) error
     DeleteIndex(ctx context.Context, indexID string) error
-    
+
     // 向量操作
     GenerateEmbedding(ctx context.Context, req *EmbeddingRequest) (*EmbeddingResponse, error)
     BatchGenerateEmbeddings(ctx context.Context, req *BatchEmbeddingRequest) (*BatchEmbeddingResponse, error)
@@ -276,6 +1269,7 @@ type SearchStrategy struct {
 ### 2.4 LLM Service（大模型服务）
 
 **职责**：
+
 - 多LLM供应商管理
 - 负载均衡和故障转移
 - API调用限流和重试
@@ -288,12 +1282,12 @@ type LLMService interface {
     // 基础调用
     Complete(ctx context.Context, req *CompletionRequest) (*CompletionResponse, error)
     CompleteStream(ctx context.Context, req *CompletionRequest, stream LLMService_CompleteStreamServer) error
-    
+
     // 提供商管理
     ListProviders(ctx context.Context) (*ListProvidersResponse, error)
     GetProvider(ctx context.Context, providerID string) (*ProviderResponse, error)
     UpdateProvider(ctx context.Context, req *UpdateProviderRequest) (*ProviderResponse, error)
-    
+
     // 使用统计
     GetUsageStats(ctx context.Context, req *UsageStatsRequest) (*UsageStatsResponse, error)
 }
@@ -328,6 +1322,7 @@ type ProviderSelector interface {
 ### 3.1 MySQL数据模型
 
 **用户和权限**：
+
 ```sql
 -- 用户扩展表（复用现有用户系统）
 CREATE TABLE user_ai_profiles (
@@ -389,6 +1384,7 @@ CREATE TABLE document_chunks (
 ```
 
 **对话和消息**：
+
 ```sql
 -- 对话表
 CREATE TABLE conversations (
@@ -423,6 +1419,7 @@ CREATE TABLE messages (
 ### 3.2 Qdrant向量数据模型
 
 **Collection配置**：
+
 ```json
 {
   "collection_name": "knowledge_vectors",
@@ -432,7 +1429,7 @@ CREATE TABLE messages (
   },
   "payload_schema": {
     "document_id": "keyword",
-    "chunk_id": "keyword", 
+    "chunk_id": "keyword",
     "knowledge_base_id": "keyword",
     "content": "text",
     "metadata": "json"
@@ -441,6 +1438,7 @@ CREATE TABLE messages (
 ```
 
 **向量点结构**：
+
 ```json
 {
   "id": "chunk_id",
@@ -462,11 +1460,12 @@ CREATE TABLE messages (
 ### 3.3 Redis缓存策略
 
 **缓存键设计**：
+
 ```
 # 会话缓存
 session:{conversation_id} -> ConversationContext (TTL: 1小时)
 
-# API响应缓存  
+# API响应缓存
 api_cache:{hash} -> APIResponse (TTL: 10分钟)
 
 # 用户配额缓存
@@ -484,6 +1483,7 @@ search:{query_hash} -> SearchResults (TTL: 30分钟)
 ### 4.1 RESTful API设计
 
 **知识库管理API**：
+
 ```
 POST   /api/v1/knowledge-bases          # 创建知识库
 GET    /api/v1/knowledge-bases          # 获取知识库列表
@@ -503,6 +1503,7 @@ POST   /api/v1/knowledge-bases/:id/sync/google      # 同步Google
 ```
 
 **对话管理API**：
+
 ```
 POST   /api/v1/conversations              # 创建对话
 GET    /api/v1/conversations              # 获取对话列表
@@ -516,6 +1517,7 @@ GET    /api/v1/conversations/:id/stream   # 流式对话 (WebSocket)
 ```
 
 **检索API**：
+
 ```
 POST   /api/v1/search/semantic           # 语义搜索
 POST   /api/v1/search/hybrid            # 混合搜索
@@ -523,6 +1525,7 @@ GET    /api/v1/search/suggest           # 搜索建议
 ```
 
 **管理API**：
+
 ```
 GET    /api/v1/admin/providers          # LLM供应商列表
 PUT    /api/v1/admin/providers/:id      # 更新供应商配置
@@ -533,6 +1536,7 @@ GET    /api/v1/admin/health-check      # 健康检查
 ### 4.2 gRPC API设计
 
 **Protocol Buffer定义**：
+
 ```protobuf
 syntax = "proto3";
 
@@ -549,14 +1553,14 @@ service AIService {
       body: "*"
     };
   }
-  
+
   rpc UploadDocument(UploadDocumentRequest) returns (DocumentResponse) {
     option (google.api.http) = {
       post: "/api/v1/knowledge-bases/{knowledge_base_id}/documents"
       body: "*"
     };
   }
-  
+
   // 对话管理
   rpc SendMessage(SendMessageRequest) returns (MessageResponse) {
     option (google.api.http) = {
@@ -564,9 +1568,9 @@ service AIService {
       body: "*"
     };
   }
-  
+
   rpc SendMessageStream(SendMessageRequest) returns (stream MessageStreamResponse);
-  
+
   // 检索
   rpc SearchSemantic(SearchRequest) returns (SearchResponse) {
     option (google.api.http) = {
@@ -605,22 +1609,22 @@ const (
     ErrDocumentUploadFailed      = 20003
     ErrDocumentParseFailed       = 20004
     ErrVectorIndexFailed         = 20005
-    
+
     // 对话相关错误 (20100-20199)
     ErrConversationNotFound      = 20101
     ErrMessageTooLong            = 20102
     ErrContextLimitExceeded      = 20103
-    
+
     // LLM相关错误 (20200-20299)
     ErrLLMProviderUnavailable    = 20201
     ErrLLMQuotaExceeded          = 20202
     ErrLLMRequestFailed          = 20203
-    
+
     // 检索相关错误 (20300-20399)
     ErrSearchFailed              = 20301
     ErrVectorSearchFailed        = 20302
     ErrEmbeddingGenerationFailed = 20303
-    
+
     // 外部集成错误 (20400-20499)
     ErrNotionAPIFailed           = 20401
     ErrFeishuAPIFailed           = 20402
@@ -634,10 +1638,10 @@ const (
 func AIErrorHandler() gin.HandlerFunc {
     return func(c *gin.Context) {
         c.Next()
-        
+
         if len(c.Errors) > 0 {
             err := c.Errors.Last().Err
-            
+
             switch e := err.(type) {
             case *errorsx.Error:
                 handleAIError(c, e)
@@ -656,7 +1660,7 @@ func handleAIError(c *gin.Context, err *errorsx.Error) {
         RequestID: c.GetString("request_id"),
         Timestamp: time.Now().Unix(),
     }
-    
+
     // 特殊错误处理
     switch err.Code {
     case ErrLLMQuotaExceeded:
@@ -664,7 +1668,7 @@ func handleAIError(c *gin.Context, err *errorsx.Error) {
     case ErrVectorSearchFailed:
         response.Suggestion = "请尝试使用不同的搜索关键词"
     }
-    
+
     c.JSON(err.HTTPStatus(), response)
 }
 ```
@@ -674,6 +1678,7 @@ func handleAIError(c *gin.Context, err *errorsx.Error) {
 ### 6.1 认证和授权
 
 **JWT认证集成**：
+
 ```go
 type AIAuthMiddleware struct {
     authService auth.Service
@@ -688,14 +1693,14 @@ func (m *AIAuthMiddleware) RequireAuth() gin.HandlerFunc {
             c.Abort()
             return
         }
-        
+
         claims, err := m.authService.ValidateToken(token)
         if err != nil {
             c.JSON(401, gin.H{"error": "invalid token"})
             c.Abort()
             return
         }
-        
+
         c.Set("user_id", claims.UserID)
         c.Set("user_role", claims.Role)
         c.Next()
@@ -706,20 +1711,21 @@ func (m *AIAuthMiddleware) RequirePermission(resource, action string) gin.Handle
     return func(c *gin.Context) {
         userID := c.GetString("user_id")
         userRole := c.GetString("user_role")
-        
+
         allowed, err := m.rbac.CheckPermission(userID, userRole, resource, action)
         if err != nil || !allowed {
             c.JSON(403, gin.H{"error": "permission denied"})
             c.Abort()
             return
         }
-        
+
         c.Next()
     }
 }
 ```
 
 **权限模型**：
+
 ```
 资源类型:
 - knowledge_base: 知识库管理
@@ -729,7 +1735,7 @@ func (m *AIAuthMiddleware) RequirePermission(resource, action string) gin.Handle
 
 操作类型:
 - create: 创建
-- read: 读取  
+- read: 读取
 - update: 更新
 - delete: 删除
 - manage: 管理
@@ -743,6 +1749,7 @@ func (m *AIAuthMiddleware) RequirePermission(resource, action string) gin.Handle
 ### 6.2 数据安全
 
 **敏感数据加密**：
+
 ```go
 type EncryptionService interface {
     Encrypt(data []byte, keyID string) ([]byte, error)
@@ -758,17 +1765,18 @@ type APIKeyManager struct {
 
 func (m *APIKeyManager) StoreAPIKey(userID, provider, apiKey string) error {
     keyID := fmt.Sprintf("%s:%s", userID, provider)
-    
+
     encryptedKey, err := m.encryption.Encrypt([]byte(apiKey), keyID)
     if err != nil {
         return err
     }
-    
+
     return m.keyVault.Store(keyID, encryptedKey)
 }
 ```
 
 **输入验证和过滤**：
+
 ```go
 type InputValidator struct {
     maxFileSize    int64
@@ -781,23 +1789,23 @@ func (v *InputValidator) ValidateDocument(file multipart.File, header *multipart
     if header.Size > v.maxFileSize {
         return errorsx.NewBadRequest("文件大小超出限制")
     }
-    
+
     // 文件类型验证
     contentType := header.Header.Get("Content-Type")
     if !v.isAllowedType(contentType) {
         return errorsx.NewBadRequest("不支持的文件类型")
     }
-    
+
     // 恶意内容检测
     content, err := io.ReadAll(file)
     if err != nil {
         return err
     }
-    
+
     if v.contentFilter.ContainsMaliciousContent(content) {
         return errorsx.NewBadRequest("文件包含危险内容")
     }
-    
+
     return nil
 }
 ```
@@ -807,6 +1815,7 @@ func (v *InputValidator) ValidateDocument(file multipart.File, header *multipart
 ### 7.1 缓存策略
 
 **多级缓存架构**：
+
 ```go
 type CacheManager struct {
     l1Cache cache.LocalCache  // 本地缓存
@@ -819,20 +1828,20 @@ func (m *CacheManager) Get(ctx context.Context, key string) (interface{}, error)
     if value, ok := m.l1Cache.Get(key); ok {
         return value, nil
     }
-    
+
     // L2: Redis缓存
     if value, err := m.l2Cache.Get(ctx, key); err == nil {
         m.l1Cache.Set(key, value, 5*time.Minute)
         return value, nil
     }
-    
+
     // L3: CDN缓存 (用于文件等静态资源)
     if value, err := m.l3Cache.Get(ctx, key); err == nil {
         m.l2Cache.Set(ctx, key, value, 30*time.Minute)
         m.l1Cache.Set(key, value, 5*time.Minute)
         return value, nil
     }
-    
+
     return nil, cache.ErrNotFound
 }
 ```
@@ -840,6 +1849,7 @@ func (m *CacheManager) Get(ctx context.Context, key string) (interface{}, error)
 ### 7.2 异步处理
 
 **文档处理流水线**：
+
 ```go
 type DocumentProcessor struct {
     uploadQueue    queue.Queue
@@ -853,16 +1863,16 @@ func (p *DocumentProcessor) ProcessDocument(ctx context.Context, docID string) e
     if err := p.uploadQueue.Enqueue(ctx, &UploadTask{DocumentID: docID}); err != nil {
         return err
     }
-    
+
     // 2. 解析处理 (异步)
     go p.processParseQueue(ctx)
-    
+
     // 3. 向量化处理 (异步)
     go p.processVectorQueue(ctx)
-    
+
     // 4. 索引构建 (异步)
     go p.processIndexQueue(ctx)
-    
+
     return nil
 }
 
@@ -872,7 +1882,7 @@ func (p *DocumentProcessor) processParseQueue(ctx context.Context) {
         if err != nil {
             continue
         }
-        
+
         if err := p.parseDocument(ctx, task.(*ParseTask)); err != nil {
             // 错误处理和重试
             p.handleParseError(ctx, task, err)
@@ -887,6 +1897,7 @@ func (p *DocumentProcessor) processParseQueue(ctx context.Context) {
 ### 7.3 连接池优化
 
 **数据库连接池配置**：
+
 ```go
 type DBConfig struct {
     MaxOpenConns    int           `yaml:"max_open_conns"`    // 最大连接数
@@ -900,18 +1911,18 @@ func NewDatabaseConnection(config *DBConfig) (*gorm.DB, error) {
     if err != nil {
         return nil, err
     }
-    
+
     sqlDB, err := db.DB()
     if err != nil {
         return nil, err
     }
-    
+
     // 连接池配置
     sqlDB.SetMaxOpenConns(config.MaxOpenConns)
     sqlDB.SetMaxIdleConns(config.MaxIdleConns)
     sqlDB.SetConnMaxLifetime(config.ConnMaxLifetime)
     sqlDB.SetConnMaxIdleTime(config.ConnMaxIdleTime)
-    
+
     return db, nil
 }
 ```
@@ -921,6 +1932,7 @@ func NewDatabaseConnection(config *DBConfig) (*gorm.DB, error) {
 ### 8.1 指标定义
 
 **业务指标**：
+
 ```go
 var (
     // 文档处理指标
@@ -931,7 +1943,7 @@ var (
         },
         []string{"knowledge_base_id", "content_type", "source_type"},
     )
-    
+
     DocumentProcessingDuration = prometheus.NewHistogramVec(
         prometheus.HistogramOpts{
             Name:    "ai_document_processing_duration_seconds",
@@ -940,7 +1952,7 @@ var (
         },
         []string{"operation", "content_type"},
     )
-    
+
     // 对话指标
     ConversationsCreated = prometheus.NewCounterVec(
         prometheus.CounterOpts{
@@ -949,7 +1961,7 @@ var (
         },
         []string{"knowledge_base_id"},
     )
-    
+
     MessagesProcessed = prometheus.NewCounterVec(
         prometheus.CounterOpts{
             Name: "ai_messages_processed_total",
@@ -957,7 +1969,7 @@ var (
         },
         []string{"llm_provider", "model", "status"},
     )
-    
+
     // LLM调用指标
     LLMRequestDuration = prometheus.NewHistogramVec(
         prometheus.HistogramOpts{
@@ -967,7 +1979,7 @@ var (
         },
         []string{"provider", "model"},
     )
-    
+
     TokensUsed = prometheus.NewCounterVec(
         prometheus.CounterOpts{
             Name: "ai_tokens_used_total",
@@ -975,7 +1987,7 @@ var (
         },
         []string{"provider", "model", "type"}, // type: input/output
     )
-    
+
     // 检索指标
     SearchRequestDuration = prometheus.NewHistogramVec(
         prometheus.HistogramOpts{
@@ -991,14 +2003,15 @@ var (
 ### 8.2 链路追踪
 
 **分布式追踪集成**：
+
 ```go
 func (s *ChatService) SendMessage(ctx context.Context, req *SendMessageRequest) (*MessageResponse, error) {
     span, ctx := opentracing.StartSpanFromContext(ctx, "chat.send_message")
     defer span.Finish()
-    
+
     span.SetTag("conversation_id", req.ConversationID)
     span.SetTag("message_length", len(req.Content))
-    
+
     // 1. 检索相关文档
     retrievalSpan, ctx := opentracing.StartSpanFromContext(ctx, "retrieval.search")
     documents, err := s.retrievalService.SearchSimilar(ctx, &SearchSimilarRequest{
@@ -1007,29 +2020,29 @@ func (s *ChatService) SendMessage(ctx context.Context, req *SendMessageRequest) 
         TopK: 5,
     })
     retrievalSpan.Finish()
-    
+
     if err != nil {
         span.SetTag("error", true)
         span.LogFields(log.String("error.message", err.Error()))
         return nil, err
     }
-    
+
     // 2. 调用LLM
     llmSpan, ctx := opentracing.StartSpanFromContext(ctx, "llm.complete")
     llmSpan.SetTag("provider", req.Settings.LLMProvider)
     llmSpan.SetTag("model", req.Settings.Model)
-    
+
     response, err := s.llmService.Complete(ctx, &CompletionRequest{
         Messages: buildMessages(req.Content, documents),
         Settings: req.Settings,
     })
     llmSpan.Finish()
-    
+
     if err != nil {
         span.SetTag("error", true)
         return nil, err
     }
-    
+
     // 3. 保存消息
     dbSpan, ctx := opentracing.StartSpanFromContext(ctx, "db.save_message")
     message := &Message{
@@ -1039,15 +2052,15 @@ func (s *ChatService) SendMessage(ctx context.Context, req *SendMessageRequest) 
         Sources:       extractSources(documents),
         TokenUsage:    response.Usage,
     }
-    
+
     err = s.messageRepo.Create(ctx, message)
     dbSpan.Finish()
-    
+
     if err != nil {
         span.SetTag("error", true)
         return nil, err
     }
-    
+
     return &MessageResponse{
         Message: message,
     }, nil
@@ -1057,6 +2070,7 @@ func (s *ChatService) SendMessage(ctx context.Context, req *SendMessageRequest) 
 ### 8.3 健康检查
 
 **综合健康检查**：
+
 ```go
 type HealthChecker struct {
     db           *gorm.DB
@@ -1070,7 +2084,7 @@ func (h *HealthChecker) Check(ctx context.Context) (*HealthStatus, error) {
         Status: "healthy",
         Checks: make(map[string]CheckResult),
     }
-    
+
     // 数据库健康检查
     if err := h.checkDatabase(ctx); err != nil {
         status.Checks["database"] = CheckResult{
@@ -1081,18 +2095,18 @@ func (h *HealthChecker) Check(ctx context.Context) (*HealthStatus, error) {
     } else {
         status.Checks["database"] = CheckResult{Status: "healthy"}
     }
-    
+
     // Redis健康检查
     if err := h.checkRedis(ctx); err != nil {
         status.Checks["redis"] = CheckResult{
-            Status: "unhealthy", 
+            Status: "unhealthy",
             Error:  err.Error(),
         }
         status.Status = "degraded"
     } else {
         status.Checks["redis"] = CheckResult{Status: "healthy"}
     }
-    
+
     // Qdrant健康检查
     if err := h.checkQdrant(ctx); err != nil {
         status.Checks["qdrant"] = CheckResult{
@@ -1103,11 +2117,11 @@ func (h *HealthChecker) Check(ctx context.Context) (*HealthStatus, error) {
     } else {
         status.Checks["qdrant"] = CheckResult{Status: "healthy"}
     }
-    
+
     // LLM供应商健康检查
     llmStatus := make(map[string]CheckResult)
     allUnhealthy := true
-    
+
     for name, provider := range h.llmProviders {
         if provider.IsHealthy() {
             llmStatus[name] = CheckResult{Status: "healthy"}
@@ -1119,16 +2133,16 @@ func (h *HealthChecker) Check(ctx context.Context) (*HealthStatus, error) {
             }
         }
     }
-    
+
     status.Checks["llm_providers"] = CheckResult{
         Status:  map[bool]string{true: "unhealthy", false: "healthy"}[allUnhealthy],
         Details: llmStatus,
     }
-    
+
     if allUnhealthy {
         status.Status = "unhealthy"
     }
-    
+
     return status, nil
 }
 ```
@@ -1138,6 +2152,7 @@ func (h *HealthChecker) Check(ctx context.Context) (*HealthStatus, error) {
 ### 9.1 微服务部署
 
 **Docker Compose配置**：
+
 ```yaml
 version: '3.8'
 
@@ -1231,6 +2246,7 @@ volumes:
 ### 9.2 Kubernetes部署
 
 **服务部署清单**：
+
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -1297,15 +2313,16 @@ spec:
 ### 10.1 单元测试
 
 **服务层测试示例**：
+
 ```go
 func TestChatService_SendMessage(t *testing.T) {
     // Setup
     mockRepo := &MockMessageRepository{}
     mockLLM := &MockLLMService{}
     mockRetrieval := &MockRetrievalService{}
-    
+
     service := NewChatService(mockRepo, mockLLM, mockRetrieval)
-    
+
     // Test cases
     tests := []struct {
         name     string
@@ -1327,13 +2344,13 @@ func TestChatService_SendMessage(t *testing.T) {
             mockSetup: func() {
                 mockRetrieval.On("SearchSimilar", mock.Anything, mock.Anything).
                     Return(&SearchResponse{Documents: []*Document{}}, nil)
-                
+
                 mockLLM.On("Complete", mock.Anything, mock.Anything).
                     Return(&CompletionResponse{
                         Content: "Hello! How can I help you?",
                         Usage:   &TokenInfo{InputTokens: 10, OutputTokens: 15},
                     }, nil)
-                
+
                 mockRepo.On("Create", mock.Anything, mock.Anything).
                     Return(nil)
             },
@@ -1347,18 +2364,18 @@ func TestChatService_SendMessage(t *testing.T) {
             wantErr: false,
         },
     }
-    
+
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
             tt.mockSetup()
-            
+
             got, err := service.SendMessage(context.Background(), tt.request)
-            
+
             if (err != nil) != tt.wantErr {
                 t.Errorf("SendMessage() error = %v, wantErr %v", err, tt.wantErr)
                 return
             }
-            
+
             assert.Equal(t, tt.want.Message.Content, got.Message.Content)
             assert.Equal(t, tt.want.Message.Role, got.Message.Role)
         })
@@ -1369,45 +2386,46 @@ func TestChatService_SendMessage(t *testing.T) {
 ### 10.2 集成测试
 
 **API集成测试**：
+
 ```go
 func TestKnowledgeAPI_Integration(t *testing.T) {
     // Setup test environment
     testDB := setupTestDatabase(t)
     testRedis := setupTestRedis(t)
     testQdrant := setupTestQdrant(t)
-    
+
     defer cleanupTest(testDB, testRedis, testQdrant)
-    
+
     // Initialize services
     app := setupTestApp(testDB, testRedis, testQdrant)
-    
+
     t.Run("document upload and retrieval workflow", func(t *testing.T) {
         // 1. Create knowledge base
         kbResp := createKnowledgeBase(t, app, &CreateKnowledgeBaseRequest{
             Name:        "Test KB",
             Description: "Test knowledge base",
         })
-        
+
         // 2. Upload document
         docResp := uploadDocument(t, app, kbResp.ID, "test.pdf", testPDFContent)
-        
+
         // Wait for processing
         waitForDocumentProcessing(t, app, docResp.ID)
-        
+
         // 3. Search documents
         searchResp := searchDocuments(t, app, kbResp.ID, "test query")
-        
+
         assert.NotEmpty(t, searchResp.Documents)
         assert.Contains(t, searchResp.Documents[0].Content, "expected content")
     })
-    
+
     t.Run("chat with knowledge base", func(t *testing.T) {
         // 1. Create conversation
         convResp := createConversation(t, app, &CreateConversationRequest{
             KnowledgeBaseID: testKBID,
             Title:          "Test Chat",
         })
-        
+
         // 2. Send message
         msgResp := sendMessage(t, app, convResp.ID, &SendMessageRequest{
             Content: "What is the main topic of the uploaded document?",
@@ -1417,7 +2435,7 @@ func TestKnowledgeAPI_Integration(t *testing.T) {
                 EnableRetrieval: true,
             },
         })
-        
+
         assert.NotEmpty(t, msgResp.Message.Content)
         assert.NotEmpty(t, msgResp.Message.Sources)
     })
@@ -1427,10 +2445,11 @@ func TestKnowledgeAPI_Integration(t *testing.T) {
 ### 10.3 性能测试
 
 **负载测试配置**：
+
 ```go
 func BenchmarkChatService_SendMessage(b *testing.B) {
     service := setupBenchmarkService(b)
-    
+
     request := &SendMessageRequest{
         ConversationID: "bench_conv",
         Content:       "Test message for benchmarking",
@@ -1439,7 +2458,7 @@ func BenchmarkChatService_SendMessage(b *testing.B) {
             Model:      "mock-model",
         },
     }
-    
+
     b.ResetTimer()
     b.RunParallel(func(pb *testing.PB) {
         for pb.Next() {
@@ -1453,13 +2472,13 @@ func BenchmarkChatService_SendMessage(b *testing.B) {
 
 func BenchmarkRetrievalService_SearchSimilar(b *testing.B) {
     service := setupBenchmarkRetrievalService(b)
-    
+
     request := &SearchSimilarRequest{
         Query:           "benchmark search query",
         KnowledgeBaseID: "bench_kb",
         TopK:           10,
     }
-    
+
     b.ResetTimer()
     for i := 0; i < b.N; i++ {
         _, err := service.SearchSimilar(context.Background(), request)
