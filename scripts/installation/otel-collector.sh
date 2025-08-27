@@ -288,8 +288,8 @@ proj::otel::info() {
   fi
 }
 
-# Handle command line arguments
-if [[ $# -gt 0 ]]; then
+# Handle command line arguments only when script is executed directly (not sourced)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]] && [[ $# -gt 0 ]]; then
   case $1 in
     install)
       proj::otel::install

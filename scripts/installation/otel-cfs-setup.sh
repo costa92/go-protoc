@@ -306,39 +306,41 @@ proj::otel::cfs::uninstall() {
     proj::log::info "✅ CFS integration uninstalled successfully"
 }
 
-# 处理命令行参数
-if [[ $# -gt 0 ]]; then
-    case $1 in
-        install)
-            proj::otel::cfs::install
-            ;;
-        test)
-            proj::otel::cfs::test
-            ;;
-        status)
-            proj::otel::cfs::status
-            ;;
-        info)
-            proj::otel::cfs::info
-            ;;
-        uninstall)
-            proj::otel::cfs::uninstall
-            ;;
-        mount)
-            proj::otel::cfs::setup_mount
-            ;;
-        *)
-            proj::log::error "Unknown command: $1"
-            echo "Usage: $0 {install|test|status|info|uninstall|mount}"
-            echo ""
-            echo "Environment Variables Required:"
-            echo "  CFS_FILESYSTEM_ID  - Tencent Cloud CFS filesystem ID"
-            echo "  CFS_IP            - CFS mount target IP address"
-            echo "  CFS_MOUNT_POINT   - Local mount point (default: /mnt/cfs-logs)"
-            echo "  TENCENT_REGION    - Tencent Cloud region (default: ap-beijing)"
-            exit 1
-            ;;
-    esac
-else
-    proj::otel::cfs::info
+# Handle command line arguments only when script is executed directly (not sourced)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    if [[ $# -gt 0 ]]; then
+        case $1 in
+            install)
+                proj::otel::cfs::install
+                ;;
+            test)
+                proj::otel::cfs::test
+                ;;
+            status)
+                proj::otel::cfs::status
+                ;;
+            info)
+                proj::otel::cfs::info
+                ;;
+            uninstall)
+                proj::otel::cfs::uninstall
+                ;;
+            mount)
+                proj::otel::cfs::setup_mount
+                ;;
+            *)
+                proj::log::error "Unknown command: $1"
+                echo "Usage: $0 {install|test|status|info|uninstall|mount}"
+                echo ""
+                echo "Environment Variables Required:"
+                echo "  CFS_FILESYSTEM_ID  - Tencent Cloud CFS filesystem ID"
+                echo "  CFS_IP            - CFS mount target IP address"
+                echo "  CFS_MOUNT_POINT   - Local mount point (default: /mnt/cfs-logs)"
+                echo "  TENCENT_REGION    - Tencent Cloud region (default: ap-beijing)"
+                exit 1
+                ;;
+        esac
+    else
+        proj::otel::cfs::info
+    fi
 fi

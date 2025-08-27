@@ -33,9 +33,9 @@ _install.docker.redis: ## Install docker install redis
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::redis::docker::install
 
 
-.PHONY: _uninstall.docker.mariadb
+.PHONY: _uninstall.docker.redis
 _uninstall.docker.redis: ## Uninstall docker install redis
-	@$(PROJ_ROOT_DIR)/scripts/installation/mariadb.sh proj::mariadb::docker::uninstall
+	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::redis::docker::uninstall
 
 
 ##@ MariaDB Service
@@ -131,12 +131,12 @@ _install.otel-stack: ## Install complete OTEL stack (Agent + Collector) - native
 	@$(PROJ_ROOT_DIR)/scripts/installation/otel-agent.sh install
 	@echo "OTEL stack installation completed"
 
-.PHONY: _uninstall.otel-stack  
+.PHONY: _uninstall.otel-stack
 _uninstall.otel-stack: ## Uninstall complete OTEL stack - native
 	@echo "Uninstalling OTEL Agent..."
 	@$(PROJ_ROOT_DIR)/scripts/installation/otel-agent.sh uninstall
 	@echo "Uninstalling OTEL Collector..."
-	@$(PROJ_ROOT_DIR)/scripts/installation/otel-collector.sh uninstall  
+	@$(PROJ_ROOT_DIR)/scripts/installation/otel-collector.sh uninstall
 	@echo "OTEL stack uninstallation completed"
 
 .PHONY: _install.docker.otel-stack
@@ -147,12 +147,12 @@ _install.docker.otel-stack: ## Install complete OTEL stack (Agent + Collector) -
 	@$(PROJ_ROOT_DIR)/scripts/installation/otel-agent.sh docker.install
 	@echo "OTEL stack installation completed"
 
-.PHONY: _uninstall.docker.otel-stack  
+.PHONY: _uninstall.docker.otel-stack
 _uninstall.docker.otel-stack: ## Uninstall complete OTEL stack - Docker
 	@echo "Uninstalling OTEL Agent..."
 	@$(PROJ_ROOT_DIR)/scripts/installation/otel-agent.sh docker.uninstall
 	@echo "Uninstalling OTEL Collector..."
-	@$(PROJ_ROOT_DIR)/scripts/installation/otel-collector.sh docker.uninstall  
+	@$(PROJ_ROOT_DIR)/scripts/installation/otel-collector.sh docker.uninstall
 	@echo "OTEL stack uninstallation completed"
 
 ##@ MongoDB Service
@@ -395,7 +395,7 @@ deploy.install.all.victoria: ## Install all Victoria components individually usi
 deploy.uninstall.all.victoria: ## Uninstall all Victoria components
 	@$(PROJ_ROOT_DIR)/scripts/installation/victoria.sh uninstall.all
 
-##@ Victoria Individual Components  
+##@ Victoria Individual Components
 # ==============================================================================
 # Individual component installation methods (via unified entry point)
 # ==============================================================================
