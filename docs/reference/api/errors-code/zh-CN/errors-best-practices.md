@@ -29,6 +29,7 @@
 ```
 
 ✅ **正确做法**:
+
 ```go
 // 使用 ErrorX 构建器
 return errorsx.BadRequest().
@@ -45,6 +46,7 @@ return errors.NewInvalidParameterError("username", "too short")
 ```
 
 ❌ **错误做法**:
+
 ```go
 // 直接返回不同格式的错误
 return errors.New("用户名太短")
@@ -82,6 +84,7 @@ err := registry.Create("USER_NOT_FOUND").AddMetadata("user_id", "123").Build()
 **所有面向用户的错误消息都应支持国际化**
 
 ✅ **正确做法**:
+
 ```go
 // 使用 i18n 键，延迟翻译
 return errorsx.Conflict().
@@ -96,6 +99,7 @@ return err.Localize(ctx) // 根据上下文语言进行翻译
 ```
 
 ❌ **错误做法**:
+
 ```go
 // 硬编码中文消息
 return errorsx.Conflict().
@@ -110,6 +114,7 @@ return errorsx.Conflict().
 **使用清晰、具体的错误原因码**
 
 ✅ **推荐命名** (使用大写下划线格式):
+
 - `USER_ALREADY_EXISTS` - 明确表示用户已存在
 - `SECRET_LIMIT_EXCEEDED` - 明确表示密钥数量达到上限
 - `INSUFFICIENT_PERMISSIONS` - 明确表示权限不足
@@ -117,6 +122,7 @@ return errorsx.Conflict().
 - `PASSWORD_TOO_WEAK` - 明确表示密码强度不够
 
 ❌ **不推荐命名**:
+
 - `USER_ERROR` - 过于宽泛
 - `FAILED` - 没有具体信息
 - `ERROR_1`, `ERROR_2` - 无意义的命名
@@ -142,6 +148,7 @@ return errorsx.Conflict().
 **编写有用的错误消息**
 
 ✅ **好的错误消息**:
+
 ```go
 // 具体、可操作，包含上下文信息
 errorsx.BadRequest().
@@ -173,6 +180,7 @@ errorsx.BadRequest().
 ```
 
 ❌ **不好的错误消息**:
+
 ```go
 // 模糊、无用
 errorsx.InternalError().
@@ -229,7 +237,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *CreateUserRequest) (*
             AddMetadata("actual_length", len(req.Username)).
             Build()
     }
-    
+
     // 检查用户是否存在
     existing, err := s.repo.GetUserByName(ctx, req.Username)
     if err != nil {
@@ -242,7 +250,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *CreateUserRequest) (*
     if existing != nil {
         return nil, errors.NewUserAlreadyExistsError(req.Username)
     }
-    
+
     // 创建用户
     return s.repo.CreateUser(ctx, req)
 }
@@ -272,14 +280,14 @@ func (h *UserHandler) CreateUser(ctx context.Context, req *v1.CreateUserRequest)
                 "trace_id": contextx.TraceID(ctx),
             }).Error("Failed to create user")
         }
-        
+
         // 返回错误（可能经过本地化处理）
         if errorX, ok := err.(*errorsx.ErrorX); ok {
             return nil, errorX.Localize(ctx)
         }
         return nil, err
     }
-    
+
     return &v1.CreateUserResponse{User: convertUser(user)}, nil
 }
 ```
@@ -299,7 +307,7 @@ func (s *Service) ProcessData(ctx context.Context, data []byte) error {
             AddMetadata("data_size", len(data)).
             Build()
     }
-    
+
     if err := s.saveData(ctx, data); err != nil {
         return errorsx.InternalError().
             WithReason("DATA_SAVE_FAILED").
@@ -309,7 +317,7 @@ func (s *Service) ProcessData(ctx context.Context, data []byte) error {
             AddMetadata("data_size", len(data)).
             Build()
     }
-    
+
     return nil
 }
 
@@ -323,7 +331,7 @@ func (h *Handler) HandleRequest(ctx context.Context, req *Request) error {
             // 特殊处理
             return h.handleUserExists(ctx, userExistsErr)
         }
-        
+
         // 检查是否是 ErrorX 类型
         if errorX, ok := err.(*errorsx.ErrorX); ok {
             if errorX.Code == 400 {
@@ -331,14 +339,14 @@ func (h *Handler) HandleRequest(ctx context.Context, req *Request) error {
                 h.logger.Warn("Invalid parameter", "error", errorX)
                 return errorX
             }
-            
+
             if errorX.Code >= 500 {
                 // 记录系统错误
                 h.logger.Error("Internal error", "error", errorX)
                 return errorX
             }
         }
-        
+
         // 其他错误转换为内部错误
         h.logger.Error("Unknown error", "error", err)
         return errorsx.InternalError().
@@ -347,7 +355,7 @@ func (h *Handler) HandleRequest(ctx context.Context, req *Request) error {
             WithCause(err).
             Build()
     }
-    
+
     return nil
 }
 ```
@@ -365,7 +373,7 @@ func (s *Service) CreateUser(ctx context.Context, req *CreateUserRequest) error 
         "user_id":   contextx.UserID(ctx),
         "request_id": contextx.RequestID(ctx),
     })
-    
+
     if err := s.validateUser(req); err != nil {
         // 参数错误 - 使用 Warn 级别
         if errorX, ok := err.(*errorsx.ErrorX); ok {
@@ -379,7 +387,7 @@ func (s *Service) CreateUser(ctx context.Context, req *CreateUserRequest) error 
         }
         return err
     }
-    
+
     user, err := s.repo.CreateUser(ctx, req)
     if err != nil {
         var userExistsErr *errors.UserAlreadyExistsError
@@ -388,7 +396,7 @@ func (s *Service) CreateUser(ctx context.Context, req *CreateUserRequest) error 
             logger.WithField("existing_username", userExistsErr.Username).Info("User already exists")
             return err
         }
-        
+
         // 系统错误 - 使用 Error 级别
         if errorX, ok := err.(*errorsx.ErrorX); ok {
             logger.WithFields(logrus.Fields{
@@ -406,7 +414,7 @@ func (s *Service) CreateUser(ctx context.Context, req *CreateUserRequest) error 
             WithCause(err).
             Build()
     }
-    
+
     logger.WithField("user_id", user.ID).Info("User created successfully")
     return nil
 }
@@ -477,34 +485,34 @@ func TestUserService_CreateUser(t *testing.T) {
             },
         },
     }
-    
+
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
             // 设置 mock
             ctrl := gomock.NewController(t)
             defer ctrl.Finish()
-            
+
             repo := NewMockUserRepo(ctrl)
             if tt.mockSetup != nil {
                 tt.mockSetup(repo)
             }
-            
+
             service := NewUserService(repo)
-            
+
             // 执行测试
             _, err := service.CreateUser(context.Background(), tt.request)
-            
+
             // 验证结果
             if tt.expectedError == "" {
                 assert.NoError(t, err)
             } else {
                 assert.Error(t, err)
-                
+
                 // 使用自定义检查函数
                 if tt.checkError != nil {
                     tt.checkError(t, err)
                 }
-                
+
                 // 验证错误类型
                 if errorX, ok := err.(*errorsx.ErrorX); ok {
                     assert.Equal(t, tt.expectedError, errorX.Reason)
@@ -528,16 +536,16 @@ func TestErrorPropagation(t *testing.T) {
     t.Run("database_error_propagation", func(t *testing.T) {
         ctrl := gomock.NewController(t)
         defer ctrl.Finish()
-        
+
         repo := NewMockUserRepo(ctrl)
         repo.EXPECT().GetUserByName(gomock.Any(), "test").Return(nil, errors.New("database connection failed"))
-        
+
         service := NewUserService(repo)
         handler := NewUserHandler(service)
-        
+
         req := &v1.CreateUserRequest{Username: "test"}
         _, err := handler.CreateUser(context.Background(), req)
-        
+
         // 应该返回内部服务器错误
         assert.Error(t, err)
         var kratosErr *errors.Error
@@ -546,12 +554,12 @@ func TestErrorPropagation(t *testing.T) {
             assert.Equal(t, 500, int(kratosErr.Code))
         }
     })
-    
+
     // 测试错误如何从数据层传播到API层
     t.Run("error_chain_propagation", func(t *testing.T) {
         // 模拟数据库错误
         dbErr := errors.New("connection timeout")
-        
+
         // 数据层包装错误
         repoErr := errorsx.InternalError().
             WithReason("DATABASE_CONNECTION_TIMEOUT").
@@ -560,7 +568,7 @@ func TestErrorPropagation(t *testing.T) {
             AddMetadata("operation", "query_user").
             AddMetadata("timeout", "30s").
             Build()
-        
+
         // 服务层处理错误
         serviceErr := errorsx.InternalError().
             WithReason("USER_QUERY_FAILED").
@@ -568,15 +576,15 @@ func TestErrorPropagation(t *testing.T) {
             WithCause(repoErr).
             AddMetadata("service", "user_service").
             Build()
-        
+
         // API层最终错误（可能进行本地化）
         ctx := context.WithValue(context.Background(), "lang", "zh-CN")
         apiErr := serviceErr.Localize(ctx)
-        
+
         // 验证错误链
         assert.True(t, errors.Is(serviceErr, dbErr))
         assert.True(t, errors.Is(repoErr, dbErr))
-        
+
         // 验证 ErrorX 结构
         if errorX, ok := serviceErr.(*errorsx.ErrorX); ok {
             assert.Equal(t, 500, errorX.Code)
@@ -584,14 +592,14 @@ func TestErrorPropagation(t *testing.T) {
             assert.Equal(t, "用户查询失败", errorX.Message)
             assert.NotNil(t, errorX.Cause)
             assert.Contains(t, errorX.Metadata, "service")
-            
+
             // 验证原因错误也是 ErrorX
             if causeErrorX, ok := errorX.Cause.(*errorsx.ErrorX); ok {
                 assert.Equal(t, "DATABASE_CONNECTION_TIMEOUT", causeErrorX.Reason)
                 assert.True(t, errors.Is(causeErrorX, dbErr))
             }
         }
-        
+
         // 验证本地化后的错误
         if localizedErr, ok := apiErr.(*errorsx.ErrorX); ok {
             assert.Equal(t, serviceErr.(*errorsx.ErrorX).Code, localizedErr.Code)
@@ -618,7 +626,7 @@ var (
         },
         []string{"method", "endpoint", "error_code", "error_reason", "error_type", "service"},
     )
-    
+
     apiErrorDuration = prometheus.NewHistogramVec(
         prometheus.HistogramOpts{
             Name: "api_error_duration_seconds",
@@ -627,7 +635,7 @@ var (
         },
         []string{"method", "endpoint", "error_code", "error_reason"},
     )
-    
+
     businessErrorsTotal = prometheus.NewCounterVec(
         prometheus.CounterOpts{
             Name: "business_errors_total",
@@ -640,12 +648,12 @@ var (
 // 错误指标记录
 func recordErrorMetrics(ctx context.Context, err error, method, endpoint string, duration time.Duration) {
     var errorCode, errorReason, errorType, service string
-    
+
     // 处理 ErrorX 类型
     if errorX, ok := err.(*errorsx.ErrorX); ok {
         errorCode = strconv.Itoa(errorX.Code)
         errorReason = errorX.Reason
-        
+
         // 根据 HTTP 状态码分类
         switch {
         case errorX.Code >= 500:
@@ -655,14 +663,14 @@ func recordErrorMetrics(ctx context.Context, err error, method, endpoint string,
         default:
             errorType = "success"
         }
-        
+
         // 从元数据中获取服务信息
         if svc, exists := errorX.Metadata["service"]; exists {
             if svcStr, ok := svc.(string); ok {
                 service = svcStr
             }
         }
-        
+
         // 记录业务错误
         if errorX.Code < 500 {
             operation := "unknown"
@@ -684,11 +692,11 @@ func recordErrorMetrics(ctx context.Context, err error, method, endpoint string,
         errorReason = "UNKNOWN_ERROR"
         errorType = "system_error"
     }
-    
+
     if service == "" {
         service = "unknown"
     }
-    
+
     apiErrorsTotal.WithLabelValues(method, endpoint, errorCode, errorReason, errorType, service).Inc()
     apiErrorDuration.WithLabelValues(method, endpoint, errorCode, errorReason).Observe(duration.Seconds())
 }
@@ -716,7 +724,7 @@ groups:
         annotations:
           summary: "High 5xx error rate detected"
           description: "Service {{ $labels.service }} has {{ $value | humanizePercentage }} 5xx error rate"
-      
+
       - alert: HighClientErrorRate
         expr: |
           (
@@ -730,7 +738,7 @@ groups:
         annotations:
           summary: "High 4xx error rate detected"
           description: "Service {{ $labels.service }} has {{ $value | humanizePercentage }} 4xx error rate for {{ $labels.error_reason }}"
-      
+
       - alert: BusinessErrorSpike
         expr: |
           sum(rate(business_errors_total{error_reason="USER_ALREADY_EXISTS"}[5m])) > 10
@@ -740,7 +748,7 @@ groups:
         annotations:
           summary: "Business error spike detected"
           description: "USER_ALREADY_EXISTS error rate is {{ $value }} per second"
-      
+
       - alert: DatabaseErrorSpike
         expr: |
           sum(rate(api_errors_total{error_reason=~"DATABASE_.*"}[5m])) > 5
@@ -750,7 +758,7 @@ groups:
         annotations:
           summary: "Database error spike detected"
           description: "Database-related errors rate is {{ $value }} per second"
-      
+
       - alert: ValidationErrorSpike
         expr: |
           sum(rate(api_errors_total{error_reason=~"INVALID_.*"}[5m])) > 50
@@ -818,12 +826,12 @@ func releaseErrorX(err *errorsx.ErrorX) {
         err.I18nKey = ""
         err.Cause = nil
         err.Timestamp = time.Time{}
-        
+
         // 清空但保留 map 容量
         for k := range err.Metadata {
             delete(err.Metadata, k)
         }
-        
+
         errorXPool.Put(err)
     }
 }
@@ -875,7 +883,7 @@ func (c *I18nCache) Get(lang, key string) (string, bool) {
 func (c *I18nCache) Set(lang, key, value string) {
     langCacheInterface, _ := c.cache.LoadOrStore(lang, make(map[string]string))
     langCache := langCacheInterface.(map[string]string)
-    
+
     c.mutex.Lock()
     langCache[key] = value
     c.mutex.Unlock()
@@ -886,29 +894,29 @@ func (e *ErrorX) LocalizeWithCache(ctx context.Context) *ErrorX {
     if e.I18nKey == "" {
         return e
     }
-    
+
     lang := i18n.GetLanguageFromContext(ctx)
     if lang == "" {
         return e
     }
-    
+
     // 尝试从缓存获取
     if cached, found := globalI18nCache.Get(lang, e.I18nKey); found {
         localizedErr := *e // 浅拷贝
         localizedErr.Message = cached
         return &localizedErr
     }
-    
+
     // 缓存未命中，进行翻译并缓存
     if translator := i18n.FromContext(ctx); translator != nil {
         translated := translator.T(e.I18nKey)
         globalI18nCache.Set(lang, e.I18nKey, translated)
-        
+
         localizedErr := *e // 浅拷贝
         localizedErr.Message = translated
         return &localizedErr
     }
-    
+
     return e
 }
 ```
@@ -928,12 +936,12 @@ func badExample(userID string) error {
 // ✅ 正确做法 - 隐藏敏感信息
 func goodExample(userID string) error {
     // 记录详细错误到日志（包含敏感信息）
-    logger.Error("Database connection failed", 
+    logger.Error("Database connection failed",
         "user_id", userID,
         "connection", "mysql://user:***@localhost/db",
         "error_code", "DB_CONNECTION_FAILED",
     )
-    
+
     // 返回安全的错误消息（不包含敏感信息）
     return errorsx.InternalError().
         WithReason("DATABASE_CONNECTION_FAILED").
@@ -966,7 +974,7 @@ func NewErrorSanitizer() *ErrorSanitizer {
         regexp.MustCompile(`mysql://[^:]+:[^@]+@`),
         regexp.MustCompile(`postgres://[^:]+:[^@]+@`),
     }
-    
+
     return &ErrorSanitizer{
         sensitivePatterns: patterns,
     }
@@ -983,7 +991,7 @@ func (s *ErrorSanitizer) SanitizeMessage(message string) string {
 // 安全的错误构建器
 func SafeInternalError(reason, message string) *errorsx.ErrorX {
     sanitizer := NewErrorSanitizer()
-    
+
     return errorsx.InternalError().
         WithReason(reason).
         WithMessage(sanitizer.SanitizeMessage(message)).
@@ -1037,7 +1045,7 @@ func (a *ErrorAuditor) AuditError(ctx context.Context, err error, operation stri
             "user_agent":   contextx.UserAgent(ctx),
             "metadata":     errorX.Metadata,
         }).Info("Error audit log")
-        
+
         // 对于敏感操作的错误，记录额外审计信息
         if isSensitiveOperation(operation) {
             a.logger.WithFields(logrus.Fields{
@@ -1056,7 +1064,7 @@ func isSensitiveOperation(operation string) bool {
         "login", "password_change", "permission_grant",
         "data_export", "admin_action", "payment_process",
     }
-    
+
     for _, op := range sensitiveOps {
         if strings.Contains(operation, op) {
             return true

@@ -79,6 +79,82 @@ _install.docker.mysql: ## Install docker install MySQL
 _uninstall.docker.mysql: ## Uninstall docker install MySQL
 	@$(PROJ_ROOT_DIR)/scripts/installation/mysql.sh proj::mysql::docker::uninstall
 
+##@ OTEL Agent Service (Sidecar)
+# ==============================================================================
+# OpenTelemetry Agent installation methods (lightweight sidecar)
+# ==============================================================================
+.PHONY: _install.otel-agent
+_install.otel-agent:  ## Install OTEL Agent for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/otel-agent.sh install
+
+.PHONY: _uninstall.otel-agent
+_uninstall.otel-agent: ## Uninstall OTEL Agent for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/otel-agent.sh uninstall
+
+.PHONY: _install.docker.otel-agent
+_install.docker.otel-agent: ## Install docker install OTEL Agent
+	@$(PROJ_ROOT_DIR)/scripts/installation/otel-agent.sh docker.install
+
+.PHONY: _uninstall.docker.otel-agent
+_uninstall.docker.otel-agent: ## Uninstall docker install OTEL Agent
+	@$(PROJ_ROOT_DIR)/scripts/installation/otel-agent.sh docker.uninstall
+
+##@ OTEL Collector Service (Gateway)
+# ==============================================================================
+# OpenTelemetry Collector installation methods (centralized gateway)
+# ==============================================================================
+.PHONY: _install.otel-collector
+_install.otel-collector:  ## Install OTEL Collector for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/otel-collector.sh install
+
+.PHONY: _uninstall.otel-collector
+_uninstall.otel-collector: ## Uninstall OTEL Collector for deployment.
+	@$(PROJ_ROOT_DIR)/scripts/installation/otel-collector.sh uninstall
+
+.PHONY: _install.docker.otel-collector
+_install.docker.otel-collector: ## Install docker install OTEL Collector
+	@$(PROJ_ROOT_DIR)/scripts/installation/otel-collector.sh docker.install
+
+.PHONY: _uninstall.docker.otel-collector
+_uninstall.docker.otel-collector: ## Uninstall docker install OTEL Collector
+	@$(PROJ_ROOT_DIR)/scripts/installation/otel-collector.sh docker.uninstall
+
+##@ OTEL Full Stack (Agent + Collector)
+# ==============================================================================
+# Complete OTEL stack installation (Agent -> Collector -> SaaS)
+# ==============================================================================
+.PHONY: _install.otel-stack
+_install.otel-stack: ## Install complete OTEL stack (Agent + Collector) - native
+	@echo "Installing OTEL Collector (Gateway)..."
+	@$(PROJ_ROOT_DIR)/scripts/installation/otel-collector.sh install
+	@echo "Installing OTEL Agent (Sidecar)..."
+	@$(PROJ_ROOT_DIR)/scripts/installation/otel-agent.sh install
+	@echo "OTEL stack installation completed"
+
+.PHONY: _uninstall.otel-stack  
+_uninstall.otel-stack: ## Uninstall complete OTEL stack - native
+	@echo "Uninstalling OTEL Agent..."
+	@$(PROJ_ROOT_DIR)/scripts/installation/otel-agent.sh uninstall
+	@echo "Uninstalling OTEL Collector..."
+	@$(PROJ_ROOT_DIR)/scripts/installation/otel-collector.sh uninstall  
+	@echo "OTEL stack uninstallation completed"
+
+.PHONY: _install.docker.otel-stack
+_install.docker.otel-stack: ## Install complete OTEL stack (Agent + Collector) - Docker
+	@echo "Installing OTEL Collector (Gateway)..."
+	@$(PROJ_ROOT_DIR)/scripts/installation/otel-collector.sh docker.install
+	@echo "Installing OTEL Agent (Sidecar)..."
+	@$(PROJ_ROOT_DIR)/scripts/installation/otel-agent.sh docker.install
+	@echo "OTEL stack installation completed"
+
+.PHONY: _uninstall.docker.otel-stack  
+_uninstall.docker.otel-stack: ## Uninstall complete OTEL stack - Docker
+	@echo "Uninstalling OTEL Agent..."
+	@$(PROJ_ROOT_DIR)/scripts/installation/otel-agent.sh docker.uninstall
+	@echo "Uninstalling OTEL Collector..."
+	@$(PROJ_ROOT_DIR)/scripts/installation/otel-collector.sh docker.uninstall  
+	@echo "OTEL stack uninstallation completed"
+
 ##@ MongoDB Service
 # ==============================================================================
 # MongoDB installation methods

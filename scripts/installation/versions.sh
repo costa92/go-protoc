@@ -31,6 +31,7 @@ export PROMETHEUS_VERSION=${PROMETHEUS_VERSION:-2.48.1}
 export GRAFANA_VERSION=${GRAFANA_VERSION:-10.2.4}
 export ALERTMANAGER_VERSION=${ALERTMANAGER_VERSION:-0.26.0}
 export OTELCOL_VERSION=${OTELCOL_VERSION:-0.132.0}
+export OTEL_VERSION=${OTEL_VERSION:-0.132.0}
 export PYROSCOPE_VERSION=${PYROSCOPE_VERSION:-1.9.0}
 export SENTRY_VERSION=${SENTRY_VERSION:-latest}
 export LOKI_VERSION=${LOKI_VERSION:-3.0.0}
@@ -57,6 +58,7 @@ export PROJ_GRAFANA_VERSION=${GRAFANA_VERSION}
 export PROJ_PROMETHEUS_VERSION=${PROMETHEUS_VERSION}
 export PROJ_ALERTMANAGER_VERSION=${ALERTMANAGER_VERSION}
 export PROJ_OTELCOL_VERSION=${OTELCOL_VERSION}
+export PROJ_OTEL_VERSION=${OTEL_VERSION}
 export PROJ_PYROSCOPE_VERSION=${PYROSCOPE_VERSION}
 export PROJ_VICTORIALOGS_VERSION=${VICTORIALOGS_VERSION}
 export PROJ_LOKI_VERSION=${LOKI_VERSION}
@@ -104,6 +106,7 @@ proj::versions::show_all() {
   echo "  Grafana:      $GRAFANA_VERSION"
   echo "  AlertManager: $ALERTMANAGER_VERSION"
   echo "  OtelCol:      $OTELCOL_VERSION"
+  echo "  OTEL:         $OTEL_VERSION"
   echo "  Pyroscope:    $PYROSCOPE_VERSION"
   echo ""
   echo "日志管理:"
@@ -135,6 +138,7 @@ proj::versions::validate_all() {
   proj::versions::validate_version "$GRAFANA_VERSION" "Grafana"
   proj::versions::validate_version "$ALERTMANAGER_VERSION" "AlertManager"
   proj::versions::validate_version "$OTELCOL_VERSION" "OpenTelemetry Collector"
+  proj::versions::validate_version "$OTEL_VERSION" "OTEL"
   proj::versions::validate_version "$PYROSCOPE_VERSION" "Pyroscope"
   proj::versions::validate_version "$VICTORIALOGS_VERSION" "VictoriaLogs"
   proj::versions::validate_version "$LOKI_VERSION" "Grafana Loki"

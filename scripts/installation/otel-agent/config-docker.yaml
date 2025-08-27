@@ -1,0 +1,98 @@
+# OTEL Agent Configuration for Docker Installation
+# This configuration is optimized for sidecar containers alongside application containers
+# Agent receives telemetry data from applications and forwards to OTEL Collector
+
+receivers:
+  # OTLP receivers for application telemetry data
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317               # Standard OTLP gRPC port
+      http:
+        endpoint: 0.0.0.0:4318               # Standard OTLP HTTP port
+
+processors:
+  # Lightweight batch processing for fast forwarding
+  batch:
+    timeout: 200ms                           # Faster forwarding to collector
+    send_batch_size: 100                     # Smaller batches for lower latency
+    send_batch_max_size: 200
+
+  # Resource attributes for agent identification
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: "${PROJ_ENVIRONMENT}"
+        action: upsert
+      - key: service.namespace
+        value: "${PROJ_SERVICE_NAMESPACE}"
+        action: upsert
+      - key: deployment.type
+        value: "docker"
+        action: upsert
+      - key: otel.component
+        value: "agent"
+        action: upsert
+      - key: agent.version
+        value: "${PROJ_OTEL_VERSION}"
+        action: upsert
+      - key: container.id
+        from_attribute: container.id
+        action: upsert
+
+  # Memory limiter for lightweight agent container
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 128                           # Smaller memory footprint
+
+exporters:
+  # Forward to OTEL Collector (main export destination)
+  otlp/collector:
+    endpoint: "${OTEL_COLLECTOR_ENDPOINT}"  # Configurable collector endpoint
+    tls:
+      insecure: true
+    compression: gzip
+    timeout: 5s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 1s
+      max_interval: 10s
+      max_elapsed_time: 2m
+
+extensions:
+  # Health check extension
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  
+  pipelines:
+    # Logs pipeline - forward all logs to collector
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp/collector]
+
+    # Metrics pipeline - forward all metrics to collector  
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp/collector]
+
+    # Traces pipeline - forward all traces to collector
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp/collector]
+
+  # Agent telemetry configuration (lightweight)
+  telemetry:
+    logs:
+      level: warn                            # Less verbose logging for agent
+      development: false
+      sampling:
+        initial: 2
+        thereafter: 100
+    metrics:
+      level: basic
