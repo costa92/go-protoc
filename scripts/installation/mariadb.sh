@@ -53,6 +53,12 @@ proj::mariadb::docker::install()
   # 创建 MariaDB 数据和配置目录
   proj::util::sudo "mkdir -p ${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb"
   proj::util::sudo "mkdir -p ${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb/conf.d"
+  
+  # 在 macOS 上设置正确的权限，让 MariaDB 容器能够访问
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    proj::util::sudo "chmod 755 ${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb"
+    proj::util::sudo "chown -R $(id -u):$(id -g) ${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb"
+  fi
 
   # 创建 MariaDB Docker 配置文件
   local mariadb_docker_conf_file="${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb/conf.d/mariadb-docker.cnf"
@@ -67,14 +73,27 @@ proj::mariadb::docker::install()
   rm -f ${temp_docker_conf_file}
 
   # 启动 MariaDB 容器，使用配置文件
-  docker run -d --name ${MARIADB_DOCKER_MNAME} \
-    --restart always \
-    --network ${NETWORK_NAME} \
-    -v ${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb:/var/lib/mysql \
-    -v ${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb/conf.d:/etc/mysql/conf.d \
-    -p 0.0.0.0:${PROJ_MYSQL_PORT}:3306 \
-    -e MYSQL_ROOT_PASSWORD=${PROJ_MYSQL_ADMIN_PASSWORD} \
-    mariadb:${MARIADB_VERSION}
+  # 在 macOS 上使用 Docker named volume 避免权限问题
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    docker run -d --name ${MARIADB_DOCKER_MNAME} \
+      --restart always \
+      --network ${NETWORK_NAME} \
+      -v ${MARIADB_DOCKER_MNAME}-data:/var/lib/mysql \
+      -v ${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb/conf.d:/etc/mysql/conf.d:ro \
+      -p 0.0.0.0:${PROJ_MYSQL_PORT}:3306 \
+      -e MYSQL_ROOT_PASSWORD=${PROJ_MYSQL_ADMIN_PASSWORD} \
+      mariadb:${MARIADB_VERSION}
+  else
+    # Linux 使用 bind mount
+    docker run -d --name ${MARIADB_DOCKER_MNAME} \
+      --restart always \
+      --network ${NETWORK_NAME} \
+      -v ${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb:/var/lib/mysql \
+      -v ${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb/conf.d:/etc/mysql/conf.d \
+      -p 0.0.0.0:${PROJ_MYSQL_PORT}:3306 \
+      -e MYSQL_ROOT_PASSWORD=${PROJ_MYSQL_ADMIN_PASSWORD} \
+      mariadb:${MARIADB_VERSION}
+  fi
 
   echo "Sleeping to wait for all mariadb container to complete startup ..."
   sleep 10
@@ -88,7 +107,13 @@ proj::mariadb::docker::install()
 proj::mariadb::docker::uninstall()
 {
   docker rm -f ${MARIADB_DOCKER_MNAME} &>/dev/null
-  proj::util::sudo "rm -rf ${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb"
+  
+  # 在 macOS 上清理 Docker volume
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    docker volume rm -f ${MARIADB_DOCKER_MNAME}-data &>/dev/null
+  fi
+  
+  proj::util::sudo "rm -rf ${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb" 2>/dev/null || true
   proj::log::info "uninstall mariadb successfully"
 }
 
@@ -220,12 +245,26 @@ proj::mariadb::status()
   # 基础检查：检查端口，基础检查
   proj::util::telnet ${PROJ_MYSQL_HOST} ${PROJ_MYSQL_PORT} || return 1
 
-  # 终态检查：检查 MySQL 是否成功运行
-  echo mariadb -h${PROJ_MYSQL_HOST} -P${PROJ_MYSQL_PORT} -u${PROJ_MYSQL_ADMIN_USERNAME} -p${PROJ_MYSQL_ADMIN_PASSWORD} -e quit
-  mariadb -h${PROJ_MYSQL_HOST} -P${PROJ_MYSQL_PORT} -u${PROJ_MYSQL_ADMIN_USERNAME} -p${PROJ_MYSQL_ADMIN_PASSWORD} -e quit &>/dev/null || {
-    proj::log::error "can not login with root, mariadb maybe not initialized properly."
-    return 1
-  }
+  # 终态检查：检查 MariaDB 是否成功运行
+  # 优先使用 docker exec 进行连接测试
+  if docker ps --format "table {{.Names}}" | grep -q "${MARIADB_DOCKER_MNAME}"; then
+    echo "Testing MariaDB connection via docker exec..."
+    docker exec ${MARIADB_DOCKER_MNAME} mariadb -u${PROJ_MYSQL_ADMIN_USERNAME} -p${PROJ_MYSQL_ADMIN_PASSWORD} -e "quit" &>/dev/null || {
+      proj::log::error "can not login with root via docker exec, mariadb maybe not initialized properly."
+      return 1
+    }
+  else
+    # 回退到本地客户端（如果可用）
+    echo mariadb -h${PROJ_MYSQL_HOST} -P${PROJ_MYSQL_PORT} -u${PROJ_MYSQL_ADMIN_USERNAME} -p${PROJ_MYSQL_ADMIN_PASSWORD} -e quit
+    if command -v mariadb >/dev/null 2>&1; then
+      mariadb -h${PROJ_MYSQL_HOST} -P${PROJ_MYSQL_PORT} -u${PROJ_MYSQL_ADMIN_USERNAME} -p${PROJ_MYSQL_ADMIN_PASSWORD} -e quit &>/dev/null || {
+        proj::log::error "can not login with root, mariadb maybe not initialized properly."
+        return 1
+      }
+    else
+      proj::log::warn "MariaDB client not installed locally, skipping connection test"
+    fi
+  fi
 }
 
 if [[ "$*" =~ proj::mariadb:: ]]; then
