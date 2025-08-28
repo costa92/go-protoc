@@ -3,6 +3,7 @@ package logger
 import (
 	"os"
 	"path/filepath"
+	"time"
 	
 	"github.com/costa92/go-protoc/v2/pkg/version"
 )
@@ -69,6 +70,30 @@ func (c *QuickConfig) ToFullOptions() *LogsOptions {
 			opts.OutputPaths = append(opts.OutputPaths, logFile)
 		}
 		// 如果目录创建失败，继续使用stdout，不阻塞启动
+	}
+
+	// 配置 OTLP
+	if c.EnableOTLP {
+		opts.OTLP = &OTLPConfig{
+			Enabled:        true,
+			Endpoint:       c.OTLPEndpoint,
+			Protocol:       "grpc", // 默认使用 gRPC
+			Timeout:        5 * time.Second,
+			BatchTimeout:   1 * time.Second,
+			BatchSize:      100,
+			Insecure:       true,
+			Headers:        make(map[string]string),
+			ServiceName:    serviceName,
+			ServiceVersion: versionInfo.GitVersion,
+			Environment:    "development", // 默认环境
+		}
+		
+		// 根据预设调整 OTLP 配置
+		if c.Preset == PresetProduction {
+			opts.OTLP.Environment = "production"
+			opts.OTLP.BatchSize = 500
+			opts.OTLP.BatchTimeout = 2 * time.Second
+		}
 	}
 	
 	return opts

@@ -42,12 +42,11 @@ jaeger:
 
 # Simplified Logger Configuration
 log:
-  # 预设模式: development, production, testing, observability  
+  # 预设模式: development, production, testing, observability
   preset: "observability"        # 可观测性预设：适合OTEL Collector + VictoriaLogs
   type: "zap"                   # 日志器类型: zap 或 slog
   level: "debug"                # 覆盖预设的日志级别（可选）
   log-dir: "logs"               # 日志文件目录
-  
+
   # OTEL 集成（简化）
   enable-otlp: true             # 启用OTLP发送到Collector
-  otlp-endpoint: "127.0.0.1:4327" # OTEL Collector端点

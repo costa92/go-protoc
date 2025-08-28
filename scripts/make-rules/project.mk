@@ -13,6 +13,10 @@ fmt: ## Format go source code.
 run-api: ## Run the API server.
 	go run -ldflags "-X 'github.com/costa92/go-protoc/v2/pkg/version.serviceName=apiserver-dev' -X 'github.com/costa92/go-protoc/v2/pkg/version.gitVersion=$(GIT_VERSION)' -X 'github.com/costa92/go-protoc/v2/pkg/version.gitBranch=$(GIT_BRANCH)' -X 'github.com/costa92/go-protoc/v2/pkg/version.gitCommit=$(GIT_COMMIT)' -X 'github.com/costa92/go-protoc/v2/pkg/version.buildDate=$(BUILD_DATE)'" cmd/apiserver/main.go --config=configs/apiserver.yaml
 
+.PHONY: run-api-otlp
+run-api-otlp: ## Run the API server with otlp.
+	go run -ldflags "-X 'github.com/costa92/go-protoc/v2/pkg/version.serviceName=apiserver-dev' -X 'github.com/costa92/go-protoc/v2/pkg/version.gitVersion=$(GIT_VERSION)' -X 'github.com/costa92/go-protoc/v2/pkg/version.gitBranch=$(GIT_BRANCH)' -X 'github.com/costa92/go-protoc/v2/pkg/version.gitCommit=$(GIT_COMMIT)' -X 'github.com/costa92/go-protoc/v2/pkg/version.buildDate=$(BUILD_DATE)'" cmd/apiserver/main.go --config=configs/apiserver_otlp.yaml
+
 .PHONY: kill-ports
 kill-ports: ## Kill processes using ports 8080 and 9090.
 	@echo "🔪 Killing processes using ports 8080 and 9090..."

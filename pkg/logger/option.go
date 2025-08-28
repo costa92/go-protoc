@@ -55,6 +55,8 @@ type LogsOptions struct {
 	CallerSkip int `json:"caller-skip" mapstructure:"caller-skip"`
 	// DisableFunctionAtInfo 在info级别日志中禁用函数名显示
 	DisableFunctionAtInfo bool `json:"disable-function-at-info" mapstructure:"disable-function-at-info"`
+	// OTLP OTLP日志导出配置
+	OTLP *OTLPConfig `json:"otlp" mapstructure:"otlp"`
 }
 
 // EncoderConfig 定义日志编码器的配置选项
