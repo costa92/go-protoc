@@ -53,10 +53,9 @@ log:
   type: "zap"                   # 日志器类型
   level: "info"                 # 日志级别
   log-dir: "logs"               # 本地日志目录
-  
-  # OTLP 配置（简化方式）
-  enable-otlp: true             # 启用 OTLP 日志发送
-  otlp-endpoint: "127.0.0.1:4327" # OTEL Agent gRPC 端点
+
+  # OTLP 配置（简化方式）- 有端点则自动启用
+  otlp-endpoint: "127.0.0.1:4327" # OTEL Agent gRPC 端点（设置则自动启用OTLP）
 
 # ====================================
 # 方式2: 详细配置（高级用法）
@@ -74,7 +73,7 @@ log:
 #   error-output-paths: ["stderr"]
 #   development: false
 #   encoding: "json"
-#   
+#
 #   # 详细的 OTLP 配置
 #   otlp:
 #     enabled: true
@@ -93,17 +92,14 @@ log:
 # ====================================
 # 方式3: 混合架构配置
 # ====================================
-# 同时启用本地文件和 OTLP 发送，实现双重保障：
+# 如果需要同时启用本地文件和 OTLP，可以通过不同的预设实现：
 
 # log:
 #   preset: "production"           # 生产环境预设
 #   type: "zap"
 #   level: "info"
-#   log-dir: "logs"
-#   
-#   # 启用 OTLP（会自动添加到现有的文件输出）
-#   enable-otlp: true
-#   otlp-endpoint: "127.0.0.1:4327"
+#   log-dir: "logs"                # 有 log-dir 但无 otlp-endpoint = 仅文件输出
+#   # otlp-endpoint: ""             # 空值或不设置 = 禁用 OTLP
 
 # ====================================
 # 架构说明

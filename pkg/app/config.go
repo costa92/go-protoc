@@ -129,9 +129,7 @@ func parseQuickConfig() *logger.QuickConfig {
 	if viper.IsSet("log.log-dir") {
 		config.LogDir = viper.GetString("log.log-dir")
 	}
-	if viper.IsSet("log.enable-otlp") {
-		config.EnableOTLP = viper.GetBool("log.enable-otlp")
-	}
+	// 注意：不再读取 enable-otlp 字段，通过 otlp-endpoint 自动判断
 	if viper.IsSet("log.otlp-endpoint") {
 		config.OTLPEndpoint = viper.GetString("log.otlp-endpoint")
 	}

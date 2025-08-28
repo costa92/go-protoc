@@ -92,9 +92,20 @@ func NewZapLogger(opts *LogsOptions) (*ZapLogger, error) {
 	// 如果启用OTLP，创建OTLP导出器和core
 	var otlpExporter *OTLPLogExporter
 	if opts.OTLP != nil && opts.OTLP.Enabled {
+		fmt.Printf("🔄 OTLP logging enabled, endpoint: %s\n", opts.OTLP.Endpoint)
 		// 暂时跳过 OTLP 实现，避免编译错误
-		fmt.Printf("⚠️  OTLP logging requested but temporarily disabled due to API compatibility issues\n")
-		fmt.Printf("   📝 Logs will continue to write to files: %v\n", opts.OutputPaths)
+		fmt.Printf("⚠️  OTLP implementation temporarily disabled due to API compatibility issues\n")
+	}
+	
+	// 提示当前输出路径信息
+	if len(opts.OutputPaths) == 1 && opts.OutputPaths[0] == "stdout" {
+		if opts.OTLP != nil && opts.OTLP.Enabled {
+			fmt.Printf("   📝 Logs will only output to stdout (no file output when OTLP endpoint configured)\n")
+		} else {
+			fmt.Printf("   📝 Logs will only output to stdout (log-dir not configured)\n")
+		}
+	} else {
+		fmt.Printf("   📝 Current output paths: %v\n", opts.OutputPaths)
 	}
 
 	// 创建组合core

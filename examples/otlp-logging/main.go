@@ -34,8 +34,7 @@ func demonstrateQuickConfig() {
 		Type:         "zap",
 		Level:        "debug",
 		LogDir:       "logs/otlp-example",
-		EnableOTLP:   true,                        // 启用 OTLP
-		OTLPEndpoint: "127.0.0.1:4327",           // OTEL Agent gRPC 端点
+		OTLPEndpoint: "127.0.0.1:4327",           // OTEL Agent gRPC 端点（设置则自动启用OTLP）
 	}
 
 	// 转换为完整配置
@@ -133,8 +132,7 @@ func demonstrateMixedArchitecture() {
 		Type:         "zap",
 		Level:        "info",
 		LogDir:       "logs/otlp-example",
-		EnableOTLP:   true,                       // 启用 OTLP
-		OTLPEndpoint: "127.0.0.1:4327",          // OTEL Agent
+		OTLPEndpoint: "127.0.0.1:4327",          // OTEL Agent（设置则自动启用OTLP）
 	}
 
 	fullOptions := config.ToFullOptions()

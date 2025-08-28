@@ -30,8 +30,7 @@ type QuickConfig struct {
 	LogDir      string    `json:"log-dir" mapstructure:"log-dir"`         // 日志目录
 	
 	// 可观测性配置
-	EnableOTLP     bool   `json:"enable-otlp" mapstructure:"enable-otlp"`         // 启用OTLP
-	OTLPEndpoint   string `json:"otlp-endpoint" mapstructure:"otlp-endpoint"`     // OTLP端点
+	OTLPEndpoint   string `json:"otlp-endpoint" mapstructure:"otlp-endpoint"`     // OTLP端点（设置则自动启用OTLP）
 }
 
 // ToFullOptions 将简化配置转换为完整配置
@@ -44,12 +43,10 @@ func (c *QuickConfig) ToFullOptions() *LogsOptions {
 	}
 	
 	// 设置默认值
-	if c.LogDir == "" {
-		c.LogDir = "logs"
-	}
 	if c.Type == "" {
 		c.Type = "zap"
 	}
+	// 注意：不再为 LogDir 设置默认值，允许用户通过空值禁用文件输出
 
 	// 根据预设创建基础配置
 	opts := c.createPresetOptions(serviceName)
@@ -62,8 +59,11 @@ func (c *QuickConfig) ToFullOptions() *LogsOptions {
 		opts.Type = LoggerType(c.Type)
 	}
 	
-	// 设置日志文件路径
-	if c.Preset != PresetTesting {
+	// 检测是否启用OTLP（有端点配置则启用）
+	enableOTLP := c.OTLPEndpoint != ""
+	
+	// 设置日志文件路径 - 当启用OTLP时，或log-dir为空时，不输出到文件
+	if c.Preset != PresetTesting && !enableOTLP && c.LogDir != "" {
 		logFile := filepath.Join(c.LogDir, serviceName, "app.log")
 		// 确保目录存在
 		if err := ensureLogDir(filepath.Dir(logFile)); err == nil {
@@ -73,7 +73,7 @@ func (c *QuickConfig) ToFullOptions() *LogsOptions {
 	}
 
 	// 配置 OTLP
-	if c.EnableOTLP {
+	if enableOTLP {
 		opts.OTLP = &OTLPConfig{
 			Enabled:        true,
 			Endpoint:       c.OTLPEndpoint,
@@ -257,9 +257,8 @@ func DefaultQuickConfig() *QuickConfig {
 	return &QuickConfig{
 		Preset:         PresetObservability, // 默认使用可观测性预设
 		Type:           "zap",
-		LogDir:         "logs",
-		EnableOTLP:     true,
-		OTLPEndpoint:   "127.0.0.1:4327",
+		LogDir:         "", // 默认不输出到文件，仅stdout
+		OTLPEndpoint:   "", // 默认不启用OTLP，由配置文件决定
 	}
 }
 
