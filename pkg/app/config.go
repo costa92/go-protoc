@@ -83,6 +83,64 @@ func AddConfigFlag(fs *pflag.FlagSet, name string, watch bool) {
 
 // reinitializeLoggerFromConfig 根据配置文件重新初始化日志器
 func reinitializeLoggerFromConfig() {
+	var logOptions *logger.LogsOptions
+
+	// 优先使用简化配置（新方式）
+	if viper.IsSet("log.preset") {
+		quickConfig := parseQuickConfig()
+		logOptions = quickConfig.ToFullOptions()
+		logger.Infow("Using simplified log configuration", "preset", quickConfig.Preset, "type", quickConfig.Type)
+	} else {
+		// 兼容旧的详细配置
+		logOptions = parseDetailedConfig()
+		logger.Infow("Using detailed log configuration", "type", logOptions.Type)
+	}
+
+	// 添加版本信息到初始字段
+	addVersionInfoToLogger(logOptions)
+
+	// 创建并设置全局日志器
+	if globalLogger, err := logger.NewLogger(logOptions); err != nil {
+		logger.Errorw("Failed to reinitialize logger from config", "error", err)
+	} else {
+		logger.SetDefaultLogger(globalLogger)
+		versionInfo := version.Get()
+		logger.Infow("Logger reinitialized from configuration file", 
+			"level", logOptions.Level, 
+			"format", logOptions.Format,
+			"service", versionInfo.ServiceName,
+			"type", string(logOptions.Type))
+	}
+}
+
+// parseQuickConfig 解析简化配置
+func parseQuickConfig() *logger.QuickConfig {
+	config := logger.DefaultQuickConfig()
+	
+	if viper.IsSet("log.preset") {
+		config.Preset = logger.LogPreset(viper.GetString("log.preset"))
+	}
+	if viper.IsSet("log.type") {
+		config.Type = viper.GetString("log.type")
+	}
+	if viper.IsSet("log.level") {
+		config.Level = viper.GetString("log.level")
+	}
+	if viper.IsSet("log.log-dir") {
+		config.LogDir = viper.GetString("log.log-dir")
+	}
+	if viper.IsSet("log.enable-otlp") {
+		config.EnableOTLP = viper.GetBool("log.enable-otlp")
+	}
+	if viper.IsSet("log.otlp-endpoint") {
+		config.OTLPEndpoint = viper.GetString("log.otlp-endpoint")
+	}
+	
+	return config
+}
+
+// parseDetailedConfig 解析详细配置（向后兼容）
+func parseDetailedConfig() *logger.LogsOptions {
 	logOptions := logger.DefaultOptions()
 
 	// Configure logging options from viper
@@ -135,46 +193,60 @@ func reinitializeLoggerFromConfig() {
 		logOptions.CallerSkip = viper.GetInt("log.caller-skip")
 	}
 
-	// 处理初始字段配置 - 添加到所有日志条目的字段
-	if viper.IsSet("log.initial-fields") {
-		logOptions.InitialFields = make(map[string]interface{})
-		initialFieldsMap := viper.GetStringMap("log.initial-fields")
-		for k, v := range initialFieldsMap {
-			logOptions.InitialFields[k] = v
+	// 处理编码器配置
+	if viper.IsSet("log.encoder-config") {
+		encoderConfig := &logger.EncoderConfig{}
+		if viper.IsSet("log.encoder-config.time-key") {
+			encoderConfig.TimeKey = viper.GetString("log.encoder-config.time-key")
 		}
+		if viper.IsSet("log.encoder-config.level-key") {
+			encoderConfig.LevelKey = viper.GetString("log.encoder-config.level-key")
+		}
+		if viper.IsSet("log.encoder-config.message-key") {
+			encoderConfig.MessageKey = viper.GetString("log.encoder-config.message-key")
+		}
+		if viper.IsSet("log.encoder-config.caller-key") {
+			encoderConfig.CallerKey = viper.GetString("log.encoder-config.caller-key")
+		}
+		if viper.IsSet("log.encoder-config.stacktrace-key") {
+			encoderConfig.StacktraceKey = viper.GetString("log.encoder-config.stacktrace-key")
+		}
+		if viper.IsSet("log.encoder-config.function-key") {
+			encoderConfig.FunctionKey = viper.GetString("log.encoder-config.function-key")
+		}
+		if viper.IsSet("log.encoder-config.time-encoder") {
+			encoderConfig.TimeEncoder = viper.GetString("log.encoder-config.time-encoder")
+		}
+		if viper.IsSet("log.encoder-config.level-encoder") {
+			encoderConfig.LevelEncoder = viper.GetString("log.encoder-config.level-encoder")
+		}
+		if viper.IsSet("log.encoder-config.caller-encoder") {
+			encoderConfig.CallerEncoder = viper.GetString("log.encoder-config.caller-encoder")
+		}
+		logOptions.EncoderConfig = encoderConfig
 	}
 
-	// 确保始终有服务信息，如果配置文件中没有设置则使用版本包的默认值
+	return logOptions
+}
+
+// addVersionInfoToLogger 添加版本信息到日志器
+func addVersionInfoToLogger(logOptions *logger.LogsOptions) {
+	// 处理初始字段配置
 	if logOptions.InitialFields == nil {
 		logOptions.InitialFields = make(map[string]interface{})
 	}
 
 	versionInfo := version.Get()
 	
-	// 如果配置中没有 service 字段，使用版本包的默认服务名
+	// 添加版本信息字段
 	if _, exists := logOptions.InitialFields["service"]; !exists {
 		logOptions.InitialFields["service"] = versionInfo.ServiceName
 	}
-	
-	// 如果配置中没有 version 字段，使用版本包的版本信息
 	if _, exists := logOptions.InitialFields["version"]; !exists {
 		logOptions.InitialFields["version"] = versionInfo.GitVersion
 	}
-	
-	// 如果配置中没有 branch 字段，使用版本包的分支信息
 	if _, exists := logOptions.InitialFields["branch"]; !exists {
 		logOptions.InitialFields["branch"] = versionInfo.GitBranch
-	}
-
-	// Initialize the global logger
-	if globalLogger, err := logger.NewLogger(logOptions); err != nil {
-		logger.Errorw("Failed to reinitialize logger from config", "error", err)
-	} else {
-		logger.SetDefaultLogger(globalLogger)
-		logger.Infow("Logger reinitialized from configuration file", 
-			"level", logOptions.Level, 
-			"format", logOptions.Format,
-			"service", versionInfo.ServiceName)
 	}
 }
 

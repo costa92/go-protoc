@@ -150,10 +150,21 @@ func NewWebServer(serverConfig *ServerConfig) (server.Server, error) {
 }
 
 func ProvideKratosAppConfig(registrar registry.Registrar) server.KratosAppConfig {
+	// 使用版本系统获取统一的服务信息
+	versionInfo := version.Get()
+	serviceName := versionInfo.ServiceName
+	if serviceName == "" {
+		serviceName = Name // 后备到硬编码常量
+	}
+	serviceVersion := versionInfo.GitVersion
+	if serviceVersion == "" {
+		serviceVersion = Version // 后备到硬编码常量
+	}
+	
 	return server.KratosAppConfig{
 		ID:        ID,
-		Name:      Name,
-		Version:   Version,
+		Name:      serviceName,      // 使用版本系统的服务名
+		Version:   serviceVersion,   // 使用版本系统的版本
 		Metadata:  map[string]string{},
 		Registrar: registrar,
 	}

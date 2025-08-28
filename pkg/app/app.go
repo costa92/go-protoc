@@ -172,11 +172,16 @@ func initializeEarlyLogger() {
 		"branch":  versionInfo.GitBranch,
 	}
 
-	// 初始化早期 logger
-	if earlyLogger, err := logger.NewLogger(logOptions); err == nil {
-		logger.SetDefaultLogger(earlyLogger)
-		// 测试早期 logger
-		logger.Infow("Early logger initialized", "early_service", versionInfo.ServiceName)
+	// 初始化早期 logger - 只在没有默认logger时设置
+	if logger.GetDefaultLogger() == nil {
+		if earlyLogger, err := logger.NewLogger(logOptions); err == nil {
+			logger.SetDefaultLogger(earlyLogger)
+			// 测试早期 logger
+			logger.Infow("Early logger initialized", "early_service", versionInfo.ServiceName)
+		}
+	} else {
+		// 使用已存在的logger（通常是从配置文件初始化的）
+		logger.Infow("Using existing logger from configuration", "early_service", versionInfo.ServiceName)
 	}
 }
 
