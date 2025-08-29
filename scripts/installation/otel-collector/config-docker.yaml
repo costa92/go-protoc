@@ -64,8 +64,8 @@ processors:
 exporters:
   # VictoriaLogs导出器 - 修复URL路径问题
   otlphttp/victorialogs:
-    endpoint: "http://victorialogs:9428"    # 注意：这里不包含路径
-    logs_endpoint: "http://victorialogs:9428/insert/opentelemetry/v1/logs"  # 完整的logs端点
+    endpoint: "http://${VICTORIALOGS_ENDPOINT}/insert/opentelemetry/v1"    # 动态VictoriaLogs端点
+    logs_endpoint: "http://${VICTORIALOGS_ENDPOINT}/insert/opentelemetry/v1/logs"  # 完整的logs端点
     tls:
       insecure: true
     compression: gzip
@@ -84,7 +84,7 @@ exporters:
 
   # Jaeger导出器（用于分布式追踪）
   otlp/jaeger:
-    endpoint: "jaeger:14250"                # Jaeger OTLP gRPC端点
+    endpoint: "${JAEGER_ENDPOINT}"          # 动态Jaeger OTLP gRPC端点
     tls:
       insecure: true
     compression: gzip
@@ -92,7 +92,7 @@ exporters:
 
   # Prometheus指标导出器
   prometheusremotewrite:
-    endpoint: "http://prometheus:9090/api/v1/write"
+    endpoint: "http://${PROMETHEUS_ENDPOINT}/api/v1/write"
     tls:
       insecure: true
 

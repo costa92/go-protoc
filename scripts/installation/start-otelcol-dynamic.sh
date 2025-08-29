@@ -4,6 +4,10 @@
 # 自动检测当前项目目录并挂载到Docker容器
 set -euo pipefail
 
+# 获取脚本目录并加载通用配置
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
+
 # 配置
 CONTAINER_NAME="otelcol-logs-collector"
 OTELCOL_IMAGE="otel/opentelemetry-collector-contrib:0.91.0"
@@ -121,10 +125,14 @@ start_otelcol_container() {
     echo "✅ 验证配置文件: $(ls -la "$project_config_dir/config.yaml")"
     echo "📂 配置目录: $project_config_dir"
     
+    # 确保网络存在
+    proj::common::network
+    
     # 启动容器，使用项目目录下的配置
     docker run -d \
         --name "$CONTAINER_NAME" \
         --restart unless-stopped \
+        --network "${NETWORK_NAME}" \
         -v "$project_root:/app:rw" \
         -p 4331:4317 \
         -p 4332:4318 \

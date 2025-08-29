@@ -2,8 +2,13 @@
 
 set -eEuo pipefail
 
-# 获取项目根目录
-INSTALLATION_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${0}}")" && pwd)"
+# 获取项目根目录 - 兼容 Make 环境
+if [[ -n "${BASH_SOURCE[0]:-}" ]]; then
+  INSTALLATION_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+else
+  # 当在 Make 环境中运行时，BASH_SOURCE 可能未定义
+  INSTALLATION_DIR="$(cd "$(dirname "${0}")" && pwd)"
+fi
 PROJ_ROOT_DIR="${INSTALLATION_DIR}/../.."
 
 # 都会统一加载 scripts/common.sh 脚本

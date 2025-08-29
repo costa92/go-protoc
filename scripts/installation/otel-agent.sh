@@ -151,6 +151,34 @@ proj::otel_agent::uninstall() {
   proj::log::info "uninstall OTEL Agent successfully"
 }
 
+# Function to detect OTEL Collector port configuration
+proj::otel_agent::detect_collector_config() {
+  local collector_grpc_port="4317"  # Default internal port
+  local collector_container="${NETWORK_NAME}-otel-collector"
+  
+  # Check if collector container exists and get its port mapping
+  if docker ps --format '{{.Names}}' | grep -q "^${collector_container}$"; then
+    # Get the external port mapped to internal 4317
+    local external_port=$(docker port "${collector_container}" 4317/tcp 2>/dev/null | cut -d: -f2)
+    
+    if [[ -n "${external_port}" ]]; then
+      proj::log::info "Detected OTEL Collector external port: ${external_port}" >&2
+      # For container-to-container communication, we still use internal port 4317
+      collector_grpc_port="4317"
+    fi
+    
+    # Verify the collector is accessible by checking health endpoint from host
+    local collector_health_port=$(docker port "${collector_container}" 13133/tcp 2>/dev/null | cut -d: -f2)
+    if [[ -n "${collector_health_port}" ]] && curl -s "http://127.0.0.1:${collector_health_port}" >/dev/null 2>&1; then
+      proj::log::info "OTEL Collector is accessible and healthy on port ${collector_health_port}" >&2
+    else
+      proj::log::warn "OTEL Collector might not be ready or accessible" >&2
+    fi
+  fi
+  
+  echo "${collector_grpc_port}"
+}
+
 # Function to install OTEL Agent using Docker
 proj::otel_agent::docker::install() {
   proj::otel_agent::pre_install
@@ -170,17 +198,43 @@ proj::otel_agent::docker::install() {
   
   # 检查 proj 网络是否存在，决定网络配置
   local network_args=""
-  local collector_endpoint="127.0.0.1:4317"
+  local collector_endpoint="127.0.0.1:${PROJ_OTEL_GRPC_PORT:-4317}"
+  
+  proj::log::info "Checking network: NETWORK_NAME=${NETWORK_NAME}"
   
   if docker network ls | grep -q ${NETWORK_NAME}; then
     proj::log::info "${NETWORK_NAME} network detected, using networked configuration..."
     network_args="--network ${NETWORK_NAME}"
-    # 如果 OTEL Collector 存在，使用容器名作为端点
+    
+    # 如果 OTEL Collector 存在，动态检测其端口配置
     if docker ps --format '{{.Names}}' | grep -q "${NETWORK_NAME}-otel-collector"; then
-      collector_endpoint="${NETWORK_NAME}-otel-collector:4317"
+      # 使用动态检测函数获取端口配置
+      local collector_internal_port
+      collector_internal_port=$(proj::otel_agent::detect_collector_config)
+      collector_endpoint="${NETWORK_NAME}-otel-collector:${collector_internal_port}"
+      
+      # 同时设置 Jaeger 端点（如果存在）
+      local jaeger_endpoint=""
+      if docker ps --format '{{.Names}}' | grep -q "${NETWORK_NAME}-jaeger"; then
+        jaeger_endpoint="${NETWORK_NAME}-jaeger:14250"
+        export JAEGER_ENDPOINT="${jaeger_endpoint}"
+        proj::log::info "Found Jaeger container, using endpoint: ${jaeger_endpoint}"
+      fi
+      
+      proj::log::info "Found OTEL Collector container, using endpoint: ${collector_endpoint}"
+      
+      # 验证 Collector 容器是否运行正常（从主机检查健康端点）
+      local collector_health_port=$(docker port "${NETWORK_NAME}-otel-collector" 13133/tcp 2>/dev/null | cut -d: -f2)
+      if [[ -n "${collector_health_port}" ]] && curl -s "http://127.0.0.1:${collector_health_port}" >/dev/null 2>&1; then
+        proj::log::info "OTEL Collector health check passed (port ${collector_health_port})"
+      else
+        proj::log::warn "OTEL Collector health check failed, but continuing with configuration"
+      fi
+    else
+      proj::log::info "OTEL Collector container not found, using host endpoint: ${collector_endpoint}"
     fi
   else
-    proj::log::info "Using standalone configuration..."
+    proj::log::info "Using standalone configuration with endpoint: ${collector_endpoint}"
   fi
   
   # 使用 envsubst 替换模板中的环境变量
@@ -189,6 +243,8 @@ proj::otel_agent::docker::install() {
   export PROJ_SERVICE_NAMESPACE="${PROJ_SERVICE_NAMESPACE:-default}"
   export PROJ_OTEL_VERSION="${OTEL_VERSION}"
   export OTEL_COLLECTOR_ENDPOINT="${collector_endpoint}"
+  
+  proj::log::info "Agent will use collector endpoint: ${collector_endpoint}"
   
   # 创建配置目录
   mkdir -p ${otel_config_dir}
@@ -208,6 +264,7 @@ proj::otel_agent::docker::install() {
     -e PROJ_SERVICE_NAMESPACE="${PROJ_SERVICE_NAMESPACE}" \
     -e PROJ_OTEL_VERSION="${PROJ_OTEL_VERSION}" \
     -e OTEL_COLLECTOR_ENDPOINT="${collector_endpoint}" \
+    -e JAEGER_ENDPOINT="${jaeger_endpoint:-}" \
     --restart unless-stopped \
     otel/opentelemetry-collector-contrib:${OTEL_VERSION} \
     --config=/etc/otelcol-contrib/config.yaml

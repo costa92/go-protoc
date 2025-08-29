@@ -16,8 +16,13 @@ export NC='\033[0m' # No Color
 
 PROJ_VERBOSE=${PROJ_VERBOSE:-1}
 
-# This will canonicalize the path
-PROJ_ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd -P)
+# This will canonicalize the path - 兼容 Make 环境
+if [[ -n "${BASH_SOURCE[0]:-}" ]]; then
+  PROJ_ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd -P)
+else
+  # 当在 Make 环境中运行时，BASH_SOURCE 可能未定义，使用当前脚本路径
+  PROJ_ROOT_DIR=$(cd "$(dirname "${0}")"/.. && pwd -P)
+fi
 source "${PROJ_ROOT_DIR}/scripts/lib/init.sh"
 
 

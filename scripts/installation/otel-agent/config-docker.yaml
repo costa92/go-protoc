@@ -39,7 +39,7 @@ processors:
 exporters:
   # 转发到OTEL Collector
   otlp/collector:
-    endpoint: "otel-collector:4317"         # Collector gRPC端点
+    endpoint: "${OTEL_COLLECTOR_ENDPOINT}"  # Collector gRPC端点（动态配置）
     tls:
       insecure: true
     compression: gzip

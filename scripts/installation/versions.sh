@@ -163,8 +163,8 @@ proj::versions::validate_all() {
 # ./versions.sh validate  # 验证所有版本格式
 # =============================================================================
 
-# 如果直接执行此脚本
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+# 如果直接执行此脚本 - 兼容 Make 环境
+if [[ "${BASH_SOURCE[0]:-${0}}" == "${0}" ]]; then
   case "${1:-}" in
     "show"|"list"|"")
       proj::versions::show_all

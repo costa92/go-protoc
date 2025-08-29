@@ -166,11 +166,40 @@ proj::otel::docker::install() {
     return 1
   fi
 
+  # 动态检测后端服务并设置端点
+  local victorialogs_endpoint="proj-victorialogs:9428"
+  local jaeger_endpoint="proj-jaeger:14250" 
+  local prometheus_endpoint="proj-prometheus:9090"
+  
+  # 检查 VictoriaLogs 服务
+  if docker ps --format '{{.Names}}' | grep -q "${NETWORK_NAME}-victorialogs"; then
+    proj::log::info "Found VictoriaLogs container: ${NETWORK_NAME}-victorialogs"
+  else
+    proj::log::warn "VictoriaLogs container not found, using default endpoint"
+  fi
+  
+  # 检查 Jaeger 服务
+  if docker ps --format '{{.Names}}' | grep -q "${NETWORK_NAME}-jaeger"; then
+    proj::log::info "Found Jaeger container: ${NETWORK_NAME}-jaeger"
+  else
+    proj::log::warn "Jaeger container not found, using default endpoint"
+  fi
+  
+  # 检查 Prometheus 服务
+  if docker ps --format '{{.Names}}' | grep -q "${NETWORK_NAME}-prometheus"; then
+    proj::log::info "Found Prometheus container: ${NETWORK_NAME}-prometheus"
+  else
+    proj::log::warn "Prometheus container not found, using default endpoint"
+  fi
+
   # 使用 envsubst 替换模板中的环境变量
   export PROJ_SERVICE_NAME="${PROJ_SERVICE_NAME:-apiserver}"
   export PROJ_ENVIRONMENT="${PROJ_ENVIRONMENT:-development}"
   export PROJ_SERVICE_NAMESPACE="${PROJ_SERVICE_NAMESPACE:-default}"
   export PROJ_OTELCOL_VERSION="${OTEL_VERSION}"
+  export VICTORIALOGS_ENDPOINT="${victorialogs_endpoint}"
+  export JAEGER_ENDPOINT="${jaeger_endpoint}"
+  export PROMETHEUS_ENDPOINT="${prometheus_endpoint}"
 
   # 创建配置目录
   mkdir -p ${otel_config_dir}
@@ -181,16 +210,18 @@ proj::otel::docker::install() {
   # 清理可能存在的同名容器
   proj::common::docker::cleanup_container "${OTEL_DOCKER_MNAME}"
 
-  # 检查 Jaeger 是否存在，决定网络配置
-  local network_args=""
+  # 检查网络配置 - 总是使用项目网络
+  local network_args="--network ${NETWORK_NAME}"
   local logs_mount_path="/host/logs"
 
-  if docker ps --format '{{.Names}}' | grep -q "${NETWORK_NAME}-jaeger"; then
-    proj::log::info "Jaeger container detected, using file monitoring with networked Docker configuration..."
+  if docker network ls | grep -q ${NETWORK_NAME}; then
+    proj::log::info "Using networked configuration on ${NETWORK_NAME} network"
     network_args="--network ${NETWORK_NAME}"
     logs_mount_path="/host/logs"
   else
-    proj::log::info "Using standalone Docker configuration..."
+    proj::log::warn "Project network ${NETWORK_NAME} not found, using default network"
+    network_args=""
+    logs_mount_path="/host/logs"
   fi
 
   # 确保日志目录存在
@@ -211,6 +242,9 @@ proj::otel::docker::install() {
     -e PROJ_ENVIRONMENT="${PROJ_ENVIRONMENT}" \
     -e PROJ_SERVICE_NAMESPACE="${PROJ_SERVICE_NAMESPACE}" \
     -e PROJ_OTELCOL_VERSION="${PROJ_OTELCOL_VERSION}" \
+    -e VICTORIALOGS_ENDPOINT="${VICTORIALOGS_ENDPOINT}" \
+    -e JAEGER_ENDPOINT="${JAEGER_ENDPOINT}" \
+    -e PROMETHEUS_ENDPOINT="${PROMETHEUS_ENDPOINT}" \
     --restart unless-stopped \
     otel/opentelemetry-collector-contrib:${OTEL_VERSION} \
     --config=/etc/otelcol-contrib/config.yaml
