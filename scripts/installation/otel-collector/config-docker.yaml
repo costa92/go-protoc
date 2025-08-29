@@ -9,7 +9,7 @@ receivers:
       - /host/logs/**/*.log                  # Host log files (via volume mount)
       - /host/logs/**/*.json                 # JSON format logs
       - /host/logs/apiserver/app.log         # Specific application logs
-      - /host/logs/saas-demo/saas.log        # SaaS demo logs  
+      - /host/logs/saas-demo/saas.log        # SaaS demo logs
       - /host/logs/agent-demo/agent.log      # Agent demo logs
       - /host/logs/complete-demo/complete.log # Complete demo logs
     exclude:
@@ -76,16 +76,16 @@ processors:
   resource:
     attributes:
       - key: deployment.environment
-        value: "${PROJ_ENVIRONMENT}"
+        value: "development"
         action: upsert
       - key: service.namespace
-        value: "${PROJ_SERVICE_NAMESPACE}"
+        value: "default"
         action: upsert
       - key: deployment.type
         value: "docker"
         action: upsert
       - key: otel.collector.version
-        value: "${PROJ_OTELCOL_VERSION}"
+        value: "0.132.0"
         action: upsert
       - key: container.id
         from_attribute: container.id
@@ -103,11 +103,14 @@ processors:
 exporters:
   # VictoriaLogs (via Docker network)
   otlphttp/victorialogs:
-    endpoint: "http://proj-victorialogs:9428/insert/opentelemetry"
+    endpoint: "http://proj-victorialogs:9428/insert/opentelemetry/v1/logs"
     tls:
       insecure: true
     compression: gzip
     timeout: 10s
+    # VictoriaLogs requires protobuf encoding
+    headers:
+      "Content-Type": "application/x-protobuf"
     retry_on_failure:
       enabled: true
       initial_interval: 1s
@@ -124,7 +127,7 @@ exporters:
   prometheus:
     endpoint: "0.0.0.0:8889"
     const_labels:
-      environment: "${PROJ_ENVIRONMENT}"
+      environment: "development"
       deployment: "docker"
 
   # OTLP HTTP export to SaaS platforms (commented out by default)
@@ -132,7 +135,7 @@ exporters:
   # otlphttp/datadog:
   #   endpoint: "https://otlp.datadoghq.com"
   #   headers:
-  #     DD-API-KEY: "${DD_API_KEY}"
+  #     DD-API-KEY: ""
   #   compression: gzip
   #   tls:
   #     insecure: false
@@ -140,7 +143,7 @@ exporters:
   # otlphttp/newrelic:
   #   endpoint: "https://otlp.nr-data.net:4318"
   #   headers:
-  #     api-key: "${NEW_RELIC_API_KEY}"
+  #     api-key: ""
   #   compression: gzip
   #   tls:
   #     insecure: false
@@ -156,7 +159,7 @@ extensions:
 
 service:
   extensions: [health_check, pprof]
-  
+
   pipelines:
     # Logs pipeline with multiple export destinations
     logs:
@@ -164,7 +167,7 @@ service:
       processors: [memory_limiter, resource, batch]
       exporters: [otlphttp/victorialogs]
 
-    # Metrics pipeline  
+    # Metrics pipeline
     metrics:
       receivers: [prometheus, otlp]
       processors: [memory_limiter, resource, batch]
@@ -182,10 +185,10 @@ service:
   # Telemetry configuration
   telemetry:
     logs:
-      level: info
-      development: false
+      level: debug                               # Enable debug logging
+      development: true                          # Enable development mode for more logs
       sampling:
         initial: 5
         thereafter: 200
     metrics:
-      level: basic
+      level: detailed                            # More detailed metrics
