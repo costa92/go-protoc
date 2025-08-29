@@ -50,8 +50,10 @@ receivers:
       - /var/log/app/**/*.log          # 应用日志文件模式
       - /var/log/app/**/*.json         # JSON 格式日志文件  
       - ${PROJ_LOG_PATH:-/tmp}/*.log   # 可配置的日志路径
-      - logs/**/*.log                  # 相对路径日志文件
-      - logs/apiserver/app.log         # 特定应用日志文件
+      - logs/**/*.log                  # 相对路径日志文件（递归匹配所有子目录）
+      - logs/apiserver/app.log         # API服务器日志文件
+      - logs/apiserver-dev/app.log     # API服务器开发环境日志文件
+      - logs/*/app.log                 # 匹配所有服务的app.log文件
     exclude:
       - /var/log/otelcol-*            # 排除 collector 自身日志
       - logs/**/*test*                # 排除测试日志文件
@@ -176,7 +178,7 @@ exporters:
     compression: gzip
   
   file:
-    path: "/var/log/otelcol/logs.json"
+    path: "/tmp/otelcol-logs.json"
 
 # 服务配置 - 定义数据处理流水线
 service:

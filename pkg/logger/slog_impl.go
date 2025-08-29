@@ -58,22 +58,47 @@ func NewSlogLogger(opts *LogsOptions) (*SlogLogger, error) {
 	handlerOpts := &slog.HandlerOptions{
 		Level:     ParseLevel(opts.Level).ToSlogLevel(),
 		AddSource: !opts.DisableCaller,
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			// 重新映射字段名称以与 zap 保持一致
+			if opts.EncoderConfig != nil {
+				switch a.Key {
+				case "time":
+					if opts.EncoderConfig.TimeKey != "" {
+						return slog.Attr{Key: opts.EncoderConfig.TimeKey, Value: a.Value}
+					}
+				case "level":
+					if opts.EncoderConfig.LevelKey != "" {
+						return slog.Attr{Key: opts.EncoderConfig.LevelKey, Value: a.Value}
+					}
+				case "msg":
+					if opts.EncoderConfig.MessageKey != "" {
+						return slog.Attr{Key: opts.EncoderConfig.MessageKey, Value: a.Value}
+					}
+				}
+			}
+			// 使用默认的字段重映射以确保与 zap 一致
+			switch a.Key {
+			case "time":
+				return slog.Attr{Key: "ts", Value: a.Value}  // time -> ts
+			case "source":
+				// 移除 source 对象，我们在 callerHandler 中处理调用者信息
+				return slog.Attr{}
+			}
+			return a
+		},
 	}
 
 	var handler slog.Handler
 	if opts.Format == "json" || opts.Encoding == "json" {
 		handler = slog.NewJSONHandler(output, handlerOpts)
 	} else {
-		textOpts := &slog.HandlerOptions{
-			Level:     handlerOpts.Level,
-			AddSource: handlerOpts.AddSource,
-		}
-		handler = slog.NewTextHandler(output, textOpts)
+		handler = slog.NewTextHandler(output, handlerOpts)
 	}
 
 	logger := slog.New(&callerHandler{
 		Handler:    handler,
 		callerSkip: opts.CallerSkip,
+		encoderConfig: opts.EncoderConfig,
 	})
 
 	// 自动添加 logger 类型标识
@@ -99,10 +124,24 @@ func NewSlogLogger(opts *LogsOptions) (*SlogLogger, error) {
 
 type callerHandler struct {
 	slog.Handler
-	callerSkip int
+	callerSkip    int
+	encoderConfig *EncoderConfig
 }
 
 func (h *callerHandler) Handle(ctx context.Context, r slog.Record) error {
+	// 获取字段名称配置，使用默认值与 zap 保持一致
+	callerKey := "caller"
+	functionKey := "func"
+	
+	if h.encoderConfig != nil {
+		if h.encoderConfig.CallerKey != "" {
+			callerKey = h.encoderConfig.CallerKey
+		}
+		if h.encoderConfig.FunctionKey != "" {
+			functionKey = h.encoderConfig.FunctionKey
+		}
+	}
+
 	if h.callerSkip > 0 {
 		pc, file, line, ok := runtime.Caller(h.callerSkip + 3)
 		if ok {
@@ -114,15 +153,14 @@ func (h *callerHandler) Handle(ctx context.Context, r slog.Record) error {
 			function := "unknown"
 			if fn != nil {
 				function = fn.Name()
-				if idx := strings.LastIndex(function, "."); idx >= 0 {
-					function = function[idx+1:]
-				}
 			}
 
+			// 使用与 zap 一致的格式："file:line" 
+			callerValue := fmt.Sprintf("%s:%d", file, line)
+			
 			r.AddAttrs(
-				slog.String("file", file),
-				slog.Int("line", line),
-				slog.String("func", function),
+				slog.String(callerKey, callerValue),    // "caller": "handler/user.go:14" (与 zap 一致)
+				slog.String(functionKey, function),     // "func": "full.function.path" (与 zap 一致)  
 			)
 		}
 	}

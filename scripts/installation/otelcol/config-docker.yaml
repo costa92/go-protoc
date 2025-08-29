@@ -3,7 +3,9 @@ receivers:
     include:
       - /host/logs/**/*.log              # 宿主机日志文件模式（通过卷挂载）
       - /host/logs/**/*.json             # JSON 格式日志文件
-      - /host/logs/apiserver/app.log     # 特定应用日志文件
+      - /host/logs/apiserver/app.log     # API服务器日志文件
+      - /host/logs/apiserver-dev/app.log # API服务器开发环境日志文件
+      - /host/logs/*/app.log             # 匹配所有服务的app.log文件
     exclude:
       - /host/logs/otelcol-*             # 排除 collector 自身日志
       - /host/logs/**/*test*             # 排除测试日志文件
@@ -37,8 +39,9 @@ processors:
     send_batch_max_size: 200
 
 exporters:
-  file:
-    path: "/var/log/otelcol/logs.json"
+  # 暂时禁用文件导出以避免权限问题
+  # file:
+  #   path: "/tmp/otelcol-logs.json"
   
   # VictoriaLogs通过HTTP直接发送
   otlphttp/victorialogs:
@@ -57,4 +60,4 @@ service:
     logs:
       receivers: [filelog]
       processors: [batch]
-      exporters: [file, otlphttp/victorialogs]
+      exporters: [otlphttp/victorialogs]

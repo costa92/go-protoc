@@ -79,7 +79,7 @@ proj::otel::install() {
   local otel_download_dir="/tmp/otel-install"
   local arch=$(uname -m)
   local os="linux"
-  
+
   # Convert architecture names
   case $arch in
     x86_64) arch="amd64" ;;
@@ -89,10 +89,10 @@ proj::otel::install() {
   # 下载 OTEL Collector
   mkdir -p ${otel_download_dir}
   local download_url="https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${OTEL_VERSION}/otelcol-contrib_${OTEL_VERSION}_${os}_${arch}.tar.gz"
-  
+
   proj::log::info "Downloading OTEL Collector from: ${download_url}"
   curl -fsSL "${download_url}" -o "${otel_download_dir}/otelcol-contrib.tar.gz"
-  
+
   # 解压并安装
   cd ${otel_download_dir}
   tar -xzf otelcol-contrib.tar.gz
@@ -100,8 +100,8 @@ proj::otel::install() {
   proj::util::sudo "chmod +x /usr/local/bin/otelcol-contrib"
 
   # 复制配置文件
-  proj::util::sudo "cp ${SCRIPT_DIR}/otel-collector/config.yaml ${PROJ_OTEL_CONFIG_DIR}/config.yaml"
-  
+  proj::util::sudo "cp ${SCRIPT_DIR}/otel-collector/config.yaml ${PROJ_OTEL_CONFIG_DIR}/otel-collector/config.yaml"
+
   # 创建 systemd 服务文件
   local service_file="/etc/systemd/system/otel-collector.service"
   proj::util::sudo "tee ${service_file} > /dev/null << EOF
@@ -155,38 +155,39 @@ proj::otel::uninstall() {
 # Function to install OTEL Collector using Docker
 proj::otel::docker::install() {
   proj::otel::pre_install
+  proj::common::network
 
-  local otel_config_dir="${PROJ_THIRDPARTY_INSTALL_DIR}/otel/config"
+  local otel_config_dir="${PROJ_THIRDPARTY_INSTALL_DIR}/otel-collector/config"
   local template_conf_file="${SCRIPT_DIR}/otel-collector/config-docker.yaml"
-  
+
   # 检查配置文件是否存在
   if [[ ! -f "${template_conf_file}" ]]; then
     proj::log::error "OTEL Collector configuration template file not found: ${template_conf_file}"
     return 1
   fi
-  
+
   # 使用 envsubst 替换模板中的环境变量
   export PROJ_SERVICE_NAME="${PROJ_SERVICE_NAME:-apiserver}"
   export PROJ_ENVIRONMENT="${PROJ_ENVIRONMENT:-development}"
   export PROJ_SERVICE_NAMESPACE="${PROJ_SERVICE_NAMESPACE:-default}"
   export PROJ_OTELCOL_VERSION="${OTEL_VERSION}"
-  
+
   # 创建配置目录
   mkdir -p ${otel_config_dir}
-  
+
   # 生成配置文件
   envsubst < ${template_conf_file} > ${otel_config_dir}/config.yaml
-  
+
   # 清理可能存在的同名容器
   proj::common::docker::cleanup_container "${OTEL_DOCKER_MNAME}"
-  
+
   # 检查 Jaeger 是否存在，决定网络配置
   local network_args=""
   local logs_mount_path="/host/logs"
-  
-  if docker ps --format '{{.Names}}' | grep -q "proj-jaeger"; then
+
+  if docker ps --format '{{.Names}}' | grep -q "${NETWORK_NAME}-jaeger"; then
     proj::log::info "Jaeger container detected, using file monitoring with networked Docker configuration..."
-    network_args="--network proj"
+    network_args="--network ${NETWORK_NAME}"
     logs_mount_path="/host/logs"
   else
     proj::log::info "Using standalone Docker configuration..."
@@ -217,7 +218,7 @@ proj::otel::docker::install() {
   # 等待容器启动
   proj::log::info "Waiting for OTEL Collector to start..."
   sleep 5
-  
+
   # 检查容器健康状态
   if ! curl -s "http://${PROJ_OTEL_HOST}:${PROJ_OTEL_HEALTH_PORT}" > /dev/null; then
     proj::log::error "OTEL Collector container failed to start. Checking logs..."
@@ -232,16 +233,16 @@ proj::otel::docker::install() {
 # Function to uninstall Docker-based OTEL Collector
 proj::otel::docker::uninstall() {
   proj::log::info "Uninstalling OTEL Collector Docker container..."
-  
+
   proj::common::docker::cleanup_container "${OTEL_DOCKER_MNAME}"
-  
+
   # 可选：清理配置目录
-  local otel_config_dir="${PROJ_THIRDPARTY_INSTALL_DIR}/otel"
+  local otel_config_dir="${PROJ_THIRDPARTY_INSTALL_DIR}/otel-collector"
   if [[ -d "${otel_config_dir}" ]]; then
     proj::log::info "Cleaning up OTEL configuration directory: ${otel_config_dir}"
     rm -rf "${otel_config_dir}"
   fi
-  
+
   proj::log::info "uninstall OTEL successfully"
 }
 
@@ -252,13 +253,13 @@ proj::otel::status() {
     proj::log::info "OTEL Collector (native) is running"
     return 0
   fi
-  
+
   # 检查Docker容器状态
   if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${OTEL_DOCKER_MNAME}$"; then
     proj::log::info "OTEL Collector (Docker) is running"
     return 0
   fi
-  
+
   proj::log::warn "OTEL Collector is not running"
   return 1
 }
@@ -266,7 +267,7 @@ proj::otel::status() {
 # Function to display OTEL Collector information
 proj::otel::info() {
   echo -e ${C_GREEN}OpenTelemetry Collector has been installed, here are some useful information:${C_NORMAL}
-  
+
   # 检查原生安装
   if systemctl is-active --quiet otel-collector 2>/dev/null; then
     echo "  OpenTelemetry Collector OTLP HTTP endpoint: http://${PROJ_OTEL_HOST}:${PROJ_OTEL_HTTP_PORT}"
@@ -276,13 +277,13 @@ proj::otel::info() {
     echo "      OpenTelemetry Collector metrics port: ${PROJ_OTEL_METRICS_PORT}"
     echo "       OpenTelemetry Collector health check: http://${PROJ_OTEL_HOST}:${PROJ_OTEL_HEALTH_PORT}"
   fi
-  
+
   # 检查Docker安装
   if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${OTEL_DOCKER_MNAME}$"; then
     echo "  OpenTelemetry Collector OTLP HTTP endpoint: http://${PROJ_OTEL_HOST}:${PROJ_OTEL_HTTP_PORT}"
     echo "  OpenTelemetry Collector OTLP gRPC endpoint: ${PROJ_OTEL_HOST}:${PROJ_OTEL_GRPC_PORT}"
-    echo "         OpenTelemetry Collector data dir: ${PROJ_THIRDPARTY_INSTALL_DIR}/otel"
-    echo "       OpenTelemetry Collector config dir: ${PROJ_THIRDPARTY_INSTALL_DIR}/otel/config"
+    echo "         OpenTelemetry Collector data dir: ${PROJ_THIRDPARTY_INSTALL_DIR}/otel-collector"
+    echo "       OpenTelemetry Collector config dir: ${PROJ_THIRDPARTY_INSTALL_DIR}/otel-collector/config"
     echo "      OpenTelemetry Collector metrics port: ${PROJ_OTEL_METRICS_PORT}"
     echo "       OpenTelemetry Collector health check: http://${PROJ_OTEL_HOST}:${PROJ_OTEL_HEALTH_PORT}"
   fi

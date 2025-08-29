@@ -32,6 +32,166 @@
 - `make wire` - 重新生成依赖注入代码（结构变更后运行）
 - `buf generate` - 直接 protobuf 生成（buf.yaml 变更时使用）
 
+### 运行服务
+
+项目提供了完整的第三方服务部署命令，支持原生安装和 Docker 两种方式：
+
+#### 数据库服务
+
+**Redis**
+
+- `make deploy.install.redis` - 原生安装 Redis
+- `make deploy.uninstall.redis` - 原生卸载 Redis
+- `make deploy.install.docker.redis` - Docker 安装 Redis
+- `make deploy.uninstall.docker.redis` - Docker 卸载 Redis
+
+**MySQL**
+
+- `make deploy.install.mysql` - 原生安装 MySQL
+- `make deploy.uninstall.mysql` - 原生卸载 MySQL
+- `make deploy.install.docker.mysql` - Docker 安装 MySQL
+- `make deploy.uninstall.docker.mysql` - Docker 卸载 MySQL
+
+**MariaDB**
+
+- `make deploy.install.mariadb` - 原生安装 MariaDB
+- `make deploy.uninstall.mariadb` - 原生卸载 MariaDB
+- `make deploy.install.docker.mariadb` - Docker 安装 MariaDB
+- `make deploy.uninstall.docker.mariadb` - Docker 卸载 MariaDB
+
+**MongoDB**
+
+- `make deploy.install.mongo` - 原生安装 MongoDB
+- `make deploy.uninstall.mongo` - 原生卸载 MongoDB
+- `make deploy.install.docker.mongo` - Docker 安装 MongoDB
+- `make deploy.uninstall.docker.mongo` - Docker 卸载 MongoDB
+
+#### 可观测性服务
+
+**OpenTelemetry Collector**
+
+- `make deploy.install.otelcol` - 原生安装 OTEL Collector
+- `make deploy.uninstall.otelcol` - 原生卸载 OTEL Collector
+- `make deploy.install.docker.otelcol` - Docker 安装 OTEL Collector
+- `make deploy.uninstall.docker.otelcol` - Docker 卸载 OTEL Collector
+
+**OTEL Agent (轻量级边车)**
+
+- `make deploy.install.otel-agent` - 原生安装 OTEL Agent
+- `make deploy.uninstall.otel-agent` - 原生卸载 OTEL Agent
+- `make deploy.install.docker.otel-agent` - Docker 安装 OTEL Agent
+- `make deploy.uninstall.docker.otel-agent` - Docker 卸载 OTEL Agent
+
+**OTEL Collector (中心化网关)**
+
+- `make deploy.install.otel-collector` - 原生安装 OTEL Collector
+- `make deploy.uninstall.otel-collector` - 原生卸载 OTEL Collector
+- `make deploy.install.docker.otel-collector` - Docker 安装 OTEL Collector
+- `make deploy.uninstall.docker.otel-collector` - Docker 卸载 OTEL Collector
+
+**OTEL 完整堆栈 (Agent + Collector)**
+
+- `make deploy.install.otel-stack` - 原生安装完整 OTEL 堆栈
+- `make deploy.uninstall.otel-stack` - 原生卸载完整 OTEL 堆栈
+- `make deploy.install.docker.otel-stack` - Docker 安装完整 OTEL 堆栈
+- `make deploy.uninstall.docker.otel-stack` - Docker 卸载完整 OTEL 堆栈
+
+**Jaeger (链路追踪)**
+
+- `make deploy.install.jaeger` - 原生安装 Jaeger
+- `make deploy.uninstall.jaeger` - 原生卸载 Jaeger
+- `make deploy.install.docker.jaeger` - Docker 安装 Jaeger
+- `make deploy.uninstall.docker.jaeger` - Docker 卸载 Jaeger
+
+**Prometheus (指标监控)**
+
+- `make deploy.install.prometheus` - 原生安装 Prometheus
+- `make deploy.uninstall.prometheus` - 原生卸载 Prometheus
+- `make deploy.install.docker.prometheus` - Docker 安装 Prometheus
+- `make deploy.uninstall.docker.prometheus` - Docker 卸载 Prometheus
+
+**Grafana (可视化面板)**
+
+- `make deploy.install.grafana` - 原生安装 Grafana
+- `make deploy.uninstall.grafana` - 原生卸载 Grafana
+- `make deploy.install.docker.grafana` - Docker 安装 Grafana
+- `make deploy.uninstall.docker.grafana` - Docker 卸载 Grafana
+
+**AlertManager (告警管理)**
+
+- `make deploy.install.alertmanager` - 原生安装 AlertManager
+- `make deploy.uninstall.alertmanager` - 原生卸载 AlertManager
+- `make deploy.install.docker.alertmanager` - Docker 安装 AlertManager
+- `make deploy.uninstall.docker.alertmanager` - Docker 卸载 AlertManager
+
+**Pyroscope (性能剖析)**
+
+- `make deploy.install.pyroscope` - 原生安装 Pyroscope
+- `make deploy.uninstall.pyroscope` - 原生卸载 Pyroscope
+- `make deploy.install.docker.pyroscope` - Docker 安装 Pyroscope
+- `make deploy.uninstall.docker.pyroscope` - Docker 卸载 Pyroscope
+
+#### Victoria Suite (统一日志/指标栈)
+
+**Victoria Suite (完整套件)**
+
+- `make deploy.install.victoria` - 原生安装 Victoria Suite
+- `make deploy.uninstall.victoria` - 原生卸载 Victoria Suite
+- `make deploy.install.docker.victoria` - Docker 安装 Victoria Suite
+- `make deploy.uninstall.docker.victoria` - Docker 卸载 Victoria Suite
+- `make deploy.install.all.victoria` - Docker 安装所有 Victoria 组件
+- `make deploy.uninstall.all.victoria` - 卸载所有 Victoria 组件
+- `make deploy.status.victoria` - 检查 Victoria Suite 状态
+- `make deploy.info.victoria` - 显示 Victoria Suite 信息
+
+**VictoriaMetrics (时间序列数据库)**
+
+- `make deploy.install.victoriametrics` - 原生安装 VictoriaMetrics
+- `make deploy.uninstall.victoriametrics` - 原生卸载 VictoriaMetrics
+- `make deploy.install.docker.victoriametrics` - Docker 安装 VictoriaMetrics
+- `make deploy.uninstall.docker.victoriametrics` - Docker 卸载 VictoriaMetrics
+- `make deploy.status.victoriametrics` - 检查 VictoriaMetrics 状态
+- `make deploy.info.victoriametrics` - 显示 VictoriaMetrics 信息
+
+**VictoriaLogs (日志数据库)**
+
+- `make deploy.install.victorialogs` - 原生安装 VictoriaLogs
+- `make deploy.uninstall.victorialogs` - 原生卸载 VictoriaLogs
+- `make deploy.install.docker.victorialogs` - Docker 安装 VictoriaLogs
+- `make deploy.uninstall.docker.victorialogs` - Docker 卸载 VictoriaLogs
+- `make deploy.status.victorialogs` - 检查 VictoriaLogs 状态
+- `make deploy.info.victorialogs` - 显示 VictoriaLogs 信息
+
+**vmagent (指标收集代理)**
+
+- `make deploy.install.vmagent` - 原生安装 vmagent
+- `make deploy.uninstall.vmagent` - 原生卸载 vmagent
+- `make deploy.install.docker.vmagent` - Docker 安装 vmagent
+- `make deploy.uninstall.docker.vmagent` - Docker 卸载 vmagent
+- `make deploy.status.vmagent` - 检查 vmagent 状态
+- `make deploy.info.vmagent` - 显示 vmagent 信息
+
+#### 其他服务
+
+**etcd (分布式键值存储)**
+
+- `make deploy.install.etcd` - 原生安装 etcd
+- `make deploy.uninstall.etcd` - 原生卸载 etcd
+- `make deploy.install.docker.etcd` - Docker 安装 etcd
+- `make deploy.uninstall.docker.etcd` - Docker 卸载 etcd
+
+**Kafka (消息队列)**
+
+- `make deploy.install.docker.kafka` - Docker 安装 Kafka
+- `make deploy.uninstall.docker.kafka` - Docker 卸载 Kafka
+
+**Sentry (错误监控)**
+
+- `make deploy.install.sentry` - 原生安装 Sentry
+- `make deploy.uninstall.sentry` - 原生卸载 Sentry
+- `make deploy.install.docker.sentry` - Docker 安装 Sentry
+- `make deploy.uninstall.docker.sentry` - Docker 卸载 Sentry
+
 ### 构建和版本管理
 
 项目实现了强大的版本感知构建系统，支持自动版本注入和多架构构建：

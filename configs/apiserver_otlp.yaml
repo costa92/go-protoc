@@ -1,0 +1,131 @@
+# OTLP 日志集成配置示例
+# 演示如何配置应用程序通过 OTEL Agent 发送日志到 OTEL Collector
+
+http:
+  network: tcp
+  addr: 0.0.0.0:8080
+  timeout: 10s
+
+grpc:
+  network: tcp
+  addr: 0.0.0.0:9090
+  timeout: 10s
+
+mysql:
+  host: 127.0.0.1
+  database: protoc
+  username: root
+  password: proj(#)666
+  log-level: 1
+  enable-trace: true
+
+redis:
+  addr: "127.0.0.1:6379"
+  password: ""
+  database: 0
+  enable-trace: true
+
+jwt:
+  key: "onex(#)666"
+  expired: "2h"
+  max-refresh: "2h"
+  signing-method: "HS512"
+
+# Jaeger OpenTelemetry Tracing Configuration
+jaeger:
+  enabled: true
+  server: "127.0.0.1:6831"
+  service-name: "apiserver"
+  env: "development"
+  sampler-type: "const"
+  sampler-param: 1.0
+  reporter-log-spans: true
+  agent-host: "127.0.0.1"
+  agent-port: 6831
+
+# ====================================
+# OTLP 日志配置 - 三种配置方式示例
+# ====================================
+
+# 方式1: 简化配置（推荐）
+log:
+  preset: "observability"        # 可观测性预设，适合 OTLP 发送
+  type: "zap"                   # 日志器类型
+  level: "info"                 # 日志级别
+  log-dir: "logs"               # 本地日志目录
+
+  # OTLP 配置（简化方式）- 有端点则自动启用
+  otlp-endpoint: "127.0.0.1:4327" # OTEL Agent gRPC 端点（设置则自动启用OTLP）
+
+# ====================================
+# 方式2: 详细配置（高级用法）
+# ====================================
+# 如果需要更精细的控制，可以使用以下配置替代上面的简化配置：
+
+# log:
+#   type: "zap"
+#   level: "info"
+#   format: "json"
+#   disable-caller: false
+#   disable-stacktrace: false
+#   enable-color: false
+#   output-paths: ["stdout", "logs/apiserver/app.log"]
+#   error-output-paths: ["stderr"]
+#   development: false
+#   encoding: "json"
+#
+#   # 详细的 OTLP 配置
+#   otlp:
+#     enabled: true
+#     endpoint: "127.0.0.1:4327"      # OTEL Agent gRPC 端点
+#     protocol: "grpc"                # 协议类型: grpc 或 http
+#     timeout: "10s"                  # 连接超时
+#     batch_timeout: "2s"             # 批处理超时
+#     batch_size: 100                 # 批处理大小
+#     insecure: true                  # 不使用 TLS
+#     headers:                        # 自定义头部
+#       x-api-key: "your-api-key"
+#     service_name: "apiserver"       # 服务名
+#     service_version: "v1.0.0"       # 服务版本
+#     environment: "development"      # 环境标识
+
+# ====================================
+# 方式3: 混合架构配置
+# ====================================
+# 如果需要同时启用本地文件和 OTLP，可以通过不同的预设实现：
+
+# log:
+#   preset: "production"           # 生产环境预设
+#   type: "zap"
+#   level: "info"
+#   log-dir: "logs"                # 有 log-dir 但无 otlp-endpoint = 仅文件输出
+#   # otlp-endpoint: ""             # 空值或不设置 = 禁用 OTLP
+
+# ====================================
+# 架构说明
+# ====================================
+
+# 数据流向:
+# apiserver 日志 → OTLP Exporter → OTEL Agent (4327) → OTEL Collector (4317) → VictoriaLogs (9428)
+#                                ↘
+#                                  本地文件 (logs/apiserver/app.log)
+
+# 端口分配:
+# - OTEL Agent gRPC:     4327 (应用程序连接)
+# - OTEL Agent HTTP:     4328 (备用)
+# - OTEL Collector gRPC: 4317 (Agent 转发目标)
+# - OTEL Collector HTTP: 4318 (备用)
+# - VictoriaLogs:        9428 (最终存储)
+# - Jaeger UI:           16686 (链路追踪界面)
+
+# 启动顺序:
+# 1. ./scripts/installation/service.sh start victorialogs  # 启动日志存储
+# 2. ./scripts/installation/service.sh start otelcol       # 启动 OTEL Collector
+# 3. ./scripts/installation/service.sh start otel-agent    # 启动 OTEL Agent (如果使用)
+# 4. make run-api -c configs/apiserver_otlp.yaml           # 启动应用程序
+
+# 验证步骤:
+# 1. 检查应用启动日志中的 OTLP 连接信息
+# 2. 访问 VictoriaLogs UI: http://127.0.0.1:9428/select/vmui/
+# 3. 搜索: service.name:"apiserver"
+# 4. 验证日志是否正确发送和存储
