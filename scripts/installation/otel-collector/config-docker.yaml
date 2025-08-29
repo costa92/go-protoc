@@ -1,191 +1,143 @@
-# OTEL Collector Configuration for Docker Installation
-# This configuration supports the full OTEL architecture with Agent -> Gateway -> SaaS pattern
-# Optimized for containerized deployment with Docker networking
+# OTEL Collector Configuration
+# Role: 接收Agent数据，进行复杂处理、路由和导出到各个后端
+# Flow: Agent → Collector → VictoriaLogs/Jaeger/etc
 
 receivers:
-  # File-based log collection (monitoring host log files via volume mounts)
-  filelog:
-    include:
-      - /host/logs/**/*.log                  # Host log files (via volume mount)
-      - /host/logs/**/*.json                 # JSON format logs
-      - /host/logs/apiserver/app.log         # Specific application logs
-      - /host/logs/saas-demo/saas.log        # SaaS demo logs  
-      - /host/logs/agent-demo/agent.log      # Agent demo logs
-      - /host/logs/complete-demo/complete.log # Complete demo logs
-    exclude:
-      - /host/logs/otel-*                    # Exclude OTEL self-logs
-      - /host/logs/**/*test*                 # Exclude test logs
-
-    start_at: end                            # Start from end for production
-    include_file_name: false                 # Reduce noise in container environment
-    include_file_path: false
-
-    # File monitoring configuration (optimized for containers)
-    poll_interval: 100ms                     # Fast polling for real-time processing
-    max_concurrent_files: 1024
-    encoding: utf-8
-
-    operators:
-      - type: json_parser
-        id: parse_json
-        parse_from: body
-        parse_to: attributes
-      # Create _msg field for VictoriaLogs compatibility
-      - type: move
-        from: attributes.msg
-        to: attributes._msg
-      # Clean up duplicate fields
-      - type: remove
-        field: body
-
-  # OTLP receivers for direct telemetry data
+  # OTLP receivers - 接收Agent转发的数据
   otlp:
     protocols:
       grpc:
-        endpoint: 0.0.0.0:4317               # Standard OTLP gRPC port
+        endpoint: 0.0.0.0:4317               # Collector gRPC端口
       http:
-        endpoint: 0.0.0.0:4318               # Standard OTLP HTTP port
+        endpoint: 0.0.0.0:4318               # Collector HTTP端口
 
-  # Prometheus metrics scraping (from host services)
-  prometheus:
-    config:
-      scrape_configs:
-        - job_name: 'apiserver'
-          static_configs:
-            # Use host.docker.internal for Docker Desktop or configure network properly
-            - targets: ['host.docker.internal:8080']
-          scrape_interval: 30s
-          metrics_path: '/metrics'
-        - job_name: 'otel-collector'
-          static_configs:
-            - targets: ['localhost:8888']
-          scrape_interval: 30s
-          metrics_path: '/metrics'
-
-  # Note: Jaeger receiver removed as it's deprecated
-  # Use OTLP receivers instead for trace collection
+  # 文件日志接收器（可选）
+  filelog:
+    include: ["/var/log/*.log"]
+    exclude: ["/var/log/otel/*.log"]
+    start_at: end
 
 processors:
-  # Batch processing (optimized for container environment)
-  batch:
-    timeout: 500ms                           # Shorter timeout for container responsiveness
-    send_batch_size: 100                     # Smaller batch size
-    send_batch_max_size: 200
+  # 内存限制器
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512                          # Collector内存限制512MB
 
-  # Resource attributes processing
+  # 批处理器 - 优化导出性能
+  batch:
+    timeout: 10s                            # 较长的批处理时间
+    send_batch_size: 2048
+    send_batch_max_size: 4096
+
+  # 资源处理器 - 添加环境标识
   resource:
     attributes:
-      - key: deployment.environment
-        value: "${PROJ_ENVIRONMENT}"
+      - key: otel.component
+        value: "collector"
         action: upsert
-      - key: service.namespace
-        value: "${PROJ_SERVICE_NAMESPACE}"
+      - key: collector.version
+        value: "0.132.0"
+        action: upsert
+      - key: deployment.environment
+        value: "production"
         action: upsert
       - key: deployment.type
         value: "docker"
         action: upsert
-      - key: otel.collector.version
-        value: "${PROJ_OTELCOL_VERSION}"
-        action: upsert
-      - key: container.id
-        from_attribute: container.id
-        action: upsert
 
-  # Memory limiter for container environments
-  memory_limiter:
-    check_interval: 1s
-    limit_mib: 256                           # Smaller limit for containers
+  # 属性处理器 - 日志字段标准化
+  attributes/logs:
+    actions:
+      - key: service.name
+        action: upsert
+        value: "kart-io-service"
+      - key: service.version
+        action: upsert
+        value: "1.0.0"
 
-  # Sampling for traces
-  probabilistic_sampler:
-    sampling_percentage: 10
+  # 过滤器 - 过滤调试日志（生产环境）
+  filter/production:
+    logs:
+      log_record:
+        - 'severity_text == "DEBUG"'
 
 exporters:
-  # VictoriaLogs (via Docker network)
+  # VictoriaLogs导出器 - 修复URL路径问题
   otlphttp/victorialogs:
-    endpoint: "http://proj-victorialogs:9428/insert/opentelemetry"
+    endpoint: "http://victorialogs:9428"    # 注意：这里不包含路径
+    logs_endpoint: "http://victorialogs:9428/insert/opentelemetry/v1/logs"  # 完整的logs端点
     tls:
       insecure: true
     compression: gzip
-    timeout: 10s
+    timeout: 30s
+    headers:
+      "Content-Type": "application/x-protobuf"
     retry_on_failure:
       enabled: true
-      initial_interval: 1s
+      initial_interval: 2s
       max_interval: 30s
-      max_elapsed_time: 5m
+      max_elapsed_time: 10m
+    # sending_queue:
+    #   enabled: true
+    #   num_consumers: 4
+    #   queue_size: 2000
 
-  # Jaeger (via Docker network) - using OTLP HTTP instead of deprecated jaeger exporter
-  otlphttp/jaeger:
-    endpoint: "http://proj-jaeger:14268/api/traces"
+  # Jaeger导出器（用于分布式追踪）
+  otlp/jaeger:
+    endpoint: "jaeger:14250"                # Jaeger OTLP gRPC端点
+    tls:
+      insecure: true
+    compression: gzip
+    timeout: 30s
+
+  # Prometheus指标导出器
+  prometheusremotewrite:
+    endpoint: "http://prometheus:9090/api/v1/write"
     tls:
       insecure: true
 
-  # Prometheus metrics export
-  prometheus:
-    endpoint: "0.0.0.0:8889"
-    const_labels:
-      environment: "${PROJ_ENVIRONMENT}"
-      deployment: "docker"
-
-  # OTLP HTTP export to SaaS platforms (commented out by default)
-  # Uncomment and configure when SaaS integration is needed
-  # otlphttp/datadog:
-  #   endpoint: "https://otlp.datadoghq.com"
-  #   headers:
-  #     DD-API-KEY: "${DD_API_KEY}"
-  #   compression: gzip
-  #   tls:
-  #     insecure: false
-
-  # otlphttp/newrelic:
-  #   endpoint: "https://otlp.nr-data.net:4318"
-  #   headers:
-  #     api-key: "${NEW_RELIC_API_KEY}"
-  #   compression: gzip
-  #   tls:
-  #     insecure: false
+  # 调试导出器
+  debug:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
 
 extensions:
-  # Health check extension
+  # 健康检查
   health_check:
     endpoint: 0.0.0.0:13133
 
-  # Performance profiling
+  # 性能分析
   pprof:
     endpoint: 0.0.0.0:1777
 
 service:
   extensions: [health_check, pprof]
-  
+
   pipelines:
-    # Logs pipeline with multiple export destinations
+    # 日志管道 - 处理并导出到VictoriaLogs
     logs:
-      receivers: [filelog, otlp]
-      processors: [memory_limiter, resource, batch]
-      exporters: [otlphttp/victorialogs]
+      receivers: [otlp, filelog]
+      processors: [memory_limiter, resource, attributes/logs, batch]
+      exporters: [otlphttp/victorialogs, debug]
 
-    # Metrics pipeline  
+    # 指标管道 - 导出到Prometheus
     metrics:
-      receivers: [prometheus, otlp]
+      receivers: [otlp]
       processors: [memory_limiter, resource, batch]
-      exporters: [prometheus]
+      exporters: [prometheusremotewrite, debug]
 
-    # Traces pipeline
+    # 追踪管道 - 导出到Jaeger
     traces:
       receivers: [otlp]
-      processors: [memory_limiter, resource, probabilistic_sampler, batch]
-      exporters: [otlphttp/jaeger]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp/jaeger, debug]
 
-  # Configure SaaS exports based on environment variables
-  # Additional pipelines for SaaS (activated when API keys are provided)
-
-  # Telemetry configuration
+  # Collector遥测配置
   telemetry:
     logs:
       level: info
       development: false
-      sampling:
-        initial: 5
-        thereafter: 200
+      encoding: json
     metrics:
-      level: basic
+      level: detailed

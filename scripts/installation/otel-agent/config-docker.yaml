@@ -1,98 +1,97 @@
-# OTEL Agent Configuration for Docker Installation
-# This configuration is optimized for sidecar containers alongside application containers
-# Agent receives telemetry data from applications and forwards to OTEL Collector
+# OTEL Agent Configuration
+# Role: 接收应用程序的OTLP数据，进行轻量级处理后转发给Collector
+# Flow: Application → Agent → Collector
 
 receivers:
-  # OTLP receivers for application telemetry data
+  # OTLP receivers - 接收应用程序发送的遥测数据
   otlp:
     protocols:
       grpc:
-        endpoint: 0.0.0.0:4317               # Standard OTLP gRPC port
+        endpoint: 0.0.0.0:4317               # Agent gRPC端口
       http:
-        endpoint: 0.0.0.0:4318               # Standard OTLP HTTP port
+        endpoint: 0.0.0.0:4318               # Agent HTTP端口
 
 processors:
-  # Lightweight batch processing for fast forwarding
-  batch:
-    timeout: 200ms                           # Faster forwarding to collector
-    send_batch_size: 100                     # Smaller batches for lower latency
-    send_batch_max_size: 200
+  # 内存限制器 - 防止Agent内存溢出
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 256                          # Agent内存限制256MB
 
-  # Resource attributes for agent identification
+  # 批处理器 - 快速转发数据
+  batch:
+    timeout: 1s                             # 快速批处理
+    send_batch_size: 1024                   # 批处理大小
+    send_batch_max_size: 2048
+
+  # 资源处理器 - 添加Agent标识
   resource:
     attributes:
-      - key: deployment.environment
-        value: "${PROJ_ENVIRONMENT}"
-        action: upsert
-      - key: service.namespace
-        value: "${PROJ_SERVICE_NAMESPACE}"
-        action: upsert
-      - key: deployment.type
-        value: "docker"
-        action: upsert
       - key: otel.component
         value: "agent"
         action: upsert
       - key: agent.version
-        value: "${PROJ_OTEL_VERSION}"
+        value: "0.132.0"
         action: upsert
-      - key: container.id
-        from_attribute: container.id
+      - key: deployment.environment
+        value: "production"
         action: upsert
-
-  # Memory limiter for lightweight agent container
-  memory_limiter:
-    check_interval: 1s
-    limit_mib: 128                           # Smaller memory footprint
 
 exporters:
-  # Forward to OTEL Collector (main export destination)
+  # 转发到OTEL Collector
   otlp/collector:
-    endpoint: "${OTEL_COLLECTOR_ENDPOINT}"  # Configurable collector endpoint
+    endpoint: "otel-collector:4317"         # Collector gRPC端点
     tls:
       insecure: true
     compression: gzip
-    timeout: 5s
+    timeout: 30s
     retry_on_failure:
       enabled: true
       initial_interval: 1s
       max_interval: 10s
-      max_elapsed_time: 2m
+      max_elapsed_time: 5m
+
+  # 调试输出（可选）
+  debug:
+    verbosity: basic
+    sampling_initial: 2
+    sampling_thereafter: 500
 
 extensions:
-  # Health check extension
+  # 健康检查
   health_check:
     endpoint: 0.0.0.0:13133
 
+  # 性能分析
+  pprof:
+    endpoint: 0.0.0.0:1777
+
 service:
-  extensions: [health_check]
-  
+  extensions: [health_check, pprof]
+
   pipelines:
-    # Logs pipeline - forward all logs to collector
+    # 日志管道
     logs:
       receivers: [otlp]
       processors: [memory_limiter, resource, batch]
       exporters: [otlp/collector]
 
-    # Metrics pipeline - forward all metrics to collector  
+    # 指标管道
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, resource, batch]
       exporters: [otlp/collector]
 
-    # Traces pipeline - forward all traces to collector
+    # 追踪管道
     traces:
       receivers: [otlp]
       processors: [memory_limiter, resource, batch]
       exporters: [otlp/collector]
 
-  # Agent telemetry configuration (lightweight)
+  # Agent遥测配置
   telemetry:
     logs:
-      level: warn                            # Less verbose logging for agent
+      level: info                           # Agent日志级别
       development: false
-      sampling:
-        initial: 2
-        thereafter: 100
+      encoding: json
     metrics:
       level: basic
