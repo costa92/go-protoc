@@ -100,7 +100,7 @@ proj::otel::install() {
   proj::util::sudo "chmod +x /usr/local/bin/otelcol-contrib"
 
   # 复制配置文件
-  proj::util::sudo "cp ${SCRIPT_DIR}/otel-collector/config.yaml ${PROJ_OTEL_CONFIG_DIR}/config.yaml"
+  proj::util::sudo "cp ${SCRIPT_DIR}/otel-collector/config.yaml ${PROJ_OTEL_CONFIG_DIR}/otel-collector/config.yaml"
 
   # 创建 systemd 服务文件
   local service_file="/etc/systemd/system/otel-collector.service"
@@ -282,8 +282,8 @@ proj::otel::info() {
   if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${OTEL_DOCKER_MNAME}$"; then
     echo "  OpenTelemetry Collector OTLP HTTP endpoint: http://${PROJ_OTEL_HOST}:${PROJ_OTEL_HTTP_PORT}"
     echo "  OpenTelemetry Collector OTLP gRPC endpoint: ${PROJ_OTEL_HOST}:${PROJ_OTEL_GRPC_PORT}"
-    echo "         OpenTelemetry Collector data dir: ${PROJ_THIRDPARTY_INSTALL_DIR}/otel"
-    echo "       OpenTelemetry Collector config dir: ${PROJ_THIRDPARTY_INSTALL_DIR}/otel/config"
+    echo "         OpenTelemetry Collector data dir: ${PROJ_THIRDPARTY_INSTALL_DIR}/otel-collector"
+    echo "       OpenTelemetry Collector config dir: ${PROJ_THIRDPARTY_INSTALL_DIR}/otel-collector/config"
     echo "      OpenTelemetry Collector metrics port: ${PROJ_OTEL_METRICS_PORT}"
     echo "       OpenTelemetry Collector health check: http://${PROJ_OTEL_HOST}:${PROJ_OTEL_HEALTH_PORT}"
   fi
