@@ -134,6 +134,9 @@ logs_collection::otelcol::start() {
         return 1
     fi
     
+    # 确保网络存在
+    proj::common::network
+    
     # 确保日志目录存在
     proj::util::sudo "mkdir -p /var/log/otelcol"
     proj::util::sudo "mkdir -p /var/log/app"
@@ -144,7 +147,7 @@ logs_collection::otelcol::start() {
     proj::log::info "启动 OpenTelemetry Collector..."
     docker run -d --name "${OTELCOL_SERVICE_NAME}" \
         --restart always \
-        --network go-protoc-network \
+        --network ${NETWORK_NAME} \
         -p 4327:4327 \
         -p 4328:4328 \
         -p 13133:13133 \

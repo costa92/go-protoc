@@ -154,6 +154,7 @@ proj::otel_agent::uninstall() {
 # Function to install OTEL Agent using Docker
 proj::otel_agent::docker::install() {
   proj::otel_agent::pre_install
+  proj::common::network
 
   local otel_config_dir="${PROJ_THIRDPARTY_INSTALL_DIR}/otel-agent/config"
   local template_conf_file="${SCRIPT_DIR}/otel-agent/config-docker.yaml"
@@ -167,14 +168,17 @@ proj::otel_agent::docker::install() {
   # 清理可能存在的同名容器
   proj::common::docker::cleanup_container "${OTEL_AGENT_DOCKER_MNAME}"
   
-  # 检查 OTEL Collector 是否存在，决定网络配置
+  # 检查 proj 网络是否存在，决定网络配置
   local network_args=""
   local collector_endpoint="127.0.0.1:4317"
   
-  if docker ps --format '{{.Names}}' | grep -q "proj-otel-collector"; then
-    proj::log::info "OTEL Collector container detected, using networked configuration..."
-    network_args="--network proj"
-    collector_endpoint="proj-otel-collector:4317"
+  if docker network ls | grep -q ${NETWORK_NAME}; then
+    proj::log::info "${NETWORK_NAME} network detected, using networked configuration..."
+    network_args="--network ${NETWORK_NAME}"
+    # 如果 OTEL Collector 存在，使用容器名作为端点
+    if docker ps --format '{{.Names}}' | grep -q "${NETWORK_NAME}-otel-collector"; then
+      collector_endpoint="${NETWORK_NAME}-otel-collector:4317"
+    fi
   else
     proj::log::info "Using standalone configuration..."
   fi

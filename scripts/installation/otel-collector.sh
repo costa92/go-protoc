@@ -155,6 +155,7 @@ proj::otel::uninstall() {
 # Function to install OTEL Collector using Docker
 proj::otel::docker::install() {
   proj::otel::pre_install
+  proj::common::network
 
   local otel_config_dir="${PROJ_THIRDPARTY_INSTALL_DIR}/otel/config"
   local template_conf_file="${SCRIPT_DIR}/otel-collector/config-docker.yaml"
@@ -184,9 +185,9 @@ proj::otel::docker::install() {
   local network_args=""
   local logs_mount_path="/host/logs"
   
-  if docker ps --format '{{.Names}}' | grep -q "proj-jaeger"; then
+  if docker ps --format '{{.Names}}' | grep -q "${NETWORK_NAME}-jaeger"; then
     proj::log::info "Jaeger container detected, using file monitoring with networked Docker configuration..."
-    network_args="--network proj"
+    network_args="--network ${NETWORK_NAME}"
     logs_mount_path="/host/logs"
   else
     proj::log::info "Using standalone Docker configuration..."
