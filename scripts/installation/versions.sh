@@ -24,6 +24,7 @@ export MONGODB_VERSION=${MONGODB_VERSION:-7.0.5}
 export ETCD_VERSION=${ETCD_VERSION:-v3.5.12}
 export KAFKA_VERSION=${KAFKA_VERSION:-3.6}
 export ZOOKEEPER_VERSION=${ZOOKEEPER_VERSION:-latest}
+export NACOS_VERSION=${NACOS_VERSION:-2.2.3}
 
 # 可观测性栈 (Observability Stack)
 export JAEGER_VERSION=${JAEGER_VERSION:-1.52.0}
@@ -46,6 +47,127 @@ export VMALERT_VERSION=${VMALERT_VERSION:-1.96.0}
 
 # 工具版本 (Tools)
 export DOCKER_COMPOSE_VERSION=${DOCKER_COMPOSE_VERSION:-v2.29.7}
+
+# =============================================================================
+# 配置目录管理 (Configuration Directory Management)
+# =============================================================================
+
+# 获取项目根目录
+PROJ_ROOT_DIR="${PROJ_ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+
+# 数据库服务配置目录
+export PROJ_REDIS_CONFIG_DIR=${PROJ_REDIS_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/redis/config"}
+export PROJ_REDIS_DATA_DIR=${PROJ_REDIS_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/redis/data"}
+export PROJ_MYSQL_CONFIG_DIR=${PROJ_MYSQL_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/mysql/config"}
+export PROJ_MYSQL_DATA_DIR=${PROJ_MYSQL_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/mysql/data"}
+export PROJ_MARIADB_CONFIG_DIR=${PROJ_MARIADB_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/mariadb/config"}
+export PROJ_MARIADB_DATA_DIR=${PROJ_MARIADB_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/mariadb/data"}
+export PROJ_MONGODB_CONFIG_DIR=${PROJ_MONGODB_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/mongodb/config"}
+export PROJ_MONGODB_DATA_DIR=${PROJ_MONGODB_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/mongodb/data"}
+
+# 分布式系统配置目录
+export PROJ_NACOS_CONFIG_DIR=${PROJ_NACOS_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/nacos/config"}
+export PROJ_NACOS_DATA_DIR=${PROJ_NACOS_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/nacos/data"}
+export PROJ_NACOS_LOG_DIR=${PROJ_NACOS_LOG_DIR:-"${PROJ_ROOT_DIR}/_data/nacos/logs"}
+
+# 可观测性服务配置目录
+export PROJ_OTEL_AGENT_CONFIG_DIR=${PROJ_OTEL_AGENT_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/otel-agent/config"}
+export PROJ_OTELCOL_CONFIG_DIR=${PROJ_OTELCOL_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/otelcol/config"}
+export PROJ_OTELCOL_DATA_DIR=${PROJ_OTELCOL_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/otelcol/data"}
+export PROJ_JAEGER_CONFIG_DIR=${PROJ_JAEGER_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/jaeger/config"}
+export PROJ_JAEGER_DATA_DIR=${PROJ_JAEGER_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/jaeger/data"}
+export PROJ_PROMETHEUS_CONFIG_DIR=${PROJ_PROMETHEUS_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/prometheus/config"}
+export PROJ_PROMETHEUS_DATA_DIR=${PROJ_PROMETHEUS_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/prometheus/data"}
+export PROJ_GRAFANA_CONFIG_DIR=${PROJ_GRAFANA_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/grafana/config"}
+export PROJ_GRAFANA_DATA_DIR=${PROJ_GRAFANA_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/grafana/data"}
+
+# 日志管理服务配置目录
+export PROJ_VICTORIALOGS_CONFIG_DIR=${PROJ_VICTORIALOGS_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/victorialogs/config"}
+export PROJ_VICTORIALOGS_DATA_DIR=${PROJ_VICTORIALOGS_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/victorialogs/data"}
+export PROJ_LOKI_CONFIG_DIR=${PROJ_LOKI_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/loki/config"}
+export PROJ_LOKI_DATA_DIR=${PROJ_LOKI_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/loki/data"}
+
+# 服务端口配置
+export PROJ_REDIS_PORT=${PROJ_REDIS_PORT:-6379}
+export PROJ_MYSQL_PORT=${PROJ_MYSQL_PORT:-3306}
+export PROJ_MARIADB_PORT=${PROJ_MARIADB_PORT:-3307}
+export PROJ_MONGODB_PORT=${PROJ_MONGODB_PORT:-27017}
+export PROJ_NACOS_PORT=${PROJ_NACOS_PORT:-8848}
+export PROJ_NACOS_GRPC_PORT=${PROJ_NACOS_GRPC_PORT:-9848}
+export PROJ_OTELCOL_GRPC_PORT=${PROJ_OTELCOL_GRPC_PORT:-4327}
+export PROJ_OTELCOL_HTTP_PORT=${PROJ_OTELCOL_HTTP_PORT:-4328}
+export PROJ_JAEGER_PORT=${PROJ_JAEGER_PORT:-14268}
+export PROJ_JAEGER_UI_PORT=${PROJ_JAEGER_UI_PORT:-16686}
+export PROJ_PROMETHEUS_PORT=${PROJ_PROMETHEUS_PORT:-9090}
+export PROJ_GRAFANA_PORT=${PROJ_GRAFANA_PORT:-3000}
+export PROJ_VICTORIALOGS_PORT=${PROJ_VICTORIALOGS_PORT:-9428}
+
+# =============================================================================
+# 平台安装偏好配置 (Platform Installation Preferences)
+# =============================================================================
+
+# 每个服务在不同平台上的推荐安装方式 (docker|native)
+# Redis 偏好配置
+export INSTALL_PREFERENCE_REDIS_UBUNTU=${INSTALL_PREFERENCE_REDIS_UBUNTU:-"docker"}
+export INSTALL_PREFERENCE_REDIS_MACOS=${INSTALL_PREFERENCE_REDIS_MACOS:-"native"}
+
+# OTEL Collector 偏好配置
+export INSTALL_PREFERENCE_OTELCOL_UBUNTU=${INSTALL_PREFERENCE_OTELCOL_UBUNTU:-"native"}
+export INSTALL_PREFERENCE_OTELCOL_MACOS=${INSTALL_PREFERENCE_OTELCOL_MACOS:-"docker"}
+
+# Prometheus 偏好配置
+export INSTALL_PREFERENCE_PROMETHEUS_UBUNTU=${INSTALL_PREFERENCE_PROMETHEUS_UBUNTU:-"docker"}
+export INSTALL_PREFERENCE_PROMETHEUS_MACOS=${INSTALL_PREFERENCE_PROMETHEUS_MACOS:-"native"}
+
+# Grafana 偏好配置
+export INSTALL_PREFERENCE_GRAFANA_UBUNTU=${INSTALL_PREFERENCE_GRAFANA_UBUNTU:-"docker"}
+export INSTALL_PREFERENCE_GRAFANA_MACOS=${INSTALL_PREFERENCE_GRAFANA_MACOS:-"native"}
+
+# Jaeger 偏好配置
+export INSTALL_PREFERENCE_JAEGER_UBUNTU=${INSTALL_PREFERENCE_JAEGER_UBUNTU:-"docker"}
+export INSTALL_PREFERENCE_JAEGER_MACOS=${INSTALL_PREFERENCE_JAEGER_MACOS:-"docker"}
+
+# VictoriaLogs 偏好配置
+export INSTALL_PREFERENCE_VICTORIALOGS_UBUNTU=${INSTALL_PREFERENCE_VICTORIALOGS_UBUNTU:-"native"}
+export INSTALL_PREFERENCE_VICTORIALOGS_MACOS=${INSTALL_PREFERENCE_VICTORIALOGS_MACOS:-"docker"}
+
+# =============================================================================
+# 平台特定包名和公式映射 (Platform-specific Package/Formula Mapping)
+# =============================================================================
+
+# 获取Ubuntu包名的函数
+proj::versions::get_ubuntu_package() {
+    local service="$1"
+    case "$service" in
+        "redis") echo "redis-server" ;;
+        "mysql") echo "mysql-server" ;;
+        "mariadb") echo "mariadb-server" ;;
+        "mongodb") echo "mongodb" ;;
+        "prometheus") echo "prometheus" ;;
+        "grafana") echo "grafana" ;;
+        "nginx") echo "nginx" ;;
+        "postgresql") echo "postgresql" ;;
+        *) echo "$service" ;;
+    esac
+}
+
+# 获取macOS Homebrew公式的函数
+proj::versions::get_macos_formula() {
+    local service="$1"
+    case "$service" in
+        "redis") echo "redis" ;;
+        "mysql") echo "mysql" ;;
+        "mariadb") echo "mariadb" ;;
+        "mongodb") echo "mongodb" ;;
+        "prometheus") echo "prometheus" ;;
+        "grafana") echo "grafana" ;;
+        "nginx") echo "nginx" ;;
+        "postgresql") echo "postgresql" ;;
+        "node") echo "node" ;;
+        "python") echo "python" ;;
+        *) echo "$service" ;;
+    esac
+}
 
 # =============================================================================
 # 版本兼容性映射 (Version Compatibility Mapping)
@@ -164,7 +286,7 @@ proj::versions::validate_all() {
 # =============================================================================
 
 # 如果直接执行此脚本 - 兼容 Make 环境
-if [[ "${BASH_SOURCE[0]:-${0}}" == "${0}" ]]; then
+if [[ "${BASH_SOURCE[0]:-${0##*/}}" == "${0##*/}" ]]; then
   case "${1:-}" in
     "show"|"list"|"")
       proj::versions::show_all

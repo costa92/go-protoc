@@ -9,8 +9,11 @@ include scripts/make-rules/build.mk
 # Include core build tools and utility commands.
 include scripts/make-rules/tools.mk
 
-@echo "==> DEBUG: Including deploy.mk"
+# Include deployment commands.
 include scripts/make-rules/deploy.mk
+
+# Include Docker template system.
+include scripts/make-rules/docker-templates.mk
 
 # Include Go-specific build and formatting commands.
 include scripts/make-rules/golang.mk

@@ -37,6 +37,49 @@ _install.docker.redis: ## Install docker install redis
 _uninstall.docker.redis: ## Uninstall docker install redis
 	@$(PROJ_ROOT_DIR)/scripts/installation/install.sh proj::redis::docker::uninstall
 
+##@ Redis Docker Template Testing (New)
+# ==============================================================================
+# Test new Docker template system for Redis
+# ==============================================================================
+.PHONY: docker.redis.test-start
+docker.redis.test-start: ## Test start Redis using new Docker template system
+	@echo "===========> Testing Redis Docker template start"
+	@source $(PROJ_ROOT_DIR)/scripts/installation/versions.sh && \
+	 source $(PROJ_ROOT_DIR)/scripts/installation/common.sh && \
+	 source $(PROJ_ROOT_DIR)/scripts/installation/lib/common_lib.sh && \
+	 proj::docker::run_service_from_template "redis"
+
+.PHONY: docker.redis.test-stop
+docker.redis.test-stop: ## Test stop Redis using new Docker template system
+	@echo "===========> Testing Redis Docker template stop"
+	@source $(PROJ_ROOT_DIR)/scripts/installation/versions.sh && \
+	 source $(PROJ_ROOT_DIR)/scripts/installation/common.sh && \
+	 source $(PROJ_ROOT_DIR)/scripts/installation/lib/common_lib.sh && \
+	 proj::docker::stop_service_from_template "redis"
+
+.PHONY: docker.redis.test-status
+docker.redis.test-status: ## Test check Redis status using new Docker template system
+	@echo "===========> Testing Redis Docker template status"
+	@source $(PROJ_ROOT_DIR)/scripts/installation/versions.sh && \
+	 source $(PROJ_ROOT_DIR)/scripts/installation/common.sh && \
+	 source $(PROJ_ROOT_DIR)/scripts/installation/lib/common_lib.sh && \
+	 proj::docker::check_service_status_from_template "redis"
+
+.PHONY: docker.redis.test-restart
+docker.redis.test-restart: ## Test restart Redis using new Docker template system
+	@echo "===========> Testing Redis Docker template restart"
+	@$(MAKE) docker.redis.test-stop
+	@sleep 2
+	@$(MAKE) docker.redis.test-start
+
+.PHONY: docker.redis.test-cleanup
+docker.redis.test-cleanup: ## Clean up Redis Docker test artifacts
+	@echo "===========> Cleaning up Redis Docker test artifacts"
+	@source $(PROJ_ROOT_DIR)/scripts/installation/versions.sh && \
+	 source $(PROJ_ROOT_DIR)/scripts/installation/common.sh && \
+	 source $(PROJ_ROOT_DIR)/scripts/installation/lib/common_lib.sh && \
+	 proj::docker::cleanup_generated_scripts "redis"
+
 
 ##@ MariaDB Service
 # ==============================================================================
