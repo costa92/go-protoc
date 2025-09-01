@@ -11,6 +11,19 @@
 set -eEuo pipefail
 
 # =============================================================================
+# 项目基础配置 (Project Base Configuration)
+# =============================================================================
+
+# 项目基础信息
+export PROJ_NAME=${PROJ_NAME:-go-protoc}
+export PROJ_PREFIX=${PROJ_PREFIX:-proj}
+export PROJ_ENVIRONMENT=${PROJ_ENVIRONMENT:-development}
+export PROJ_NAMESPACE=${PROJ_NAMESPACE:-default}
+
+# Docker网络配置
+export PROJ_NETWORK_NAME=${PROJ_NETWORK_NAME:-${PROJ_PREFIX}-network}
+
+# =============================================================================
 # 基础设施组件版本 (Infrastructure Component Versions)
 # =============================================================================
 
@@ -53,39 +66,65 @@ export DOCKER_COMPOSE_VERSION=${DOCKER_COMPOSE_VERSION:-v2.29.7}
 # =============================================================================
 
 # 获取项目根目录
-PROJ_ROOT_DIR="${PROJ_ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+if [[ -n "${BASH_SOURCE[0]:-}" ]]; then
+    PROJ_ROOT_DIR="${PROJ_ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+else
+    # 当通过envsubst等方式调用时的回退路径，假设在项目根目录下
+    PROJ_ROOT_DIR="${PROJ_ROOT_DIR:-/Users/costalong/code/go/src/github.com/costa92/go-protoc}"
+fi
+
+# 第三方服务安装目录配置
+export PROJ_THIRDPARTY_INSTALL_DIR=${PROJ_THIRDPARTY_INSTALL_DIR:-"${PROJ_ROOT_DIR}/_thirdparty"}
 
 # 数据库服务配置目录
-export PROJ_REDIS_CONFIG_DIR=${PROJ_REDIS_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/redis/config"}
-export PROJ_REDIS_DATA_DIR=${PROJ_REDIS_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/redis/data"}
-export PROJ_MYSQL_CONFIG_DIR=${PROJ_MYSQL_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/mysql/config"}
-export PROJ_MYSQL_DATA_DIR=${PROJ_MYSQL_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/mysql/data"}
-export PROJ_MARIADB_CONFIG_DIR=${PROJ_MARIADB_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/mariadb/config"}
-export PROJ_MARIADB_DATA_DIR=${PROJ_MARIADB_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/mariadb/data"}
-export PROJ_MONGODB_CONFIG_DIR=${PROJ_MONGODB_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/mongodb/config"}
-export PROJ_MONGODB_DATA_DIR=${PROJ_MONGODB_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/mongodb/data"}
+export PROJ_REDIS_CONFIG_DIR=${PROJ_REDIS_CONFIG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/redis/config"}
+export PROJ_REDIS_DATA_DIR=${PROJ_REDIS_DATA_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/redis/data"}
+export PROJ_REDIS_LOG_DIR=${PROJ_REDIS_LOG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/redis/logs"}
+export PROJ_MYSQL_CONFIG_DIR=${PROJ_MYSQL_CONFIG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/mysql/config"}
+export PROJ_MYSQL_DATA_DIR=${PROJ_MYSQL_DATA_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/mysql/data"}
+export PROJ_MYSQL_LOG_DIR=${PROJ_MYSQL_LOG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/mysql/logs"}
+export PROJ_MARIADB_CONFIG_DIR=${PROJ_MARIADB_CONFIG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb/config"}
+export PROJ_MARIADB_DATA_DIR=${PROJ_MARIADB_DATA_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb/data"}
+export PROJ_MARIADB_LOG_DIR=${PROJ_MARIADB_LOG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/mariadb/logs"}
+export PROJ_MONGODB_CONFIG_DIR=${PROJ_MONGODB_CONFIG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/mongodb/config"}
+export PROJ_MONGODB_DATA_DIR=${PROJ_MONGODB_DATA_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/mongodb/data"}
+export PROJ_MONGODB_LOG_DIR=${PROJ_MONGODB_LOG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/mongodb/logs"}
 
 # 分布式系统配置目录
-export PROJ_NACOS_CONFIG_DIR=${PROJ_NACOS_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/nacos/config"}
-export PROJ_NACOS_DATA_DIR=${PROJ_NACOS_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/nacos/data"}
-export PROJ_NACOS_LOG_DIR=${PROJ_NACOS_LOG_DIR:-"${PROJ_ROOT_DIR}/_data/nacos/logs"}
+export PROJ_NACOS_CONFIG_DIR=${PROJ_NACOS_CONFIG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/nacos/config"}
+export PROJ_NACOS_DATA_DIR=${PROJ_NACOS_DATA_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/nacos/data"}
+export PROJ_NACOS_LOG_DIR=${PROJ_NACOS_LOG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/nacos/logs"}
+export PROJ_KAFKA_CONFIG_DIR=${PROJ_KAFKA_CONFIG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/kafka/config"}
+export PROJ_KAFKA_DATA_DIR=${PROJ_KAFKA_DATA_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/kafka/data"}
+export PROJ_KAFKA_LOG_DIR=${PROJ_KAFKA_LOG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/kafka/logs"}
+export PROJ_ZOOKEEPER_CONFIG_DIR=${PROJ_ZOOKEEPER_CONFIG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/zookeeper/config"}
+export PROJ_ZOOKEEPER_DATA_DIR=${PROJ_ZOOKEEPER_DATA_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/zookeeper/data"}
+export PROJ_ZOOKEEPER_LOG_DIR=${PROJ_ZOOKEEPER_LOG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/zookeeper/logs"}
 
 # 可观测性服务配置目录
-export PROJ_OTEL_AGENT_CONFIG_DIR=${PROJ_OTEL_AGENT_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/otel-agent/config"}
-export PROJ_OTELCOL_CONFIG_DIR=${PROJ_OTELCOL_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/otelcol/config"}
-export PROJ_OTELCOL_DATA_DIR=${PROJ_OTELCOL_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/otelcol/data"}
-export PROJ_JAEGER_CONFIG_DIR=${PROJ_JAEGER_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/jaeger/config"}
-export PROJ_JAEGER_DATA_DIR=${PROJ_JAEGER_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/jaeger/data"}
-export PROJ_PROMETHEUS_CONFIG_DIR=${PROJ_PROMETHEUS_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/prometheus/config"}
-export PROJ_PROMETHEUS_DATA_DIR=${PROJ_PROMETHEUS_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/prometheus/data"}
-export PROJ_GRAFANA_CONFIG_DIR=${PROJ_GRAFANA_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/grafana/config"}
-export PROJ_GRAFANA_DATA_DIR=${PROJ_GRAFANA_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/grafana/data"}
+export PROJ_OTEL_AGENT_CONFIG_DIR=${PROJ_OTEL_AGENT_CONFIG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/otel-agent/config"}
+export PROJ_OTEL_AGENT_DATA_DIR=${PROJ_OTEL_AGENT_DATA_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/otel-agent/data"}
+export PROJ_OTEL_AGENT_LOG_DIR=${PROJ_OTEL_AGENT_LOG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/otel-agent/logs"}
+export PROJ_OTELCOL_CONFIG_DIR=${PROJ_OTELCOL_CONFIG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/otelcol/config"}
+export PROJ_OTELCOL_DATA_DIR=${PROJ_OTELCOL_DATA_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/otelcol/data"}
+export PROJ_OTELCOL_LOG_DIR=${PROJ_OTELCOL_LOG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/otelcol/logs"}
+export PROJ_JAEGER_CONFIG_DIR=${PROJ_JAEGER_CONFIG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/jaeger/config"}
+export PROJ_JAEGER_DATA_DIR=${PROJ_JAEGER_DATA_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/jaeger/data"}
+export PROJ_JAEGER_LOG_DIR=${PROJ_JAEGER_LOG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/jaeger/logs"}
+export PROJ_PROMETHEUS_CONFIG_DIR=${PROJ_PROMETHEUS_CONFIG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/prometheus/config"}
+export PROJ_PROMETHEUS_DATA_DIR=${PROJ_PROMETHEUS_DATA_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/prometheus/data"}
+export PROJ_PROMETHEUS_LOG_DIR=${PROJ_PROMETHEUS_LOG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/prometheus/logs"}
+export PROJ_GRAFANA_CONFIG_DIR=${PROJ_GRAFANA_CONFIG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/grafana/config"}
+export PROJ_GRAFANA_DATA_DIR=${PROJ_GRAFANA_DATA_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/grafana/data"}
+export PROJ_GRAFANA_LOG_DIR=${PROJ_GRAFANA_LOG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/grafana/logs"}
 
 # 日志管理服务配置目录
-export PROJ_VICTORIALOGS_CONFIG_DIR=${PROJ_VICTORIALOGS_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/victorialogs/config"}
-export PROJ_VICTORIALOGS_DATA_DIR=${PROJ_VICTORIALOGS_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/victorialogs/data"}
-export PROJ_LOKI_CONFIG_DIR=${PROJ_LOKI_CONFIG_DIR:-"${PROJ_ROOT_DIR}/_data/loki/config"}
-export PROJ_LOKI_DATA_DIR=${PROJ_LOKI_DATA_DIR:-"${PROJ_ROOT_DIR}/_data/loki/data"}
+export PROJ_VICTORIALOGS_CONFIG_DIR=${PROJ_VICTORIALOGS_CONFIG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/victorialogs/config"}
+export PROJ_VICTORIALOGS_DATA_DIR=${PROJ_VICTORIALOGS_DATA_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/victorialogs/data"}
+export PROJ_VICTORIALOGS_LOG_DIR=${PROJ_VICTORIALOGS_LOG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/victorialogs/logs"}
+export PROJ_LOKI_CONFIG_DIR=${PROJ_LOKI_CONFIG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/loki/config"}
+export PROJ_LOKI_DATA_DIR=${PROJ_LOKI_DATA_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/loki/data"}
+export PROJ_LOKI_LOG_DIR=${PROJ_LOKI_LOG_DIR:-"${PROJ_THIRDPARTY_INSTALL_DIR}/loki/logs"}
 
 # 服务端口配置
 export PROJ_REDIS_PORT=${PROJ_REDIS_PORT:-6379}
@@ -94,6 +133,8 @@ export PROJ_MARIADB_PORT=${PROJ_MARIADB_PORT:-3307}
 export PROJ_MONGODB_PORT=${PROJ_MONGODB_PORT:-27017}
 export PROJ_NACOS_PORT=${PROJ_NACOS_PORT:-8848}
 export PROJ_NACOS_GRPC_PORT=${PROJ_NACOS_GRPC_PORT:-9848}
+export PROJ_KAFKA_PORT=${PROJ_KAFKA_PORT:-9092}
+export PROJ_ZOOKEEPER_PORT=${PROJ_ZOOKEEPER_PORT:-2181}
 export PROJ_OTELCOL_GRPC_PORT=${PROJ_OTELCOL_GRPC_PORT:-4327}
 export PROJ_OTELCOL_HTTP_PORT=${PROJ_OTELCOL_HTTP_PORT:-4328}
 export PROJ_JAEGER_PORT=${PROJ_JAEGER_PORT:-14268}
@@ -187,6 +228,28 @@ export PROJ_LOKI_VERSION=${LOKI_VERSION}
 export PROJ_KAFKA_VERSION=${KAFKA_VERSION}
 export PROJ_ZOOKEEPER_VERSION=${ZOOKEEPER_VERSION}
 export PROJ_REDIS_VERSION=${REDIS_VERSION}
+
+# =============================================================================
+# 容器名称管理函数 (Container Name Management Functions)
+# =============================================================================
+
+# 获取服务的容器名称
+proj::versions::get_container_name() {
+  local service_name="$1"
+  echo "${PROJ_PREFIX}-${service_name}"
+}
+
+# 获取服务的数据卷名称
+proj::versions::get_volume_name() {
+  local service_name="$1"
+  local volume_type="${2:-data}"  # data, logs, config
+  echo "${PROJ_PREFIX}-${service_name}-${volume_type}"
+}
+
+# 获取服务的网络名称
+proj::versions::get_network_name() {
+  echo "${PROJ_NETWORK_NAME}"
+}
 
 # =============================================================================
 # 版本检查函数 (Version Check Functions)

@@ -9,7 +9,7 @@ set -eEuo pipefail
 
 # 服务配置
 readonly SERVICE_NAME="nacos"
-readonly CONTAINER_NAME="proj-nacos"
+readonly CONTAINER_NAME="${PROJ_PREFIX}-nacos"
 readonly HTTP_PORT="${PROJ_NACOS_PORT:-8848}"
 readonly GRPC_PORT="${PROJ_NACOS_GRPC_PORT:-9848}"
 
@@ -67,4 +67,4 @@ fi
 # 检查数据卷
 echo ""
 echo "=== 数据卷状态 ==="
-docker volume ls | grep -E "(proj-nacos-data|proj-nacos-logs)" || echo "未找到Nacos数据卷"
+docker volume ls | grep -E "(${PROJ_PREFIX}-nacos-data|${PROJ_PREFIX}-nacos-logs)" || echo "未找到Nacos数据卷"

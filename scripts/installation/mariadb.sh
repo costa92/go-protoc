@@ -129,7 +129,7 @@ proj::mariadb::install()
 
   # Download MariaDB GPG key and store it in the keyring
   proj::util::sudo "mkdir -p /usr/share/keyrings"
-  echo ${LINUX_PASSWORD} | sudo -S bash -c "curl -sL 'https://mariadb.org/mariadb_release_signing_key.asc' | gpg --dearmor > /usr/share/keyrings/mariadb-archive-keyring.gpg"
+  proj::util::sudo "curl -sL 'https://mariadb.org/mariadb_release_signing_key.asc' | gpg --dearmor > /usr/share/keyrings/mariadb-archive-keyring.gpg"
 
 
   # 配置 MariaDB 11.2.2 apt 源（docker install 和 sbs install 版本都要保持一致）
@@ -140,18 +140,18 @@ proj::mariadb::install()
     # 对于 Ubuntu 24.04 (noble) 及更新版本，使用 mantic (23.10) 的包，因为 noble 不在归档中
     if [[ "$ubuntu_codename" == "noble" ]] || [[ "$ubuntu_codename" > "mantic" ]]; then
       proj::log::info "Using MariaDB 11.2.2 archive repository with mantic packages for $ubuntu_codename"
-      echo ${LINUX_PASSWORD} | sudo -S echo "deb [signed-by=/usr/share/keyrings/mariadb-archive-keyring.gpg arch=amd64,arm64] https://archive.mariadb.org/mariadb-11.2.2/repo/ubuntu/ mantic main" | sudo tee /etc/apt/sources.list.d/mariadb-11.2.2.list
+      proj::util::sudo "echo 'deb [signed-by=/usr/share/keyrings/mariadb-archive-keyring.gpg arch=amd64,arm64] https://archive.mariadb.org/mariadb-11.2.2/repo/ubuntu/ mantic main' > /etc/apt/sources.list.d/mariadb-11.2.2.list"
     elif [[ "$ubuntu_codename" == "mantic" ]] || [[ "$ubuntu_codename" == "lunar" ]] || [[ "$ubuntu_codename" == "jammy" ]] || [[ "$ubuntu_codename" == "focal" ]] || [[ "$ubuntu_codename" == "bionic" ]]; then
       # 支持的 Ubuntu 版本使用对应的归档源
       proj::log::info "Using MariaDB 11.2.2 archive repository for $ubuntu_codename"
-      echo ${LINUX_PASSWORD} | sudo -S echo "deb [signed-by=/usr/share/keyrings/mariadb-archive-keyring.gpg arch=amd64,arm64] https://archive.mariadb.org/mariadb-11.2.2/repo/ubuntu/ $ubuntu_codename main" | sudo tee /etc/apt/sources.list.d/mariadb-11.2.2.list
+      proj::util::sudo "echo 'deb [signed-by=/usr/share/keyrings/mariadb-archive-keyring.gpg arch=amd64,arm64] https://archive.mariadb.org/mariadb-11.2.2/repo/ubuntu/ $ubuntu_codename main' > /etc/apt/sources.list.d/mariadb-11.2.2.list"
     else
       # 其他版本使用 jammy 作为回退
       proj::log::info "Using MariaDB 11.2.2 archive repository with jammy packages for $ubuntu_codename"
-      echo ${LINUX_PASSWORD} | sudo -S echo "deb [signed-by=/usr/share/keyrings/mariadb-archive-keyring.gpg arch=amd64,arm64] https://archive.mariadb.org/mariadb-11.2.2/repo/ubuntu/ jammy main" | sudo tee /etc/apt/sources.list.d/mariadb-11.2.2.list
+      proj::util::sudo "echo 'deb [signed-by=/usr/share/keyrings/mariadb-archive-keyring.gpg arch=amd64,arm64] https://archive.mariadb.org/mariadb-11.2.2/repo/ubuntu/ jammy main' > /etc/apt/sources.list.d/mariadb-11.2.2.list"
     fi
   elif proj::util::is_debian; then
-    echo ${LINUX_PASSWORD} | sudo -S echo "deb [signed-by=/usr/share/keyrings/mariadb-archive-keyring.gpg arch=amd64,arm64] https://archive.mariadb.org/mariadb-11.2.2/repo/debian/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/mariadb-11.2.2.list
+    proj::util::sudo "echo 'deb [signed-by=/usr/share/keyrings/mariadb-archive-keyring.gpg arch=amd64,arm64] https://archive.mariadb.org/mariadb-11.2.2/repo/debian/ $(lsb_release -cs) main' > /etc/apt/sources.list.d/mariadb-11.2.2.list"
   else
     proj::log::error "Unsupported operating system. Only Ubuntu and Debian are supported."
     return 1

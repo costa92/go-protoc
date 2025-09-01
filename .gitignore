@@ -3,6 +3,7 @@
 ._output/
 .idea
 _thirdparty/
+_generated/
 bin/*
 logs/*
 *.log

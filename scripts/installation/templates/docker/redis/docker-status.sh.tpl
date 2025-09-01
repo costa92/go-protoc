@@ -8,7 +8,7 @@
 set -eEuo pipefail
 
 # 服务配置
-readonly CONTAINER_NAME="proj-redis"
+readonly CONTAINER_NAME="${PROJ_PREFIX}-redis"
 readonly SERVICE_PORT="${PROJ_REDIS_PORT:-6379}"
 
 echo "=== Redis Docker服务状态 ==="

@@ -9,7 +9,7 @@ set -eEuo pipefail
 
 # 服务配置
 readonly SERVICE_NAME="nacos"
-readonly CONTAINER_NAME="proj-nacos"
+readonly CONTAINER_NAME="${PROJ_PREFIX}-nacos"
 readonly IMAGE_NAME="nacos/nacos-server:${NACOS_VERSION}"
 readonly HTTP_PORT="${PROJ_NACOS_PORT:-8848}"
 readonly GRPC_PORT="${PROJ_NACOS_GRPC_PORT:-9848}"
@@ -20,7 +20,7 @@ readonly DATA_DIR="${PROJ_NACOS_DATA_DIR}"
 readonly LOG_DIR="${PROJ_NACOS_LOG_DIR}"
 
 # Docker网络
-readonly NETWORK_NAME="proj-network"
+readonly NETWORK_NAME="${PROJ_NETWORK_NAME}"
 
 # Nacos配置
 readonly NACOS_SERVER_PORT="${HTTP_PORT}"
@@ -38,8 +38,8 @@ mkdir -p "${CONFIG_DIR}" "${DATA_DIR}" "${LOG_DIR}"
 docker network create "${NETWORK_NAME}" 2>/dev/null || true
 
 # 创建Docker卷（如果不存在）
-docker volume create proj-nacos-data 2>/dev/null || true
-docker volume create proj-nacos-logs 2>/dev/null || true
+docker volume create "${PROJ_PREFIX}-nacos-data" 2>/dev/null || true
+docker volume create "${PROJ_PREFIX}-nacos-logs" 2>/dev/null || true
 
 # 停止并删除现有容器（如果存在）
 docker stop "${CONTAINER_NAME}" 2>/dev/null || true
@@ -53,8 +53,8 @@ docker run -d \
     -p "${HTTP_PORT}:8848" \
     -p "${GRPC_PORT}:9848" \
     -p "9849:9849" \
-    -v proj-nacos-data:/home/nacos/data \
-    -v proj-nacos-logs:/home/nacos/logs \
+    -v "${PROJ_PREFIX}-nacos-data:/home/nacos/data" \
+    -v "${PROJ_PREFIX}-nacos-logs:/home/nacos/logs" \
     -v "${CONFIG_DIR}:/home/nacos/conf:ro" \
     -v "${LOG_DIR}:/var/log/nacos" \
     -e MODE="${MODE}" \

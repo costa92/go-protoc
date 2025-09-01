@@ -85,7 +85,7 @@ proj::mongo::pre_install()
     # 获取 MongoDB 公钥并添加到现代密钥环
     # 使用 --homedir /tmp/gnupg 避免 GPG 家目录权限警告
     # 使用 --quiet 减少不必要的输出
-    echo ${LINUX_PASSWORD} | sudo -S wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg --dearmor --homedir /tmp/gnupg --quiet -o /usr/share/keyrings/mongodb-server-7.0.gpg
+    proj::util::sudo "wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor --homedir /tmp/gnupg --quiet -o /usr/share/keyrings/mongodb-server-7.0.gpg"
   fi
 
   if proj::util::is_ubuntu; then
@@ -95,10 +95,10 @@ proj::mongo::pre_install()
     if [[ "$UBUNTU_CODENAME" == "noble" ]] || [[ "$UBUNTU_CODENAME" > "jammy" ]]; then
       UBUNTU_CODENAME="jammy"
     fi
-    echo ${LINUX_PASSWORD} | sudo -S echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg] https://repo.mongodb.org/apt/ubuntu ${UBUNTU_CODENAME}/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+    proj::util::sudo "echo 'deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg] https://repo.mongodb.org/apt/ubuntu ${UBUNTU_CODENAME}/mongodb-org/7.0 multiverse' > /etc/apt/sources.list.d/mongodb-org-7.0.list"
   elif proj::util::is_debian; then
     # 添加 MongoDB APT 源
-    echo ${LINUX_PASSWORD} | sudo -S echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg] https://repo.mongodb.org/apt/debian $(lsb_release -cs)/mongodb-org/7.0 main" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+    proj::util::sudo "echo 'deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg] https://repo.mongodb.org/apt/debian $(lsb_release -cs)/mongodb-org/7.0 main' > /etc/apt/sources.list.d/mongodb-org-7.0.list"
   else
     proj::log::error "Unsupported operating system. Only Ubuntu and Debian are supported."
     return 1
@@ -107,7 +107,7 @@ proj::mongo::pre_install()
   # 安装libssl1.1，否则安装 mongo 时会报以下错误：
   # mongodb-org-mongos : Depends: libssl1.1 (>= 1.1.1) but it is not installable
   wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb -P /tmp/
-  echo ${LINUX_PASSWORD} | sudo -S -i dpkg -i /tmp/libssl1.1_1.1.1f-1ubuntu2_amd64.deb
+  proj::util::sudo "dpkg -i /tmp/libssl1.1_1.1.1f-1ubuntu2_amd64.deb"
 
   proj::util::sudo "apt update"
 
@@ -134,7 +134,7 @@ proj::mongo::install()
 {
   proj::mongo::pre_install
 
-  echo ${LINUX_PASSWORD} | sudo -S apt install -y gnupg
+  proj::util::sudo "apt install -y gnupg"
 
   # 安装 MongoDB 服务端
   # 以为我们uninstall时会删除配置文件，所以要使用--force-confmiss 重新安装配置文件

@@ -8,9 +8,9 @@
 set -eEuo pipefail
 
 # 服务配置
-readonly CONTAINER_NAME="proj-nacos"
-readonly DATA_VOLUME_NAME="proj-nacos-data"
-readonly LOGS_VOLUME_NAME="proj-nacos-logs"
+readonly CONTAINER_NAME="${PROJ_PREFIX}-nacos"
+readonly DATA_VOLUME_NAME="${PROJ_PREFIX}-nacos-data"
+readonly LOGS_VOLUME_NAME="${PROJ_PREFIX}-nacos-logs"
 
 echo "正在停止Nacos容器..."
 

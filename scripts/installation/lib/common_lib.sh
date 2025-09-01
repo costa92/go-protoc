@@ -20,6 +20,14 @@ PROJ_ROOT_DIR="$(cd "${INSTALLATION_DIR}/../.." && pwd)"
 # 确保基础common.sh已加载
 source "${INSTALLATION_DIR}/common.sh"
 
+# 基础logging函数（如果不存在）
+if ! type proj::log::debug >/dev/null 2>&1; then
+    proj::log::debug() { echo "[DEBUG] $*" >&2; }
+    proj::log::info() { echo "[INFO] $*" >&2; }
+    proj::log::warn() { echo "[WARN] $*" >&2; }
+    proj::log::error() { echo "[ERROR] $*" >&2; }
+fi
+
 # 工具库文件列表
 TOOL_LIBRARIES=(
     "platform.sh"
@@ -41,21 +49,22 @@ proj::lib::load_library() {
     
     if [[ -f "${lib_path}" ]]; then
         source "${lib_path}"
-        proj::log::debug "Loaded library: ${lib_file}"
+        # 使用echo替代可能未定义的logging函数
+        echo "[DEBUG] Loaded library: ${lib_file}" >&2
     else
-        proj::log::warn "Library not found: ${lib_file} (${lib_path})"
+        echo "[WARN] Library not found: ${lib_file} (${lib_path})" >&2
     fi
 }
 
 # 加载所有可用的工具库
 proj::lib::load_all() {
-    proj::log::info "Loading standardized tool libraries..."
+    echo "[INFO] Loading standardized tool libraries..." >&2
     
     for lib in "${TOOL_LIBRARIES[@]}"; do
         proj::lib::load_library "${lib}"
     done
     
-    proj::log::info "Tool libraries loaded successfully"
+    echo "[INFO] Tool libraries loaded successfully" >&2
 }
 
 # 检查库依赖
