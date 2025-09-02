@@ -9,17 +9,17 @@ set -eEuo pipefail
 
 # 服务配置
 readonly SERVICE_NAME="victorialogs"
-readonly CONTAINER_NAME="proj-victorialogs"
-readonly IMAGE_NAME="victoriametrics/victoria-logs:v${VICTORIALOGS_VERSION}-victorialogs"
+readonly CONTAINER_NAME="${PROJ_PREFIX}-victorialogs"
+readonly IMAGE_NAME="victoriametrics/victoria-logs:v${VICTORIALOGS_VERSION}"
 readonly SERVICE_PORT="${PROJ_VICTORIALOGS_PORT:-9428}"
 
 # 目录配置
 readonly CONFIG_DIR="${PROJ_VICTORIALOGS_CONFIG_DIR}"
 readonly DATA_DIR="${PROJ_VICTORIALOGS_DATA_DIR}"
-readonly LOG_DIR="${DATA_DIR}/logs"
+readonly LOG_DIR="${PROJ_VICTORIALOGS_LOG_DIR}"
 
 # Docker网络
-readonly NETWORK_NAME="proj-network"
+readonly NETWORK_NAME="${PROJ_NETWORK_NAME}"
 
 # 创建必要的目录
 mkdir -p "${CONFIG_DIR}" "${DATA_DIR}" "${LOG_DIR}"
@@ -28,7 +28,7 @@ mkdir -p "${CONFIG_DIR}" "${DATA_DIR}" "${LOG_DIR}"
 docker network create "${NETWORK_NAME}" 2>/dev/null || true
 
 # 创建Docker卷（如果不存在）
-docker volume create proj-victorialogs-data 2>/dev/null || true
+docker volume create "${PROJ_PREFIX}-victorialogs-data" 2>/dev/null || true
 
 # 停止并删除现有容器（如果存在）
 docker stop "${CONTAINER_NAME}" 2>/dev/null || true
@@ -40,10 +40,10 @@ docker run -d \
     --network "${NETWORK_NAME}" \
     --restart unless-stopped \
     -p "${SERVICE_PORT}:9428" \
-    -v proj-victorialogs-data:/victoria-logs-data \
+    -v "${PROJ_PREFIX}-victorialogs-data":/victoria-logs-data \
     -v "${CONFIG_DIR}:/etc/victorialogs:ro" \
     -v "${LOG_DIR}:/var/log/victorialogs" \
-    -e GOMEMLIMIT=1g \
+    -e GOMEMLIMIT=1GiB \
     -e PROJ_SERVICE_NAME=victorialogs \
     -e PROJ_SERVICE_VERSION=${VICTORIALOGS_VERSION} \
     -e PROJ_ENVIRONMENT=${PROJ_ENVIRONMENT:-development} \

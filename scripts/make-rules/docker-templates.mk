@@ -4,7 +4,7 @@
 # ==============================================================================
 
 # Docker template testing variables
-DOCKER_TEST_SERVICES := redis mysql otelcol victorialogs
+DOCKER_TEST_SERVICES := redis mysql mariadb etcd otelcol victorialogs prometheus
 DOCKER_TEMPLATE_LIB_LOADER = source $(PROJ_ROOT_DIR)/scripts/installation/versions.sh && \
 							 source $(PROJ_ROOT_DIR)/scripts/installation/common.sh && \
 							 source $(PROJ_ROOT_DIR)/scripts/installation/lib/common_lib.sh
@@ -139,6 +139,17 @@ docker.test.mysql-full: ## Full MySQL test cycle (start -> status -> stop -> cle
 	@$(MAKE) docker.mysql.cleanup
 	@echo "===========> MySQL test cycle completed successfully"
 
+.PHONY: docker.test.mariadb-full
+docker.test.mariadb-full: ## Full MariaDB test cycle (start -> status -> stop -> cleanup)
+	@echo "===========> Running full MariaDB test cycle"
+	@$(MAKE) docker.mariadb.start
+	@sleep 10
+	@$(MAKE) docker.mariadb.status
+	@sleep 2
+	@$(MAKE) docker.mariadb.stop
+	@$(MAKE) docker.mariadb.cleanup
+	@echo "===========> MariaDB test cycle completed successfully"
+
 ##@ Docker Template - Specific Service Helpers
 # ==============================================================================
 # Service-specific helper commands
@@ -154,10 +165,20 @@ docker.mysql.connect: ## Connect to MySQL using mysql client
 	@echo "===========> Connecting to MySQL"
 	@docker exec -it proj-mysql mysql -u root -p
 
+.PHONY: docker.mariadb.connect
+docker.mariadb.connect: ## Connect to MariaDB using mariadb client
+	@echo "===========> Connecting to MariaDB"
+	@docker exec -it proj-mariadb mariadb -u root -p
+
 .PHONY: docker.mysql.logs
 docker.mysql.logs: ## Show MySQL container logs
 	@echo "===========> MySQL container logs"
 	@docker logs proj-mysql --tail 50
+
+.PHONY: docker.mariadb.logs
+docker.mariadb.logs: ## Show MariaDB container logs
+	@echo "===========> MariaDB container logs"
+	@docker logs proj-mariadb --tail 50
 
 .PHONY: docker.redis.logs
 docker.redis.logs: ## Show Redis container logs
@@ -227,6 +248,7 @@ docker.help.templates: ## Show help for Docker template system
 	@echo "🔧 Development & Testing:"
 	@echo "  make docker.test.redis-full   - Full Redis test cycle"
 	@echo "  make docker.test.mysql-full   - Full MySQL test cycle"
+	@echo "  make docker.test.mariadb-full - Full MariaDB test cycle"
 	@echo "  make docker.env.check         - Check Docker environment"
 	@echo ""
 	@echo "🌐 Network & Infrastructure:"

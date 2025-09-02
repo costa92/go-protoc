@@ -151,6 +151,52 @@ export MYSQL_DATABASE="onex"
 proj::docker::run_service_from_template "mysql"
 ```
 
+### Kafka 配置示例
+
+```bash
+# 环境变量配置
+export KAFKA_VERSION="6.2.0"
+export PROJ_KAFKA_PORT="9092"
+export KAFKA_BOOTSTRAP_SERVERS="proj-kafka:9092"
+export KAFKA_ZOOKEEPER_CONNECT="proj-zookeeper:2181"
+export PROJ_KAFKA_CONFIG_DIR="/path/to/kafka/config"
+export PROJ_KAFKA_DATA_DIR="/path/to/kafka/data"
+export PROJ_KAFKA_LOG_DIR="/path/to/kafka/logs"
+
+# 启动Kafka（会自动检查和启动依赖的Zookeeper）
+proj::docker::run_service_from_template "kafka"
+```
+
+生成的Docker命令：
+```bash
+docker run -d \
+    --name "proj-kafka" \
+    --network "proj-network" \
+    --restart unless-stopped \
+    -p "9092:9092" \
+    -p "29092:29092" \
+    -p "9999:9999" \
+    -v proj-kafka-data:/opt/kafka/logs \
+    -v proj-kafka-logs:/var/log/kafka \
+    -e KAFKA_BROKER_ID=1 \
+    -e KAFKA_ZOOKEEPER_CONNECT="proj-zookeeper:2181" \
+    -e KAFKA_ADVERTISED_LISTENERS="PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://proj-kafka:29092" \
+    -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
+    -e KAFKA_AUTO_CREATE_TOPICS_ENABLE=true \
+    --health-cmd "/bin/kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1" \
+    --health-interval 30s \
+    --health-timeout 15s \
+    --health-retries 5 \
+    --health-start-period 60s \
+    confluentinc/cp-kafka:6.2.0
+```
+
+**特殊功能**：
+- ✅ **自动依赖管理**: 启动时自动检查并启动Zookeeper依赖
+- ✅ **健康检查修复**: 使用正确的命令路径 `/bin/kafka-topics`
+- ✅ **多端口支持**: 外部访问(9092)、内部通信(29092)、JMX监控(9999)
+- ✅ **单节点集群**: 适合开发环境的单节点配置
+
 ### OpenTelemetry Collector 配置示例
 
 ```bash
@@ -171,6 +217,8 @@ proj::docker::run_service_from_template "otelcol"
 proj-network (bridge)
 ├── proj-redis (6379)
 ├── proj-mysql (3306)  
+├── proj-kafka (9092, 29092, 9999)
+├── proj-zookeeper (2181, 2888, 3888)
 ├── proj-otelcol (4327, 4328, 8888, 13133)
 ├── proj-victorialogs (9428)
 └── proj-{service} (...)
@@ -179,6 +227,8 @@ proj-network (bridge)
 服务间可以通过容器名直接通信：
 - Redis: `proj-redis:6379`
 - MySQL: `proj-mysql:3306`  
+- Kafka: `proj-kafka:9092` (外部) / `proj-kafka:29092` (内部)
+- Zookeeper: `proj-zookeeper:2181`
 - VictoriaLogs: `proj-victorialogs:9428`
 
 ## 数据持久化
@@ -189,6 +239,8 @@ proj-network (bridge)
 |-----|-------------|-----------|
 | Redis | `proj-redis-data` | `/data` |
 | MySQL | `proj-mysql-data` | `/var/lib/mysql` |
+| Kafka | `proj-kafka-data`, `proj-kafka-logs` | `/opt/kafka/logs`, `/var/log/kafka` |
+| Zookeeper | `proj-zookeeper-data`, `proj-zookeeper-logs` | `/var/lib/zookeeper/data`, `/var/lib/zookeeper/log` |
 | OTEL Collector | `proj-otelcol-data` | `/data` |
 | VictoriaLogs | `proj-victorialogs-data` | `/victoria-logs-data` |
 
@@ -239,6 +291,25 @@ docker volume ls | grep proj-
 docker volume rm proj-redis-data
 ```
 
+### Kafka专项问题
+
+```bash
+# Kafka健康检查失败
+docker exec proj-kafka /bin/kafka-topics --bootstrap-server localhost:9092 --list
+
+# 检查Zookeeper依赖
+docker exec proj-zookeeper sh -c "echo srvr | nc localhost 2181"
+
+# Kafka容器卡在启动状态
+docker logs proj-kafka --tail 50
+docker logs proj-zookeeper --tail 20
+
+# 重新启动Kafka集群
+docker stop proj-kafka proj-zookeeper
+docker rm proj-kafka proj-zookeeper
+# 然后重新启动
+```
+
 ## 与Makefile集成
 
 推荐在Makefile中集成这些Docker脚本管理功能：
@@ -246,6 +317,7 @@ docker volume rm proj-redis-data
 ```makefile
 # Docker服务管理
 .PHONY: docker-start-redis docker-stop-redis docker-status-redis
+.PHONY: docker-start-kafka docker-stop-kafka docker-status-kafka
 
 docker-start-redis:
 	@./scripts/installation/lib/docker_script_manager.sh start redis
@@ -255,6 +327,15 @@ docker-stop-redis:
 
 docker-status-redis:
 	@./scripts/installation/lib/docker_script_manager.sh status redis
+
+docker-start-kafka:
+	@./scripts/installation/lib/docker_script_manager.sh start kafka
+
+docker-stop-kafka:
+	@./scripts/installation/lib/docker_script_manager.sh stop kafka
+
+docker-status-kafka:
+	@./scripts/installation/lib/docker_script_manager.sh status kafka
 ```
 
 ## 高级功能

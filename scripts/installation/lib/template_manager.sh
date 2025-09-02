@@ -60,7 +60,12 @@ proj::template::generate_config() {
     proj::log::info "Generating config from template: $template_path -> $output_path"
     
     # 设置服务特定的环境变量
-    proj::template::setup_service_variables "$service_name" "$platform"
+    # 特殊处理：如果模板名包含zookeeper，使用zookeeper服务配置
+    local actual_service_name="$service_name"
+    if [[ "$template_name" == *"zookeeper"* ]]; then
+        actual_service_name="zookeeper"
+    fi
+    proj::template::setup_service_variables "$actual_service_name" "$platform"
     
     # 加载额外的变量文件
     if [[ -n "$extra_vars" ]] && [[ -f "$extra_vars" ]]; then
@@ -132,6 +137,83 @@ proj::template::setup_service_variables() {
             export CONFIG_DIR="${PROJ_MYSQL_CONFIG_DIR}"
             export DATA_DIR="${PROJ_MYSQL_DATA_DIR}"
             export IMAGE_NAME="mysql:${MYSQL_VERSION:-8.0}"
+            ;;
+        "victorialogs")
+            export SERVICE_PORT="${PROJ_VICTORIALOGS_PORT:-9428}"
+            export CONFIG_DIR="${PROJ_VICTORIALOGS_CONFIG_DIR}"
+            export DATA_DIR="${PROJ_VICTORIALOGS_DATA_DIR}"
+            export LOG_DIR="${PROJ_VICTORIALOGS_LOG_DIR}"
+            export IMAGE_NAME="victoriametrics/victoria-logs:v${VICTORIALOGS_VERSION:-1.28.0}"
+            export VICTORIALOGS_RETENTION="${VICTORIALOGS_RETENTION:-7d}"
+            ;;
+        "etcd")
+            export SERVICE_PORT="${PROJ_ETCD_PORT:-2379}"
+            export CONFIG_DIR="${PROJ_ETCD_CONFIG_DIR}"
+            export DATA_DIR="${PROJ_ETCD_DATA_DIR}"
+            export LOG_DIR="${PROJ_ETCD_LOG_DIR}"
+            export IMAGE_NAME="quay.io/coreos/etcd:${ETCD_VERSION:-v3.5.12}"
+            export PEER_PORT="${ETCD_PEER_PORT:-2380}"
+            export ETCD_NAME="${ETCD_NAME:-etcd0}"
+            export ETCD_DATA_DIR="/etcd-data"
+            export ETCD_LISTEN_CLIENT_URLS="http://0.0.0.0:2379"
+            export ETCD_ADVERTISE_CLIENT_URLS="http://${PROJ_PREFIX}-etcd:2379"
+            export ETCD_LISTEN_PEER_URLS="http://0.0.0.0:2380"
+            export ETCD_INITIAL_ADVERTISE_PEER_URLS="http://${PROJ_PREFIX}-etcd:2380"
+            export ETCD_INITIAL_CLUSTER="${ETCD_NAME:-etcd0}=http://${PROJ_PREFIX}-etcd:2380"
+            export ETCD_INITIAL_CLUSTER_STATE="new"
+            ;;
+        "zookeeper")
+            export SERVICE_PORT="${PROJ_ZOOKEEPER_PORT:-2181}"
+            export CONFIG_DIR="${PROJ_ZOOKEEPER_CONFIG_DIR}"
+            export DATA_DIR="${PROJ_ZOOKEEPER_DATA_DIR}"
+            export LOG_DIR="${PROJ_ZOOKEEPER_LOG_DIR}"
+            export IMAGE_NAME="confluentinc/cp-zookeeper:${ZOOKEEPER_VERSION:-latest}"
+            export CONTAINER_NAME="${PROJ_PREFIX}-zookeeper"
+            export DATA_VOLUME_NAME="${PROJ_PREFIX}-zookeeper-data"
+            export LOGS_VOLUME_NAME="${PROJ_PREFIX}-zookeeper-logs"
+            ;;
+        "prometheus")
+            export SERVICE_PORT="${PROJ_PROMETHEUS_PORT:-9090}"
+            export CONFIG_DIR="${PROJ_PROMETHEUS_CONFIG_DIR}"
+            export DATA_DIR="${PROJ_PROMETHEUS_DATA_DIR}"
+            export LOG_DIR="${PROJ_PROMETHEUS_LOG_DIR}"
+            export IMAGE_NAME="prom/prometheus:v${PROMETHEUS_VERSION:-2.48.1}"
+            ;;
+        "redis")
+            export SERVICE_PORT="${PROJ_REDIS_PORT:-6379}"
+            export CONFIG_DIR="${PROJ_REDIS_CONFIG_DIR}"
+            export DATA_DIR="${PROJ_REDIS_DATA_DIR}"
+            export IMAGE_NAME="redis:${REDIS_VERSION:-7.2.4}"
+            ;;
+        "mysql")
+            export SERVICE_PORT="${PROJ_MYSQL_PORT:-3306}"
+            export CONFIG_DIR="${PROJ_MYSQL_CONFIG_DIR}"
+            export DATA_DIR="${PROJ_MYSQL_DATA_DIR}"
+            export IMAGE_NAME="mysql:${MYSQL_VERSION:-8.0}"
+            ;;
+        "victorialogs")
+            export SERVICE_PORT="${PROJ_VICTORIALOGS_PORT:-9428}"
+            export CONFIG_DIR="${PROJ_VICTORIALOGS_CONFIG_DIR}"
+            export DATA_DIR="${PROJ_VICTORIALOGS_DATA_DIR}"
+            export LOG_DIR="${PROJ_VICTORIALOGS_LOG_DIR}"
+            export IMAGE_NAME="victoriametrics/victoria-logs:v${VICTORIALOGS_VERSION:-1.28.0}"
+            export VICTORIALOGS_RETENTION="${VICTORIALOGS_RETENTION:-7d}"
+            ;;
+        "etcd")
+            export SERVICE_PORT="${PROJ_ETCD_PORT:-2379}"
+            export CONFIG_DIR="${PROJ_ETCD_CONFIG_DIR}"
+            export DATA_DIR="${PROJ_ETCD_DATA_DIR}"
+            export LOG_DIR="${PROJ_ETCD_LOG_DIR}"
+            export IMAGE_NAME="quay.io/coreos/etcd:${ETCD_VERSION:-v3.5.12}"
+            export PEER_PORT="${ETCD_PEER_PORT:-2380}"
+            export ETCD_NAME="${ETCD_NAME:-etcd0}"
+            export ETCD_DATA_DIR="/etcd-data"
+            export ETCD_LISTEN_CLIENT_URLS="http://0.0.0.0:2379"
+            export ETCD_ADVERTISE_CLIENT_URLS="http://${PROJ_PREFIX}-etcd:2379"
+            export ETCD_LISTEN_PEER_URLS="http://0.0.0.0:2380"
+            export ETCD_INITIAL_ADVERTISE_PEER_URLS="http://${PROJ_PREFIX}-etcd:2380"
+            export ETCD_INITIAL_CLUSTER="${ETCD_NAME:-etcd0}=http://${PROJ_PREFIX}-etcd:2380"
+            export ETCD_INITIAL_CLUSTER_STATE="new"
             ;;
         *)
             proj::log::debug "No specific variables set for service: $service_name"

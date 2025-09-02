@@ -1,818 +1,356 @@
 # CLAUDE.md
 
-本文件为 Claude Code (claude.ai/code) 在此代码库中工作提供指导。
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 项目概览
+## Project Overview
 
-基于 Kratos v2 构建的生产就绪 Go 微服务框架，以 Protocol Buffers 为统一数据源。采用清洁架构与 Wire 依赖注入，支持 HTTP/gRPC API，具备完整的错误处理、国际化、认证和可观测性功能。
+Production-ready Go microservice framework built on Kratos v2 with Protocol Buffers as unified data source. Uses Clean Architecture, Wire dependency injection, supports HTTP/gRPC APIs with complete error handling, i18n, auth, and observability.
 
-## 快速开发命令
+**Module Path**: `github.com/costa92/go-protoc/v2`  
+**Go Version**: 1.24.0+  
+**Current Branch**: `v2`
 
-### 日常必备命令
+## Critical Constraints
 
-- `make help` - 查看所有可用命令
-- `make run-api` - 启动开发服务器（支持热重载）
-- `make build` - 构建优化二进制文件到 ./bin/apiserver
-- `make test` - 运行所有测试（详细输出）
-- `make fmt` - 格式化代码和导入排序
-- `make tidy` - 清理 go.mod 依赖
+- **Environment Variables**: MUST source from `manifests/env/env.dev` - do NOT create additional .env files
+- **Service Versions**: All third-party component versions defined in `scripts/installation/versions.sh`
+- **Service Management**: ⚠️ **PREFER Docker Template System** (`make docker.<service>.start`) over legacy service script
+- **Infrastructure Setup**: All service installations use template system in `scripts/installation/templates/`
+- **Protobuf Files**: Must be placed under `pkg/api/<service>/<version>/` structure (per `.cursor/rules/buf.mdc`)
 
-### 开发环境
+## Essential Development Commands
 
-- `make dev-setup` - 完整开发环境设置（工具 + 服务 + 代码生成）
-- `make dev-clean` - 清理开发环境并停止服务
-- `make dev-quick` - 快速开发启动（跳过工具安装）
-- `make dev-watch` - 文件监控与自动重构建
-- `make dev-test` - 完整测试流水线（含覆盖率）
-- `make dev-bench` - 运行性能基准测试
+### Daily Commands
+- `make help` - Show all available commands
+- `make run-api` - Start development server (with hot reload)
+- `make build` - Build optimized binary to ./bin/apiserver  
+- `make test` - Run all tests with verbose output
+- `make fmt` - Format code and sort imports
+- `make tidy` - Clean go.mod dependencies
 
-### 代码生成
+### Code Generation
+- `make generate` - Generate protobuf/gRPC/HTTP code using buf
+- `make wire` - Regenerate dependency injection (run after structural changes)
 
-- `make generate` - 使用 buf 生成 protobuf/gRPC/HTTP 代码
-- `make wire` - 重新生成依赖注入代码（结构变更后运行）
-- `buf generate` - 直接 protobuf 生成（buf.yaml 变更时使用）
+### Environment Setup
+- `make dev-setup` - Complete development environment (tools + services + codegen)
+- `make dev-clean` - Clean development environment and stop services
+- `make dev-quick` - Quick development start (skip tool installation)
+- `make dev-watch` - Development mode with file watching and auto-rebuild
+- `make dev-test` - Run full test pipeline with coverage
+- `make dev-bench` - Run benchmarks in development environment
 
-### 运行服务
+### Infrastructure & Service Management
 
-项目提供了完整的第三方服务部署命令，支持原生安装和 Docker 两种方式：
-
-#### 数据库服务
-
-**Redis**
-
-- `make deploy.install.redis` - 原生安装 Redis
-- `make deploy.uninstall.redis` - 原生卸载 Redis
-- `make deploy.install.docker.redis` - Docker 安装 Redis
-- `make deploy.uninstall.docker.redis` - Docker 卸载 Redis
-
-**MySQL**
-
-- `make deploy.install.mysql` - 原生安装 MySQL
-- `make deploy.uninstall.mysql` - 原生卸载 MySQL
-- `make deploy.install.docker.mysql` - Docker 安装 MySQL
-- `make deploy.uninstall.docker.mysql` - Docker 卸载 MySQL
-
-**MariaDB**
-
-- `make deploy.install.mariadb` - 原生安装 MariaDB
-- `make deploy.uninstall.mariadb` - 原生卸载 MariaDB
-- `make deploy.install.docker.mariadb` - Docker 安装 MariaDB
-- `make deploy.uninstall.docker.mariadb` - Docker 卸载 MariaDB
-
-**MongoDB**
-
-- `make deploy.install.mongo` - 原生安装 MongoDB
-- `make deploy.uninstall.mongo` - 原生卸载 MongoDB
-- `make deploy.install.docker.mongo` - Docker 安装 MongoDB
-- `make deploy.uninstall.docker.mongo` - Docker 卸载 MongoDB
-
-#### 可观测性服务
-
-**OpenTelemetry Collector**
-
-- `make deploy.install.otelcol` - 原生安装 OTEL Collector
-- `make deploy.uninstall.otelcol` - 原生卸载 OTEL Collector
-- `make deploy.install.docker.otelcol` - Docker 安装 OTEL Collector
-- `make deploy.uninstall.docker.otelcol` - Docker 卸载 OTEL Collector
-
-**OTEL Agent (轻量级边车)**
-
-- `make deploy.install.otel-agent` - 原生安装 OTEL Agent
-- `make deploy.uninstall.otel-agent` - 原生卸载 OTEL Agent
-- `make deploy.install.docker.otel-agent` - Docker 安装 OTEL Agent
-- `make deploy.uninstall.docker.otel-agent` - Docker 卸载 OTEL Agent
-
-**OTEL Collector (中心化网关)**
-
-- `make deploy.install.otel-collector` - 原生安装 OTEL Collector
-- `make deploy.uninstall.otel-collector` - 原生卸载 OTEL Collector
-- `make deploy.install.docker.otel-collector` - Docker 安装 OTEL Collector
-- `make deploy.uninstall.docker.otel-collector` - Docker 卸载 OTEL Collector
-
-**OTEL 完整堆栈 (Agent + Collector)**
-
-- `make deploy.install.otel-stack` - 原生安装完整 OTEL 堆栈
-- `make deploy.uninstall.otel-stack` - 原生卸载完整 OTEL 堆栈
-- `make deploy.install.docker.otel-stack` - Docker 安装完整 OTEL 堆栈
-- `make deploy.uninstall.docker.otel-stack` - Docker 卸载完整 OTEL 堆栈
-
-**Jaeger (链路追踪)**
-
-- `make deploy.install.jaeger` - 原生安装 Jaeger
-- `make deploy.uninstall.jaeger` - 原生卸载 Jaeger
-- `make deploy.install.docker.jaeger` - Docker 安装 Jaeger
-- `make deploy.uninstall.docker.jaeger` - Docker 卸载 Jaeger
-
-**Prometheus (指标监控)**
-
-- `make deploy.install.prometheus` - 原生安装 Prometheus
-- `make deploy.uninstall.prometheus` - 原生卸载 Prometheus
-- `make deploy.install.docker.prometheus` - Docker 安装 Prometheus
-- `make deploy.uninstall.docker.prometheus` - Docker 卸载 Prometheus
-
-**Grafana (可视化面板)**
-
-- `make deploy.install.grafana` - 原生安装 Grafana
-- `make deploy.uninstall.grafana` - 原生卸载 Grafana
-- `make deploy.install.docker.grafana` - Docker 安装 Grafana
-- `make deploy.uninstall.docker.grafana` - Docker 卸载 Grafana
-
-**AlertManager (告警管理)**
-
-- `make deploy.install.alertmanager` - 原生安装 AlertManager
-- `make deploy.uninstall.alertmanager` - 原生卸载 AlertManager
-- `make deploy.install.docker.alertmanager` - Docker 安装 AlertManager
-- `make deploy.uninstall.docker.alertmanager` - Docker 卸载 AlertManager
-
-**Pyroscope (性能剖析)**
-
-- `make deploy.install.pyroscope` - 原生安装 Pyroscope
-- `make deploy.uninstall.pyroscope` - 原生卸载 Pyroscope
-- `make deploy.install.docker.pyroscope` - Docker 安装 Pyroscope
-- `make deploy.uninstall.docker.pyroscope` - Docker 卸载 Pyroscope
-
-#### Victoria Suite (统一日志/指标栈)
-
-**Victoria Suite (完整套件)**
-
-- `make deploy.install.victoria` - 原生安装 Victoria Suite
-- `make deploy.uninstall.victoria` - 原生卸载 Victoria Suite
-- `make deploy.install.docker.victoria` - Docker 安装 Victoria Suite
-- `make deploy.uninstall.docker.victoria` - Docker 卸载 Victoria Suite
-- `make deploy.install.all.victoria` - Docker 安装所有 Victoria 组件
-- `make deploy.uninstall.all.victoria` - 卸载所有 Victoria 组件
-- `make deploy.status.victoria` - 检查 Victoria Suite 状态
-- `make deploy.info.victoria` - 显示 Victoria Suite 信息
-
-**VictoriaMetrics (时间序列数据库)**
-
-- `make deploy.install.victoriametrics` - 原生安装 VictoriaMetrics
-- `make deploy.uninstall.victoriametrics` - 原生卸载 VictoriaMetrics
-- `make deploy.install.docker.victoriametrics` - Docker 安装 VictoriaMetrics
-- `make deploy.uninstall.docker.victoriametrics` - Docker 卸载 VictoriaMetrics
-- `make deploy.status.victoriametrics` - 检查 VictoriaMetrics 状态
-- `make deploy.info.victoriametrics` - 显示 VictoriaMetrics 信息
-
-**VictoriaLogs (日志数据库)**
-
-- `make deploy.install.victorialogs` - 原生安装 VictoriaLogs
-- `make deploy.uninstall.victorialogs` - 原生卸载 VictoriaLogs
-- `make deploy.install.docker.victorialogs` - Docker 安装 VictoriaLogs
-- `make deploy.uninstall.docker.victorialogs` - Docker 卸载 VictoriaLogs
-- `make deploy.status.victorialogs` - 检查 VictoriaLogs 状态
-- `make deploy.info.victorialogs` - 显示 VictoriaLogs 信息
-
-**vmagent (指标收集代理)**
-
-- `make deploy.install.vmagent` - 原生安装 vmagent
-- `make deploy.uninstall.vmagent` - 原生卸载 vmagent
-- `make deploy.install.docker.vmagent` - Docker 安装 vmagent
-- `make deploy.uninstall.docker.vmagent` - Docker 卸载 vmagent
-- `make deploy.status.vmagent` - 检查 vmagent 状态
-- `make deploy.info.vmagent` - 显示 vmagent 信息
-
-#### 其他服务
-
-**etcd (分布式键值存储)**
-
-- `make deploy.install.etcd` - 原生安装 etcd
-- `make deploy.uninstall.etcd` - 原生卸载 etcd
-- `make deploy.install.docker.etcd` - Docker 安装 etcd
-- `make deploy.uninstall.docker.etcd` - Docker 卸载 etcd
-
-**Kafka (消息队列)**
-
-- `make deploy.install.docker.kafka` - Docker 安装 Kafka
-- `make deploy.uninstall.docker.kafka` - Docker 卸载 Kafka
-
-**Sentry (错误监控)**
-
-- `make deploy.install.sentry` - 原生安装 Sentry
-- `make deploy.uninstall.sentry` - 原生卸载 Sentry
-- `make deploy.install.docker.sentry` - Docker 安装 Sentry
-- `make deploy.uninstall.docker.sentry` - Docker 卸载 Sentry
-
-### 构建和版本管理
-
-项目实现了强大的版本感知构建系统，支持自动版本注入和多架构构建：
-
-#### 版本构建命令
-
-- `make build` - 构建带版本信息的二进制文件（自动注入 Git 版本信息）
-- `make build.multiarch` - 多架构构建（Linux amd64/arm64, macOS, Windows）
-- `SERVICE_NAME=myservice make build` - 自定义服务名构建
-- `make docker-build` - 构建 Docker 镜像（包含版本信息）
-- `make docker-build.multiarch` - 多架构 Docker 构建
-
-#### 版本信息注入
-
-构建系统自动注入以下版本信息：
-
-- **服务名称**: 通过 `SERVICE_NAME` 环境变量或默认 `apiserver`
-- **Git 版本**: `git describe --tags --always --dirty`
-- **Git 分支**: `git branch --show-current`
-- **Git 提交**: `git rev-parse HEAD`
-- **构建时间**: ISO8601 格式的当前时间
-- **Git 状态**: clean/dirty 状态检测
-
-#### 版本查看命令
-
-- `./bin/apiserver --version` - 显示简化版本信息
-- `./bin/apiserver version` - 显示详细版本信息（表格格式）
-- `./bin/apiserver version --output=json` - JSON 格式版本信息
-
-### 工具安装
-
-- `make install-tools` - 仅安装 CI 相关工具
-- `make install-tools A=1` - 安装所有开发工具
-- `make tools.install.<tool>` - 安装特定工具（wire, golangci-lint, buf 等）
-
-### 统一服务管理
-
-项目现已实现统一的服务管理机制，支持通过 docker-compose 和安装脚本管理所有第三方服务。
-
-#### 数据库服务
-
-使用脚本管理数据库服务：
-
+**⚠️ IMPORTANT: Use Docker Template System (Preferred)**
 ```bash
-./scripts/installation/service.sh start redis
-./scripts/installation/service.sh start mariadb
-./scripts/installation/service.sh start mongodb
+# Individual service management via Make templates
+make docker.redis.start         # Start Redis using template system
+make docker.mariadb.start       # Start MariaDB via template  
+make docker.prometheus.start    # Start Prometheus with auto-detection
+make docker.otelcol.start       # Start OTEL Collector
+make docker.victorialogs.start  # Start VictoriaLogs
+
+# Service operations
+make docker.redis.stop          # Stop service
+make docker.redis.status        # Check status
+make docker.redis.restart       # Restart service
+make docker.redis.cleanup       # Clean up generated scripts
 ```
 
-#### MySQL数据库管理（新增）
+**Available Template Services:** redis, mariadb, mongodb, kafka, etcd, jaeger, prometheus, grafana, victorialogs, otelcol, pyroscope
 
-项目新增了完整的MySQL数据库管理功能，支持自动化的数据库设置、迁移和维护：
-
-**快速开始**：
-
-- `make db-setup` - 一键完整数据库设置（启动 + 迁移）
-- `make db-start` - 启动MySQL容器
-- `make db-migrate` - 执行数据库迁移
-- `make db-help` - 查看所有数据库命令
-
-**数据库操作**：
-
-- `make db-connect` - 通过MySQL CLI连接数据库
-- `make db-shell` - 在Docker容器中打开MySQL shell
-- `make db-status` - 检查容器状态
-- `make db-logs` - 查看数据库日志
-
-**迁移管理**：
-
-- `make db-migrate-dry` - 查看迁移计划（干运行）
-- `make db-create-migration NAME=migration_name` - 创建新迁移文件
-
-**备份与恢复**：
-
-- `make db-backup` - 创建数据库备份
-- `make db-restore BACKUP_FILE=backup.sql` - 从备份恢复
-
-**维护命令**：
-
-- `make db-reset` - 重置数据库（删除所有数据）
-- `make db-clean` - 删除容器和卷（永久删除数据）
-
-**数据库配置**：
-
-- 数据库: `onex`
-- 主机: `127.0.0.1:3306`
-- 用户名: `root`
-- 密码: `proj(#)666`
-
-**默认用户表结构**：
-
-- `users` - 主用户表（用户名、邮箱、密码等基本信息）
-- `user_profiles` - 用户配置表（个人简介、偏好设置等）
-- `user_roles` - 用户角色表（权限管理）
-
-#### 其他服务
-
-使用脚本管理各类服务：
-
+**Batch Operations:**
 ```bash
-# 消息队列服务
-./scripts/installation/service.sh start kafka
-
-# 分布式服务
-./scripts/installation/service.sh start etcd
-
-# 可观测性服务
-./scripts/installation/service.sh start jaeger
-./scripts/installation/service.sh start prometheus
-./scripts/installation/service.sh start grafana
-./scripts/installation/service.sh start alertmanager
-./scripts/installation/service.sh start otelcol
-./scripts/installation/service.sh start victorialogs
-./scripts/installation/service.sh start pyroscope
+make docker.test-services.start # Start all test services
+make docker.test-services.stop  # Stop all test services
 ```
 
-#### 服务组管理
-
+**Legacy Service Script (NOT RECOMMENDED):**
 ```bash
-# 服务组操作
-./scripts/installation/service.sh start all
-./scripts/installation/service.sh stop all
-./scripts/installation/service.sh restart all
-./scripts/installation/service.sh start database
-./scripts/installation/service.sh start observability
-./scripts/installation/service.sh status all
-./scripts/installation/service.sh logs all
+# These commands exist but are NOT the preferred method
+# Use docker templates above instead
+./scripts/installation/service.sh start redis   # Not recommended
+./scripts/installation/service.sh start mariadb # Not recommended
 ```
 
-#### 直接脚本调用
+### Database Management
+- `make db-setup` - Complete MySQL setup (start + migrate)
+- `make db-connect` - Connect to MySQL via CLI  
+- `make db-migrate` - Execute database migrations
+- Database config: `onex` database, `127.0.0.1:3306`, user: `root`, password: `proj(#)666`
 
+### Build and Version Management
+
+Version-aware build system with automatic Git version injection:
+
+- `make build` - Build with version info (default: apiserver)
+- `SERVICE_NAME=myservice make build` - Build with custom service name  
+- `./bin/apiserver --version` - Show version info
+- Auto-injected: Git version, branch, commit, build time, clean/dirty status
+
+## Architecture Overview
+
+### Clean Architecture Layers
+```
+cmd/                    → Entry points (apiserver, ai, pump)
+internal/apiserver/     → Core business logic
+ ├── handler/           → HTTP/gRPC handlers (delivery layer) 
+ ├── biz/              → Use cases (application layer)
+ ├── store/            → Data access (infrastructure layer)
+ └── config/           → Internal configuration
+
+pkg/                   → Reusable packages
+ ├── api/              → Protobuf definitions and generated code
+ ├── errorsx/          → Context-aware error system (i18n support)
+ ├── authn/           → JWT authentication utilities  
+ ├── db/              → Database abstractions
+ ├── logger/          → Unified logging interface with OTLP support
+ ├── server/          → HTTP/gRPC server configuration
+ ├── version/         → Version info management
+ ├── metrics/         → Connection pool monitoring system
+ └── options/         → Component configuration architecture
+```
+
+### Infrastructure Template System
+The project uses a sophisticated template-based infrastructure management system:
+
+**Template Structure:**
+```
+scripts/installation/templates/docker/
+ ├── prometheus/        → Prometheus with auto-discovery
+ │   ├── docker-run.sh.tpl              → Main startup template
+ │   ├── exporters/exporter-manager.sh.tpl  → Unified exporter manager
+ │   └── rule_files/*.yml.tpl           → Alert rule templates
+ ├── redis/            → Redis configuration templates
+ ├── mariadb/          → MariaDB templates
+ └── kafka/            → Kafka stack templates
+```
+
+**Key Features:**
+- **Environment Variable Injection**: All templates use `envsubst` for dynamic configuration
+- **Service Auto-Discovery**: Prometheus automatically detects running services and starts exporters
+- **Modular Design**: Reusable components across different services
+- **Security**: Database credentials from environment variables, never hardcoded
+
+### Dependency Injection (Wire)
+- **Centralized**: `internal/apiserver/wire.go`
+- **Generated**: `internal/apiserver/wire_gen.go` 
+- **Auto-discovery**: Run `make wire` after adding new dependencies
+- **Connection Pool Monitoring**: Integrated via Wire for optional metrics collection
+
+### Request Flow
+```
+HTTP Request → gRPC-Gateway → Handler → Business → Store → Database
+     ↓                                             ↓
+OpenAPI Docs (auto-generated)            GORM + Context Transactions + Pool Monitoring
+```
+
+## Development Workflow
+
+### Adding New API Endpoints
+1. **Define API**: Edit `pkg/api/apiserver/v1/apiserver.proto`
+2. **Generate Code**: `make generate` 
+3. **Implement Handler**: Create in `internal/apiserver/handler/`
+4. **Wire Dependencies**: Run `make wire`
+5. **Documentation**: Auto-generated in `api/openapi/apiserver/v1/`
+
+### Testing
 ```bash
-# 服务管理脚本支持更多操作
-./scripts/installation/service.sh <action> <service|group>
-
-# 可用操作: start, stop, restart, status, logs
-# 可用服务: redis, mariadb, mongodb, kafka, etcd, jaeger, prometheus, grafana, alertmanager, otelcol, victorialogs, pyroscope
-# 可用服务组: all, database, observability
+go test ./...                    # Run all tests
+go test -v ./pkg/errorsx/       # Verbose package test
+go test -run TestSpecific       # Run specific test
+go test -bench=. ./...          # Run benchmarks
 ```
 
-### 版本管理
-
-所有第三方组件版本统一管理在 `scripts/installation/versions.sh` 中：
-
+### Local Development Setup
 ```bash
-# 查看所有组件版本
-./scripts/installation/versions.sh show
-
-# 验证版本格式
-./scripts/installation/versions.sh validate
+cp configs/apiserver.yaml configs/apiserver_local.yaml  # Copy config
+# Edit local config for database settings
+./scripts/installation/service.sh start redis           # Start dependencies
+go run cmd/apiserver/main.go -c configs/apiserver_local.yaml  # Run server
 ```
 
-当前管理的组件版本：
+### Key Development Conventions
+- **Error Codes**: Defined in protobuf, auto-generated using `protoc-gen-go-errors-code`
+- **Validation**: Use protoc-gen-validate annotations
+- **i18n**: Use `pkg/i18n/` with context language detection  
+- **Logging**: Structured logging via context middleware
+- **Testing**: Follow `Test<Level><Description>` pattern
 
-- **数据库**: Redis 7.2.4, MariaDB 11.2.2, MongoDB 7.0.5
-- **分布式**: etcd v3.5.12, Kafka 3.6.1
-- **可观测性**: Jaeger 1.52.0, Prometheus 2.48.1, Grafana 10.2.4, AlertManager 0.26.0, OpenTelemetry Collector 0.91.0
-- **日志**: VictoriaLogs v0.5.2-victorialogs
-- **性能分析**: Pyroscope (持续性能剖析)
+### Protocol Buffers Development Rules
+⚠️ **CRITICAL**: Follow these protobuf conventions (from `.cursor/rules/buf.mdc`):
 
-### 文档生成
+1. **File Location**: ALL `.proto` files MUST be placed under `pkg/api` directory
+2. **Directory Structure**: Use `pkg/api/<service>/<version>/*.proto` pattern
+3. **Example**: `pkg/api/apiserver/v1/error.proto`
+4. **Build Tool**: Use `buf` (reference: https://buf.build/docs/cli/quickstart/)
+5. **Generated Code**: Outputs to `pkg/api` directory automatically
+6. **Documentation**: Generated to `docs` directory
 
-- `make docs.dev` - 生成开发文档到 docs/DEVELOPMENT.md
-- `make docs.api` - 从 protobuf 生成 API 文档
-- `make docs.serve` - 本地提供文档服务
+## Observability & Monitoring
 
-## 架构概览
+### Monitoring Endpoints
+- **Health Check**: `GET /health`
+- **Metrics**: `GET /metrics` (Prometheus format with version labels and connection pool stats)
+- **Jaeger UI**: `http://localhost:16686` - Distributed tracing
+- **Grafana**: `http://localhost:3000` - Unified monitoring dashboard  
+- **VictoriaLogs UI**: `http://127.0.0.1:9428/select/vmui/` - Log analysis
+- **Prometheus**: `http://localhost:9090` - Metrics collection
 
-### 清洁架构分层
+### Connection Pool Monitoring
+The project features **dependency-injected connection pool monitoring**:
 
-```sh
-cmd/
- ├── apiserver/         → API服务器入口点和编排
- ├── ai/               → AI服务入口点（规划中）
- └── pump/             → 数据泵服务入口点
+**Key Metrics:**
+- `database_pool_connections{database,state}` - MySQL/PostgreSQL pool status
+- `redis_pool_connections{instance,state}` - Redis connection pool status  
+- `database_queries_total{database,operation,status}` - Query statistics
+- `redis_commands_total{instance,command,status}` - Redis command statistics
 
-internal/apiserver/     → 核心业务逻辑
- ├── handler/           → HTTP/gRPC 处理器（交付层）
- ├── biz/              → 用例（应用层）
- ├── store/            → 数据访问（基础设施层）
- └── config/           → 内部配置
+**Architecture Benefits:**
+- ✅ **Zero Intrusion**: Database packages remain clean, monitoring is optional
+- ✅ **Wire Integration**: Automatically injected through dependency injection
+- ✅ **Version Aware**: All metrics include service version labels
 
-pkg/                  → 可重用包（对外导出）
- ├── api/              → Protobuf 定义和生成代码
- ├── errorsx/          → 上下文感知错误系统（支持 i18n）
- ├── authn/           → JWT 身份认证工具
- ├── db/              → 数据库抽象
- ├── logger/          → 统一日志接口和实现（支持版本信息）
- ├── server/          → HTTP/gRPC 服务器配置（集成版本日志）
- ├── version/         → 版本信息管理和注入系统
- └── options/         → 组件配置架构
-```
+### Unified Logging System
+Complete log collection via **OpenTelemetry Collector + VictoriaLogs**:
 
-### 依赖注入 (Wire)
-
-- **中心化在** `internal/apiserver/wire.go`
-- **生成的工厂** `internal/apiserver/wire_gen.go`
-- **自动发现** - 添加新依赖后运行 `make wire`
-
-### 请求流程
-
-```sh
-HTTP 请求 → gRPC-Gateway → 处理器 → 业务层 → 存储层 → 数据库
-     ↓                                          ↓
-  OpenAPI 文档（自动生成）        GORM + 上下文事务
-```
-
-### 版本信息与日志集成
-
-项目实现了完整的版本信息管理和日志集成系统，提供全生命周期的服务版本可见性：
-
-#### 版本信息注入机制
-
-- **构建时注入**: 通过 `-ldflags` 在构建时注入版本信息
-- **Git 集成**: 自动检测 Git 版本、分支、提交状态
-- **动态服务名**: 支持通过 `SERVICE_NAME` 环境变量自定义服务名
-
-#### 版本日志记录点
-
-```sh
-应用启动 → API服务器初始化 → HTTP/gRPC服务器启动 → 运行中 → 优雅关闭 → 退出确认
-    ↓           ↓              ↓             ↓        ↓          ↓
-  完整版本    服务版本        协议版本      健康检查   关闭版本    最终版本
-```
-
-#### 日志字段标准
-
-所有版本相关日志使用统一的结构化字段：
-
-```json
-{
-  "service": "apiserver",           // 服务名称
-  "version": "v1.0.0",             // Git 版本
-  "branch": "feature/v2-log",      // Git 分支
-  "commit": "13b9ba0a",            // Git 提交（短格式）
-  "build_date": "2025-08-22T10:25:16Z",  // 构建时间
-  "protocol": "http|grpc",         // 协议类型
-  "addr": "127.0.0.1:8080"        // 监听地址
-}
-```
-
-#### 版本信息可用位置
-
-- **命令行**: `./bin/apiserver --version`
-- **启动日志**: 服务器启动时完整版本信息
-- **健康检查**: `/health` 端点包含版本信息（如已实现）
-- **监控指标**: 版本作为 Prometheus 标签
-- **链路追踪**: Jaeger 中的服务版本标识
-
-## 配置和环境
-
-### 本地设置
-
-1. 复制并编辑：`cp configs/apiserver.yaml configs/apiserver_local.yaml`
-2. 在本地配置中配置数据库
-3. 启动依赖服务：`./scripts/installation/service.sh start redis`（或 `docker-compose -f deployments/redis/docker-compose.yml up`）
-4. 运行：`go run cmd/apiserver/main.go -c configs/apiserver_local.yaml`
-
-### 快速设置替代方案
-
+**Deployment Commands:**
 ```bash
-make dev-setup      # 安装工具 + 启动服务 + 生成代码
-make run-api        # 启动 API 服务器
+./scripts/deploy-logging.sh local    # Local development
+./scripts/deploy-logging.sh docker   # Docker environment with Grafana
+./scripts/deploy-logging.sh k8s      # Kubernetes deployment
 ```
 
-### 开发依赖
-
-- **数据库**：MySQL 8.0+ 或 PostgreSQL 12+
-- **缓存**：Redis 6.2+（提供 docker-compose）
-- **可观测性**：Jaeger, Prometheus（提供 docker-compose）
-
-### 配置文件
-
-- `configs/apiserver.yaml` - 默认配置
-- `configs/apiserver_v1.yaml` - 替代配置模板
-- 环境特定配置使用格式：`apiserver_<env>.yaml`
-
-## 测试命令
-
-### 标准测试
-
+**Log Querying:**
 ```bash
-go test ./...                    # 运行所有测试
-go test -v ./pkg/errorsx/       # 详细运行包测试
-go test -run TestSpecific       # 运行特定测试
-go test -bench=. ./...          # 运行性能测试
+# Basic queries
+curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=level:error'
+curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=service.name:apiserver'
+curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=_time:>now-1h'
+
+# Advanced queries  
+curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=service.name:apiserver AND level:error AND _time:>now-30m'
 ```
 
-### 集成测试
+## Key Entry Points for Code Navigation
 
+**Server Startup**: `cmd/apiserver/app/server.go:Start()`  
+**Version Info**: `pkg/version/version.go:Get()`  
+**HTTP Server**: `pkg/server/http_server.go:RunOrDie()`  
+**gRPC Server**: `pkg/server/grpc_server.go:RunOrDie()`  
+**Wire Setup**: `internal/apiserver/wire_gen.go:InitializeWebServer()`  
+**Handler Example**: `internal/apiserver/handler/user.go`  
+**Error Handling**: `pkg/errorsx/builder.go:NewCode()`  
+**Database Setup**: `pkg/db/mysql.go:NewMySQL()`
+
+## Configuration
+
+**Config Files**: `configs/apiserver.yaml` (default), `configs/apiserver_local.yaml` (local dev)  
+**Environment-specific**: Use format `apiserver_<env>.yaml`
+
+## Important Notes
+
+- **Wire Dependency Injection**: Always run `make wire` after adding new dependencies
+- **Protobuf Changes**: Run `make generate` after editing .proto files  
+- **Version Info**: Available at runtime via `pkg/version/version.go:Get()`
+- **Error Handling**: Use `pkg/errorsx` for context-aware, i18n-enabled errors
+- **Testing**: Include integration tests with Docker services when needed
+
+## Infrastructure Components
+
+### Supported Services with Versions
+| Component | Version | Purpose | **Preferred Management** |
+|-----------|---------|---------|--------------------------|
+| Redis | 7.2.4 | Caching, sessions | `make docker.redis.start` |
+| MariaDB | 11.2.2 | Primary database | `make docker.mariadb.start` |
+| MongoDB | 7.0.5 | Document storage | `make docker.mongodb.start` |
+| Kafka | 6.2.0 | Message streaming | `make docker.kafka.start` |
+| Jaeger | 1.52.0 | Distributed tracing | `make docker.jaeger.start` |
+| Prometheus | 2.48.1 | Metrics collection | `make docker.prometheus.start` |
+| Grafana | 10.2.4 | Monitoring dashboards | `make docker.grafana.start` |
+| VictoriaLogs | 1.28.0 | Log aggregation | `make docker.victorialogs.start` |
+| OTEL Collector | 0.132.0 | Telemetry collection | `make docker.otelcol.start` |
+
+### Environment Configuration
+**Primary Config**: `manifests/env/env.dev` - Contains all service configurations, ports, credentials
+**Version Management**: `scripts/installation/versions.sh` - Centralized version definitions
+**Template Generation**: `scripts/installation/lib/docker_script_manager.sh` - Dynamic script generation
+
+### Database Setup Requirements
+When working with database monitoring (especially Prometheus MySQL exporter):
+
+**MySQL/MariaDB Monitoring User Setup:**
 ```bash
-docker-compose -f deployments/redis/docker-compose.yml up -d
-go test -tags=integration ./...   # 运行集成测试
+# Required for Prometheus MySQL exporter - use template system
+make docker.mariadb.start
+
+# Create monitoring user with minimal privileges:
+docker exec proj-mariadb mariadb -u root -p'proj(#)666' -e "
+CREATE USER IF NOT EXISTS 'exporter'@'%' IDENTIFIED BY 'exporter123';
+GRANT PROCESS ON *.* TO 'exporter'@'%';
+GRANT REPLICATION CLIENT ON *.* TO 'exporter'@'%';
+GRANT SELECT ON performance_schema.* TO 'exporter'@'%';
+FLUSH PRIVILEGES;"
 ```
 
-## API 开发
+**Security Requirements:**
+- Database credentials MUST use environment variables from `manifests/env/env.dev`
+- Never hardcode passwords in templates or scripts
+- Use dedicated monitoring users with minimal required privileges
 
-### 添加新端点
+## Advanced Log Collection System
 
-1. **API 定义**：编辑 `pkg/api/apiserver/v1/apiserver.proto`
-2. **生成代码**：`make generate`
-3. **实现处理器**：在 `internal/apiserver/handler/` 中创建
-4. **Wire 依赖**：运行 `make wire`
-5. **文档**：自动生成在 `api/openapi/apiserver/v1/`
+Complete log collection via **OpenTelemetry Collector + VictoriaLogs** with multi-environment support.
 
-### 关键开发约定
+### Core Features
+- **Dual Collection**: OTLP protocol + file monitoring
+- **Structured JSON**: Automatic parsing and field extraction  
+- **Real-time**: Millisecond-level log collection latency
+- **Multi-environment**: Local, Docker, and Kubernetes deployment
+- **Unified Config**: Centralized parameter management
+- **High Availability**: Fault tolerance and retry mechanisms
 
-- **错误代码**：在 protobuf 中定义，使用 `protoc-gen-go-errors-code` 自动生成
-- **数据验证**：使用 protoc-gen-validate 注解
-- **国际化**：使用 `pkg/i18n/` 和上下文语言检测
-- **日志记录**：通过上下文中间件的结构化日志
-- **版本集成**：服务器自动记录版本信息，遵循统一日志字段标准
-- **测试**：测试名称遵循 `Test<Level><Description>` 模式
-
-### 版本感知开发模式
-
-在开发新功能时，充分利用版本信息进行调试和监控：
-
-#### 日志记录最佳实践
-
-```go
-// 在处理器中记录操作日志（版本信息会自动通过中间件添加）
-logger.Infow("Processing user request",
-    "user_id", userID,
-    "operation", "create_user",
-    "request_id", requestID,
-)
-
-// 在错误处理中包含版本上下文
-logger.Errorw("Failed to process request",
-    "error", err,
-    "user_id", userID,
-    "operation", "create_user",
-    // 版本信息通过中间件自动添加：service, version, branch, commit
-)
-```
-
-#### 版本相关调试
-
-```go
-// 获取当前版本信息进行条件处理
-versionInfo := version.Get()
-if versionInfo.GitBranch == "development" {
-    logger.Debugw("Development mode enabled", "debug_level", "verbose")
-}
-
-// 在关键业务逻辑中记录版本标识
-logger.Infow("Critical business operation",
-    "operation", "payment_process",
-    "service_version", versionInfo.GitVersion,
-    "commit", versionInfo.GitCommit[:8],
-)
-```
-
-#### 功能标志与版本联动
-
-```go
-// 结合版本信息的功能开关
-if feature.IsEnabled("new_algorithm") && versionInfo.GitBranch != "production" {
-    // 新算法仅在非生产分支启用
-    result = newAlgorithm(input)
-    logger.Infow("Using new algorithm",
-        "feature", "new_algorithm",
-        "branch", versionInfo.GitBranch,
-    )
-}
-```
-
-## 包导航指南
-
-### 起始点
-
-- **服务器启动**：`cmd/apiserver/app/server.go:Start()`
-- **版本信息**：`pkg/version/version.go:Get()` - 获取完整版本信息
-- **HTTP 服务器**：`pkg/server/http_server.go:RunOrDie()` - 版本日志集成
-- **gRPC 服务器**：`pkg/server/grpc_server.go:RunOrDie()` - 版本日志集成
-- **日志记录器**：`pkg/logger/factory.go:GetDefaultLogger()` - 全局日志实例
-- **处理器示例**：`internal/apiserver/handler/user.go`
-- **Wire 设置**：`internal/apiserver/wire_gen.go:InitializeWebServer()`
-- **错误处理**：`pkg/errorsx/builder.go:NewCode()`
-- **数据库设置**：`pkg/db/mysql.go:NewMySQL()`
-
-### 配置模式
-
-- **特性开关**：`pkg/feature/` - 按环境切换特性
-- **选项模式**：`pkg/options/` - 一致的组件配置
-- **环境变量覆盖**：Viper 自动处理环境变量到结构体映射
-
-## 基础设施模板
-
-### 可用的 Docker 服务
-
-- **Redis**：`./scripts/installation/service.sh start redis` 或 `docker-compose -f deployments/redis/docker-compose.yml up`
-- **Jaeger**：`./scripts/installation/service.sh start jaeger` 或 `docker-compose -f deployments/jaeger/docker-compose.yml up`
-- **Kafka**：`./scripts/installation/service.sh start kafka` 或 `docker-compose -f deployments/kafka/docker-compose.yml up`
-- **所有服务**：`./scripts/installation/service.sh start all`（同时启动 Redis, Jaeger, Kafka, Pyroscope 等）
-
-### Observability Stack (统一收集与分析)
-
-项目集成了完整的可观测性stack，提供统一的数据收集和分析能力：
-
-| 功能 | 工具 | 用途 | 接入方式 |
-|------|------|------|----------|
-| **全栈监控** | Grafana+Prometheus | 系统/应用指标可视化 | `./scripts/installation/service.sh start grafana` |
-| **链路追踪** | Jaeger + OpenTelemetry | 分布式请求追踪 | 已内置集成 |
-| **告警管理** | Alertmanager | 统一告警路由 | 与Prometheus集成 |
-| **日志采集** | OpenTelemetry Collector | 统一日志/指标/追踪收集 | `./scripts/installation/service.sh start otelcol` |
-| **性能剖析** | Pyroscope | 持续性能剖析和火焰图 | `./scripts/installation/service.sh start pyroscope` |
-| **仪表板** | Grafana Dashboards | 预置监控面板 | 启动后访问 `localhost:3000` |
-
-### 架构关系
-
-```
-应用程序 → [OpenTelemetry Collector] → [Prometheus] → [Grafana]
-     ↓                                ↓                ↓
-  生成追踪/日志/指标             存储时序数据      可视化分析
-                                         ↓
-                                   [Alertmanager] → 告警通知
-```
-
-### 监控端点
-
-- **健康检查**: `GET /health`
-- **指标**: `GET /metrics` (Prometheus) - 包含连接池监控指标和版本标签
-- **链路追踪**: `GET /jaeger` (Jaeger UI) - 分布式链路追踪
-- **Grafana**: `http://localhost:3000` - 统一监控面板
-- **Alertmanager**: `http://localhost:9093` - 告警管理界面
-- **Pyroscope**: `http://localhost:4040` - 性能剖析界面
-- **调试**: `GET /debug/pprof` (启用时)
-
-### 版本感知监控
-
-项目的监控系统完全集成版本信息，提供版本维度的观测能力：
-
-#### 版本标签集成
-
-所有 Prometheus 指标自动包含版本标签：
-
-```prometheus
-# HTTP 请求指标
-http_requests_total{service="apiserver",version="v1.0.0",branch="main",method="GET",status="200"} 42
-
-# 数据库连接指标
-database_pool_connections{service="apiserver",version="v1.0.0",branch="main",database="mysql"} 10
-
-# 应用信息指标
-application_info{service="apiserver",version="v1.0.0",branch="main",commit="abc12345",build_date="2025-08-22T10:25:16Z"} 1
-```
-
-#### 日志查询增强
-
-VictoriaLogs 支持基于版本的日志查询：
-
+### Quick Deployment
 ```bash
-# 查询特定版本的错误日志
-curl -s "http://127.0.0.1:9428/select/logsql/query" \
-  -d 'query=level:error AND service.name:apiserver AND version:v1.0.0'
-
-# 查询特定分支的启动日志
-curl -s "http://127.0.0.1:9428/select/logsql/query" \
-  -d 'query=branch:feature/v2-log AND _msg:~"Starting.*server"'
-
-# 对比不同版本的性能
-curl -s "http://127.0.0.1:9428/select/logsql/query" \
-  -d 'query=operation:database_query AND (version:v1.0.0 OR version:v1.1.0)'
+./scripts/deploy-logging.sh local    # Local development
+./scripts/deploy-logging.sh docker   # Docker with Grafana
+./scripts/deploy-logging.sh k8s      # Kubernetes deployment
+./scripts/deploy-logging.sh test local  # Test log collection
 ```
 
-#### Grafana 版本维度面板
+### Access Points
+- **VictoriaLogs UI**: `http://127.0.0.1:9428/select/vmui/` (recommended)
+- **API Queries**: `curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=*'`
+- **Grafana Dashboard**: `http://127.0.0.1:3000` (admin/admin for Docker env)
 
-- **版本部署时间线**: 显示各版本的部署和运行时间
-- **分支对比面板**: 对比不同分支的性能指标
-- **版本错误率**: 按版本统计错误率和异常趋势
-- **构建质量跟踪**: 追踪从构建到部署的质量指标
-
-### 连接池监控功能
-
-项目实现了**依赖注入式连接池监控**，完美平衡了单一职责和监控需求：
-
-#### 设计特点
-
-- ✅ **完全解耦**: `pkg/db` 专注数据库连接，`pkg/metrics` 专门负责监控
-- ✅ **可选启用**: 通过 Wire 依赖注入，可选择性开启监控功能
-- ✅ **零侵入**: 不启用监控时，数据库包没有任何监控开销
-- ✅ **向后兼容**: 原有数据库使用方式完全不变
-
-#### 使用方式
-
-**启用监控 (推荐)**:
-
+### Log Query Syntax Examples
 ```bash
-# 监控功能已通过 Wire 自动装配到项目中
-make run-api  # 启动时会显示: "Connection pool metrics collection is enabled through dependency injection"
-```
+# Basic queries
+level:error                          # Error logs
+service.name:apiserver               # Specific service
+_time:>now-1h                        # Last hour
 
-**监控指标**:
-
-- `database_pool_connections` - MySQL/PostgreSQL连接池状态
-- `redis_pool_connections` - Redis连接池状态
-- `database_queries_total` - 数据库查询统计
-- `redis_commands_total` - Redis命令统计
-
-**查看指标**:
-
-```bash
-curl http://localhost:8080/metrics | grep -E "(database_|redis_)"
-```
-
-#### 架构关系
-
-```
-Wire依赖注入 → PoolMonitor → pkg/db (可选监控) → pkg/metrics (指标收集)
-```
-
-## 模块信息
-
-- **Go 版本**: 需要 1.24.0+
-- **模块路径**: `github.com/costa92/go-protoc/v2`
-- **分支**: 当前在 `v2` 分支
-- **Protobuf**: 使用 buf.build 进行依赖管理
-
-## 项目专用工具
-
-- **项目重命名**: 使用 `make rename-project OLD_PATH=X NEW_PATH=Y` 更改模块路径
-- **Git 钩子**: 自动安装的 Git 钩子: githooks/{pre-commit,commit-msg,pre-push}
-
-## 统一日志收集系统
-
-### 🔥 已完成架构
-
-项目已完全实现基于 **OpenTelemetry Collector + VictoriaLogs** 的统一日志收集、存储和分析系统，支持本地开发、Docker 和 Kubernetes 多种部署环境。
-
-#### 📊 核心特性
-
-- ✅ **双路收集**: OTLP 协议 + 文件监控
-- ✅ **结构化日志**: JSON 格式自动解析和字段提取
-- ✅ **实时监控**: 毫秒级日志收集延迟
-- ✅ **多环境支持**: 本地开发、Docker、Kubernetes
-- ✅ **统一配置**: 通过配置文件管理所有参数
-- ✅ **高可用性**: 容错机制和重试策略
-- ✅ **可视化界面**: VictoriaLogs UI + Grafana 集成
-
-#### 🚀 快速开始
-
-```bash
-# 本地开发环境
-./scripts/deploy-logging.sh local
-
-# Docker 环境
-./scripts/deploy-logging.sh docker
-
-# Kubernetes 环境
-./scripts/deploy-logging.sh k8s
-
-# 测试日志收集
-./scripts/deploy-logging.sh test local
-```
-
-#### 🌐 访问方式
-
-```bash
-# VictoriaLogs Web UI（推荐）
-http://127.0.0.1:9428/select/vmui/
-
-# API 查询接口
-curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=*'
-
-# Grafana 仪表板（Docker 环境）
-http://127.0.0.1:3000 (admin/admin)
-```
-
-#### 📋 管理命令
-
-```bash
-# 统一服务管理
-./scripts/installation/service.sh start all           # 启动所有服务
-./scripts/installation/service.sh stop all            # 停止所有服务
-./scripts/installation/service.sh status all          # 检查所有服务状态
-
-# 单独服务管理
-./scripts/installation/service.sh start victorialogs  # VictoriaLogs
-./scripts/installation/service.sh start otelcol       # OTEL Collector
-
-# 环境管理
-./scripts/deploy-logging.sh status docker             # 检查 Docker 环境
-./scripts/deploy-logging.sh clean k8s                 # 清理 K8s 环境
-```
-
-#### 🔍 日志查询语法
-
-```bash
-# 基础查询
-*                                    # 所有日志
-level:error                          # 错误日志
-service.name:apiserver               # 特定服务
-_time:>now-1h                        # 最近1小时
-
-# 复合查询
+# Complex queries  
 service.name:apiserver AND level:error AND _time:>now-30m
 level:(error OR warn) AND k8s.namespace.name:app
 
-# 正则查询
-msg:~"user.*login"                   # 用户登录相关
-error:~"database.*connection"        # 数据库连接错误
+# Regex patterns
+msg:~"user.*login"                   # User login related
+error:~"database.*connection"        # Database connection errors
 ```
 
-#### ⚙️ 核心配置
-
-应用程序日志配置（`configs/apiserver.yaml`）：
-
+### OTLP Configuration
+Application logging config in `configs/apiserver.yaml`:
 ```yaml
 log:
   type: "zap"
   level: "info"
   format: "json"
   output-paths: ["stdout", "logs/apiserver/app.log"]
-
-  # OTLP 配置
   otlp:
     enabled: true
-    endpoint: "127.0.0.1:4327"       # 本地/Docker
-    # endpoint: "otelcol.logging.svc.cluster.local:4317"  # K8s
+    endpoint: "127.0.0.1:4327"       # Local/Docker
     insecure: true
     batch_size: 100
     resource_attributes:
@@ -821,125 +359,13 @@ log:
       deployment.environment: "development"
 ```
 
-#### 🏗️ 架构流程
+### Troubleshooting
+**VictoriaLogs _msg Field Issue**: If getting `"_msg":"missing _msg field"` error:
+1. Check OTEL Collector config mapping: `attributes.msg` → `attributes._msg`
+2. Restart collector: `docker restart proj-otelcol`
+3. Verify: `curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=_msg:*'`
 
-```
-应用程序 → [多路输出] → OTEL Collector → VictoriaLogs → 查询/可视化
-    ↓           ↓              ↓              ↓           ↓
-1. 生成日志   2. OTLP发送     3. 统一收集    4. 高效存储   5. 实时查询
-             文件写入       文件监控      索引建立     UI展示
-```
-
-#### 📁 项目结构
-
-```
-docs/
-├── logging-architecture.md          # 完整架构设计文档
-├── logging-development.md           # 开发使用指南
-├── logging-quick-start.md           # 快速开始指南
-└── logging-operations.md            # 运维操作手册
-
-deployments/
-├── docker-compose/                  # Docker 部署配置
-│   └── logging-stack.yml
-└── kubernetes/                      # K8s 部署配置
-    ├── namespace/
-    ├── victorialogs/
-    ├── otelcol/
-    └── app/
-
-scripts/
-├── deploy-logging.sh                # 统一部署脚本
-└── installation/
-    ├── otelcol/                     # OTEL Collector 配置
-    ├── otelcol.sh                   # OTEL Collector 管理
-    ├── victoria.sh                  # VictoriaLogs 管理
-    └── service.sh                   # 统一服务管理
-```
-
-#### 🔧 环境特定配置
-
-**本地开发**：
-
-- 使用脚本直接管理 Docker 容器
-- 文件日志监控 + OTLP 双路收集
-- 简化配置，便于调试
-
-**Docker 环境**：
-
-- Docker Compose 统一编排
-- 包含 Grafana、Prometheus 完整监控栈
-- 容器间网络通信和服务发现
-
-**Kubernetes 环境**：
-
-- DaemonSet 部署 OTEL Collector
-- 支持 Pod 日志自动收集
-- K8s 元数据自动注入
-- 高可用和自动扩缩容
-
-#### 📈 监控能力
-
-- **日志吞吐量**: 支持高并发日志写入
-- **查询性能**: 毫秒级日志检索响应
-- **存储效率**: 压缩存储，节省磁盘空间
-- **可视化**: Grafana 仪表板、时间序列图表
-- **告警**: 基于日志错误率的智能告警
-
-#### 🔗 集成组件
-
-- **追踪系统**: 与 Jaeger 集成，日志关联 trace_id
-- **指标监控**: Prometheus 指标收集和告警
-- **性能分析**: Pyroscope 持续性能剖析和火焰图
-- **数据库日志**: GORM 查询日志自动收集
-- **中间件日志**: HTTP/gRPC 请求响应完整记录
-- **Kubernetes**: Pod 日志、事件、元数据自动收集
-
-#### 📚 文档指南
-
-- **快速开始**: `docs/logging-quick-start.md`
-- **架构设计**: `docs/logging-architecture.md`
-- **开发指南**: `docs/logging-development.md`
-
-#### 🔧 常见问题解决
-
-**VictoriaLogs _msg 字段映射问题**
-
-如果在VictoriaLogs中查询时出现 `"_msg":"missing _msg field"` 错误：
-
-1. **问题原因**: VictoriaLogs需要 `_msg` 字段存储消息，但配置将消息映射到了 `body.msg`
-
-2. **解决方案**: 修改OpenTelemetry Collector配置
-
-   ```bash
-   # 找到配置文件
-   docker inspect proj-otelcol | grep config
-
-   # 修改字段映射: attributes.msg → attributes._msg
-   # 位置: /path/to/_thirdparty/otelcol/config/config.yaml
-   ```
-
-3. **配置修正**:
-
-   ```yaml
-   operators:
-     - type: move
-       from: attributes.msg
-       to: attributes._msg  # ✅ 正确映射
-       # to: body.msg      # ❌ 错误映射
-   ```
-
-4. **验证修复**:
-
-   ```bash
-   docker restart proj-otelcol
-   # 等待几秒后查询测试日志
-   curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=_msg:*'
-   ```
-
-详细解决步骤请参考 `docs/logging-development.md` 中的故障排除章节。
-
-## AI Agent 模块开发计划
+## AI Agent Module (Planned)
 
 ### 🤖 AI Agent 架构设计
 

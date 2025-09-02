@@ -8,13 +8,31 @@ This directory contains configuration templates for all supported services acros
 templates/
 ├── docker/                  # Docker deployment templates
 │   ├── redis/
-│   │   ├── docker-compose.yml.tpl
+│   │   ├── docker-run.sh.tpl
+│   │   ├── docker-stop.sh.tpl
+│   │   ├── docker-status.sh.tpl
 │   │   └── redis.conf.tpl
+│   ├── kafka/
+│   │   ├── docker-run.sh.tpl
+│   │   ├── docker-stop.sh.tpl
+│   │   └── docker-status.sh.tpl
+│   ├── mysql/
+│   │   ├── docker-run.sh.tpl
+│   │   └── docker-stop.sh.tpl
+│   ├── zookeeper/
+│   │   ├── docker-run.sh.tpl
+│   │   ├── docker-stop.sh.tpl
+│   │   └── docker-status.sh.tpl
 │   ├── otelcol/
-│   │   ├── docker-compose.yml.tpl
+│   │   ├── docker-run.sh.tpl
+│   │   ├── docker-stop.sh.tpl
 │   │   └── config.yaml.tpl
-│   └── victorialogs/
-│       └── docker-compose.yml.tpl
+│   ├── victorialogs/
+│   │   └── docker-run.sh.tpl
+│   └── nacos/
+│       ├── docker-run.sh.tpl
+│       ├── docker-stop.sh.tpl
+│       └── docker-status.sh.tpl
 ├── ubuntu/                  # Ubuntu native deployment templates
 │   ├── redis/
 │   │   ├── systemd.service.tpl
@@ -53,6 +71,25 @@ Each service has its own set of variables defined in `scripts/installation/versi
 - `PROJ_REDIS_DATA_DIR` - Data directory
 - `REDIS_MAX_MEMORY` - Memory limit (default: 256mb)
 - `REDIS_PASSWORD` - Authentication password (optional)
+
+#### Kafka & Zookeeper
+- `KAFKA_VERSION` - Kafka version (default: 6.2.0)
+- `ZOOKEEPER_VERSION` - Zookeeper version (default: 3.8)
+- `PROJ_KAFKA_PORT` - Kafka external port (default: 9092)
+- `PROJ_ZOOKEEPER_PORT` - Zookeeper port (default: 2181)
+- `PROJ_KAFKA_CONFIG_DIR` - Kafka config directory
+- `PROJ_KAFKA_DATA_DIR` - Kafka data directory
+- `PROJ_KAFKA_LOG_DIR` - Kafka log directory
+- `KAFKA_BROKER_ID` - Broker ID (default: 1)
+- `KAFKA_AUTO_CREATE_TOPICS_ENABLE` - Auto-create topics (default: true)
+
+#### MySQL
+- `MYSQL_VERSION` - MySQL version (default: 8.0)
+- `PROJ_MYSQL_PORT` - MySQL port (default: 3306)
+- `MYSQL_ROOT_PASSWORD` - Root password
+- `MYSQL_DATABASE` - Default database name
+- `PROJ_MYSQL_CONFIG_DIR` - Config directory
+- `PROJ_MYSQL_DATA_DIR` - Data directory
 
 #### OpenTelemetry Collector
 - `OTELCOL_VERSION` - OTEL Collector version
@@ -123,12 +160,20 @@ Docker templates focus on:
 - Health checks and restart policies
 - Environment variable injection
 - Script-based container lifecycle management
+- **Automatic dependency management** (e.g., Kafka auto-starts Zookeeper)
+- **Cross-platform compatibility** (Linux and macOS optimizations)
 
 Key files:
-- `docker-run.sh.tpl` - Container startup script
-- `docker-stop.sh.tpl` - Container shutdown script
-- `docker-status.sh.tpl` - Container status check script
+- `docker-run.sh.tpl` - Container startup script with dependency checks
+- `docker-stop.sh.tpl` - Container shutdown script with cleanup
+- `docker-status.sh.tpl` - Container status check script with health monitoring
 - Service-specific config files (e.g., `redis.conf.tpl`)
+
+**Special Features**:
+- ✅ **Health Check Fixes**: Corrected command paths (e.g., `/bin/kafka-topics`)
+- ✅ **Dependency Auto-Start**: Kafka automatically starts Zookeeper if needed
+- ✅ **Multi-Port Support**: Services expose multiple ports (external, internal, monitoring)
+- ✅ **Platform Detection**: Different configurations for Linux vs macOS
 
 ### Ubuntu Templates
 
@@ -215,3 +260,34 @@ export PROJ_LOG_LEVEL=debug
 ```
 
 This will show all variables being substituted and the template processing steps.
+
+## Known Issues and Solutions
+
+### Kafka Health Check Fix
+
+**Issue**: Kafka containers showing `unhealthy` status due to incorrect health check command paths.
+
+**Root Cause**: Health check using `kafka-topics.sh` but the actual command is located at `/bin/kafka-topics`.
+
+**Solution Applied**:
+- ✅ Updated health check command to use `/bin/kafka-topics` 
+- ✅ Fixed both macOS and Linux template paths
+- ✅ Updated startup verification commands to match health check
+- ✅ Synchronized example commands in documentation
+
+**Template Files Modified**:
+- `docker/kafka/docker-run.sh.tpl` - Health check command fix
+- Validation commands updated to use correct paths
+- Cross-platform consistency ensured
+
+### Dependency Chain Management
+
+**Feature**: Kafka templates now include automatic Zookeeper dependency management.
+
+**Implementation**:
+- ✅ Pre-flight checks for Zookeeper availability
+- ✅ Automatic Zookeeper container startup if missing
+- ✅ Connection validation before Kafka startup
+- ✅ Proper error handling and timeout management
+
+This ensures `make docker.kafka.start` works reliably without manual Zookeeper management.
