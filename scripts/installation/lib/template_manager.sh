@@ -59,6 +59,9 @@ proj::template::generate_config() {
     
     proj::log::info "Generating config from template: $template_path -> $output_path"
     
+    # 设置服务特定的环境变量
+    proj::template::setup_service_variables "$service_name" "$platform"
+    
     # 加载额外的变量文件
     if [[ -n "$extra_vars" ]] && [[ -f "$extra_vars" ]]; then
         proj::log::debug "Loading extra variables from: $extra_vars"
@@ -82,13 +85,67 @@ proj::template::generate_config() {
 }
 
 # 使用 envsubst 进行变量替换（推荐）
+# 设置服务特定的环境变量
+proj::template::setup_service_variables() {
+    local service_name="$1"
+    local platform="$2"
+    
+    # 设置通用变量
+    export CONTAINER_NAME="${PROJ_PREFIX}-${service_name}"
+    export DATA_VOLUME_NAME="${PROJ_PREFIX}-${service_name}-data"
+    export LOGS_VOLUME_NAME="${PROJ_PREFIX}-${service_name}-logs"
+    export NETWORK_NAME="${PROJ_NETWORK_NAME:-proj-network}"
+    export SERVICE_PORT=""
+    
+    # 设置服务特定变量
+    case "$service_name" in
+        "kafka")
+            export SERVICE_PORT="${PROJ_KAFKA_PORT:-9092}"
+            export ZOOKEEPER_PORT="${PROJ_ZOOKEEPER_PORT:-2181}"
+            export CONFIG_DIR="${PROJ_KAFKA_CONFIG_DIR}"
+            export DATA_DIR="${PROJ_KAFKA_DATA_DIR}"
+            export LOG_DIR="${PROJ_KAFKA_LOG_DIR}"
+            export IMAGE_NAME="confluentinc/cp-kafka:${KAFKA_VERSION:-6.2.0}"
+            
+            # Kafka 特定变量
+            export KAFKA_BROKER_ID="1"
+            export KAFKA_ZOOKEEPER_CONNECT="${PROJ_PREFIX}-zookeeper:2181"
+            export KAFKA_ADVERTISED_LISTENERS="PLAINTEXT://localhost:${PROJ_KAFKA_PORT:-9092},PLAINTEXT_INTERNAL://${PROJ_PREFIX}-kafka:29092"
+            export KAFKA_LISTENER_SECURITY_PROTOCOL_MAP="PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT"
+            export KAFKA_INTER_BROKER_LISTENER_NAME="PLAINTEXT_INTERNAL"
+            export KAFKA_VERSION="${KAFKA_VERSION:-3.6.0}"
+            
+            # Zookeeper 变量
+            export ZOOKEEPER_CONTAINER_NAME="${PROJ_PREFIX}-zookeeper"
+            export ZOOKEEPER_DATA_VOLUME_NAME="${PROJ_PREFIX}-zookeeper-data"
+            export ZOOKEEPER_LOGS_VOLUME_NAME="${PROJ_PREFIX}-zookeeper-logs"
+            export ZOOKEEPER_VERSION="${ZOOKEEPER_VERSION:-latest}"
+            ;;
+        "redis")
+            export SERVICE_PORT="${PROJ_REDIS_PORT:-6379}"
+            export CONFIG_DIR="${PROJ_REDIS_CONFIG_DIR}"
+            export DATA_DIR="${PROJ_REDIS_DATA_DIR}"
+            export IMAGE_NAME="redis:${REDIS_VERSION:-7.2.4}"
+            ;;
+        "mysql")
+            export SERVICE_PORT="${PROJ_MYSQL_PORT:-3306}"
+            export CONFIG_DIR="${PROJ_MYSQL_CONFIG_DIR}"
+            export DATA_DIR="${PROJ_MYSQL_DATA_DIR}"
+            export IMAGE_NAME="mysql:${MYSQL_VERSION:-8.0}"
+            ;;
+        *)
+            proj::log::debug "No specific variables set for service: $service_name"
+            ;;
+    esac
+}
+
 proj::template::envsubst_generate() {
     local template_path="$1"
     local output_path="$2"
     
-    # 获取模板中的所有变量
+    # 获取模板中的所有变量 - 修复正则表达式
     local template_vars
-    template_vars=$(grep -oE '\$\{[A-Za-z_][A-Za-z0-9_]*[^}]*\}' "$template_path" | sort -u | tr '\n' ' ')
+    template_vars=$(grep -oE '\$\{[A-Za-z_][A-Za-z0-9_]*\}' "$template_path" | sort -u | tr '\n' ' ')
     
     proj::log::debug "Template variables: $template_vars"
     

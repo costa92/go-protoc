@@ -24,8 +24,8 @@ if docker ps --filter name="${CONTAINER_NAME}" --format "table {{.Names}}\t{{.St
     echo "=== Zookeeper依赖检查 ==="
     if docker ps --filter name="${PROJ_PREFIX}-zookeeper" --format "{{.Names}}" | grep -q "${PROJ_PREFIX}-zookeeper"; then
         echo "✅ Zookeeper容器正在运行"
-        if echo ruok | nc localhost "${ZOOKEEPER_PORT}" 2>/dev/null | grep -q imok; then
-            echo "✅ Zookeeper服务正常 (ruok -> imok)"
+        if echo srvr | nc localhost "${ZOOKEEPER_PORT}" 2>/dev/null | grep -q "Zookeeper version"; then
+            echo "✅ Zookeeper服务正常 (srvr 响应正常)"
         else
             echo "❌ Zookeeper服务异常"
         fi
@@ -36,21 +36,11 @@ if docker ps --filter name="${CONTAINER_NAME}" --format "table {{.Names}}\t{{.St
     # 检查Kafka服务状态
     echo ""
     echo "=== Kafka服务健康检查 ==="
-    # 检测平台以使用正确的命令
-    if [[ "$(uname)" == "Darwin" ]]; then
-        # macOS 使用 Confluent 镜像命令
-        if docker exec "${CONTAINER_NAME}" kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
-            echo "✅ Kafka服务正常 (可以连接到bootstrap服务器)"
-        else
-            echo "❌ Kafka服务异常 (无法连接到bootstrap服务器)"
-        fi
+    # 统一使用 Confluent 镜像命令（不带 .sh 后缀）
+    if docker exec "${CONTAINER_NAME}" kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
+        echo "✅ Kafka服务正常 (可以连接到bootstrap服务器)"
     else
-        # Linux 使用官方镜像命令
-        if docker exec "${CONTAINER_NAME}" kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
-            echo "✅ Kafka服务正常 (可以连接到bootstrap服务器)"
-        else
-            echo "❌ Kafka服务异常 (无法连接到bootstrap服务器)"
-        fi
+        echo "❌ Kafka服务异常 (无法连接到bootstrap服务器)"
     fi
     
     # 检查服务端口
@@ -77,20 +67,12 @@ if docker ps --filter name="${CONTAINER_NAME}" --format "table {{.Names}}\t{{.St
     # 显示Topics列表
     echo ""
     echo "=== Topics列表 ==="
-    if [[ "$(uname)" == "Darwin" ]]; then
-        docker exec "${CONTAINER_NAME}" kafka-topics --bootstrap-server localhost:9092 --list 2>/dev/null || echo "无法获取Topics列表"
-    else
-        docker exec "${CONTAINER_NAME}" kafka-topics.sh --bootstrap-server localhost:9092 --list 2>/dev/null || echo "无法获取Topics列表"
-    fi
+    docker exec "${CONTAINER_NAME}" kafka-topics --bootstrap-server localhost:9092 --list 2>/dev/null || echo "无法获取Topics列表"
     
     # 显示Broker信息
     echo ""
     echo "=== Broker信息 ==="
-    if [[ "$(uname)" == "Darwin" ]]; then
-        docker exec "${CONTAINER_NAME}" kafka-broker-api-versions --bootstrap-server localhost:9092 2>/dev/null | head -5 || echo "无法获取Broker信息"
-    else
-        docker exec "${CONTAINER_NAME}" kafka-broker-api-versions.sh --bootstrap-server localhost:9092 2>/dev/null | head -5 || echo "无法获取Broker信息"
-    fi
+    docker exec "${CONTAINER_NAME}" kafka-broker-api-versions --bootstrap-server localhost:9092 2>/dev/null | head -5 || echo "无法获取Broker信息"
     
     # 显示服务信息
     echo ""
@@ -103,17 +85,10 @@ if docker ps --filter name="${CONTAINER_NAME}" --format "table {{.Names}}\t{{.St
     # 显示常用命令
     echo ""
     echo "=== 常用管理命令 ==="
-    if [[ "$(uname)" == "Darwin" ]]; then
-        echo "📝 创建Topic: docker exec ${CONTAINER_NAME} kafka-topics --create --topic <topic-name> --bootstrap-server localhost:9092"
-        echo "📋 列出Topics: docker exec ${CONTAINER_NAME} kafka-topics --list --bootstrap-server localhost:9092"
-        echo "📤 生产消息: docker exec -it ${CONTAINER_NAME} kafka-console-producer --topic <topic-name> --bootstrap-server localhost:9092"
-        echo "📥 消费消息: docker exec -it ${CONTAINER_NAME} kafka-console-consumer --topic <topic-name> --bootstrap-server localhost:9092 --from-beginning"
-    else
-        echo "📝 创建Topic: docker exec ${CONTAINER_NAME} kafka-topics.sh --create --topic <topic-name> --bootstrap-server localhost:9092"
-        echo "📋 列出Topics: docker exec ${CONTAINER_NAME} kafka-topics.sh --list --bootstrap-server localhost:9092"
-        echo "📤 生产消息: docker exec -it ${CONTAINER_NAME} kafka-console-producer.sh --topic <topic-name> --bootstrap-server localhost:9092"
-        echo "📥 消费消息: docker exec -it ${CONTAINER_NAME} kafka-console-consumer.sh --topic <topic-name> --bootstrap-server localhost:9092 --from-beginning"
-    fi
+    echo "📝 创建Topic: docker exec ${CONTAINER_NAME} kafka-topics --create --topic <topic-name> --bootstrap-server localhost:9092"
+    echo "📋 列出Topics: docker exec ${CONTAINER_NAME} kafka-topics --list --bootstrap-server localhost:9092"
+    echo "📤 生产消息: docker exec -it ${CONTAINER_NAME} kafka-console-producer --topic <topic-name> --bootstrap-server localhost:9092"
+    echo "📥 消费消息: docker exec -it ${CONTAINER_NAME} kafka-console-consumer --topic <topic-name> --bootstrap-server localhost:9092 --from-beginning"
     
     # 显示最近日志
     echo ""

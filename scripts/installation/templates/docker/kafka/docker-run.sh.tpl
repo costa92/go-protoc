@@ -31,8 +31,8 @@ if [[ "$(uname)" == "Darwin" ]]; then
     readonly KAFKA_LISTENER_SECURITY_PROTOCOL_MAP="PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT"
     readonly KAFKA_INTER_BROKER_LISTENER_NAME="PLAINTEXT_INTERNAL"
 else
-    # Linux 使用官方镜像
-    readonly IMAGE_NAME="apache/kafka:${KAFKA_VERSION:-3.6.0}"
+    # Linux 使用 Confluent 镜像
+    readonly IMAGE_NAME="confluentinc/cp-kafka:${KAFKA_VERSION:-6.2.0}"
     readonly KAFKA_BROKER_ID=1
     readonly KAFKA_ZOOKEEPER_CONNECT="${PROJ_PREFIX}-zookeeper:2181"
     readonly KAFKA_ADVERTISED_LISTENERS="PLAINTEXT://localhost:${SERVICE_PORT},PLAINTEXT_INTERNAL://${PROJ_PREFIX}-kafka:29092"
@@ -43,19 +43,113 @@ fi
 echo "检测到平台: $(uname)"
 echo "使用镜像: ${IMAGE_NAME}"
 
-# 检查Zookeeper是否运行
+# 检查并自动启动Zookeeper依赖
 echo "检查Zookeeper依赖..."
 if ! docker ps --filter name="${PROJ_PREFIX}-zookeeper" --format "{{.Names}}" | grep -q "${PROJ_PREFIX}-zookeeper"; then
-    echo "❌ Zookeeper容器未运行，请先启动Zookeeper:"
-    echo "   make docker.zookeeper.start"
-    echo "   或"
-    echo "   ./scripts/installation/templates/docker/zookeeper/docker-run.sh"
-    exit 1
+    echo "🔄 Zookeeper容器未运行，正在自动启动..."
+    
+    # 定义 Zookeeper 配置
+    readonly ZOOKEEPER_CONTAINER_NAME="${PROJ_PREFIX}-zookeeper"
+    readonly ZOOKEEPER_DATA_VOLUME_NAME="${PROJ_PREFIX}-zookeeper-data"
+    readonly ZOOKEEPER_LOGS_VOLUME_NAME="${PROJ_PREFIX}-zookeeper-logs"
+    
+    # 创建 Docker 网络（如果不存在）
+    docker network create "${NETWORK_NAME}" 2>/dev/null || true
+    
+    # 创建 Docker 卷（如果不存在）
+    docker volume create "${ZOOKEEPER_DATA_VOLUME_NAME}" 2>/dev/null || true
+    docker volume create "${ZOOKEEPER_LOGS_VOLUME_NAME}" 2>/dev/null || true
+    
+    # 停止并删除现有容器（如果存在）
+    docker stop "${ZOOKEEPER_CONTAINER_NAME}" 2>/dev/null || true
+    docker rm "${ZOOKEEPER_CONTAINER_NAME}" 2>/dev/null || true
+    
+    # 启动 Zookeeper 容器
+    echo "正在启动Zookeeper容器..."
+    if [[ "$(uname)" == "Darwin" ]]; then
+        # macOS - 使用 Confluent 镜像
+        docker run -d \
+            --name "${ZOOKEEPER_CONTAINER_NAME}" \
+            --network "${NETWORK_NAME}" \
+            --restart unless-stopped \
+            -p "${ZOOKEEPER_PORT}:2181" \
+            -v "${ZOOKEEPER_DATA_VOLUME_NAME}:/var/lib/zookeeper/data" \
+            -v "${ZOOKEEPER_LOGS_VOLUME_NAME}:/var/lib/zookeeper/log" \
+            -e ZOOKEEPER_CLIENT_PORT=2181 \
+            -e ZOOKEEPER_TICK_TIME=2000 \
+            -e ZOOKEEPER_INIT_LIMIT=10 \
+            -e ZOOKEEPER_SYNC_LIMIT=5 \
+            -e ZOOKEEPER_MAX_CLIENT_CNXNS=60 \
+            -e ZOOKEEPER_SNAP_RETAIN_COUNT=3 \
+            -e ZOOKEEPER_PURGE_INTERVAL=12 \
+            -e PROJ_SERVICE_NAME=zookeeper \
+            -e PROJ_SERVICE_VERSION=${ZOOKEEPER_VERSION:-7.4.0} \
+            -e PROJ_ENVIRONMENT=${PROJ_ENVIRONMENT:-development} \
+            --log-driver json-file \
+            --log-opt max-size=10m \
+            --log-opt max-file=3 \
+            --health-cmd "echo ruok | nc localhost 2181 | grep imok" \
+            --health-interval 30s \
+            --health-timeout 10s \
+            --health-retries 3 \
+            --health-start-period 30s \
+            "confluentinc/cp-zookeeper:${ZOOKEEPER_VERSION:-7.4.0}"
+    else
+        # Linux - 使用官方镜像
+        docker run -d \
+            --name "${ZOOKEEPER_CONTAINER_NAME}" \
+            --network "${NETWORK_NAME}" \
+            --restart unless-stopped \
+            -p "${ZOOKEEPER_PORT}:2181" \
+            -p "2888:2888" \
+            -p "3888:3888" \
+            -v "${ZOOKEEPER_DATA_VOLUME_NAME}:/var/lib/zookeeper/data" \
+            -v "${ZOOKEEPER_LOGS_VOLUME_NAME}:/var/lib/zookeeper/log" \
+            -e ZOOKEEPER_CLIENT_PORT=2181 \
+            -e ZOOKEEPER_TICK_TIME=2000 \
+            -e ZOOKEEPER_INIT_LIMIT=10 \
+            -e ZOOKEEPER_SYNC_LIMIT=5 \
+            -e ZOOKEEPER_MAX_CLIENT_CNXNS=60 \
+            -e ZOOKEEPER_SNAP_RETAIN_COUNT=3 \
+            -e ZOOKEEPER_PURGE_INTERVAL=12 \
+            -e PROJ_SERVICE_NAME=zookeeper \
+            -e PROJ_SERVICE_VERSION=${ZOOKEEPER_VERSION:-3.8} \
+            -e PROJ_ENVIRONMENT=${PROJ_ENVIRONMENT:-development} \
+            --log-driver json-file \
+            --log-opt max-size=10m \
+            --log-opt max-file=3 \
+            --health-cmd "echo ruok | nc localhost 2181 | grep imok" \
+            --health-interval 30s \
+            --health-timeout 10s \
+            --health-retries 3 \
+            --health-start-period 30s \
+            "confluentinc/cp-zookeeper:${ZOOKEEPER_VERSION:-latest}"
+    fi
+    
+    # 等待Zookeeper启动
+    echo "等待Zookeeper启动完成..."
+    timeout=60
+    while [ $timeout -gt 0 ]; do
+        if docker exec "${ZOOKEEPER_CONTAINER_NAME}" sh -c "echo srvr | nc localhost 2181" 2>/dev/null | grep -q "Zookeeper version"; then
+            echo "✅ Zookeeper启动成功"
+            break
+        fi
+        sleep 2
+        ((timeout-=2))
+    done
+    
+    if [ $timeout -le 0 ]; then
+        echo "❌ Zookeeper启动超时，请检查日志"
+        docker logs "${ZOOKEEPER_CONTAINER_NAME}" --tail 20
+        exit 1
+    fi
+else
+    echo "✅ Zookeeper容器已在运行"
 fi
 
 # 验证Zookeeper连通性
 echo "验证Zookeeper连接..."
-if ! echo ruok | nc localhost "${ZOOKEEPER_PORT}" 2>/dev/null | grep -q imok; then
+if ! echo srvr | nc localhost "${ZOOKEEPER_PORT}" 2>/dev/null | grep -q "Zookeeper version"; then
     echo "❌ 无法连接到Zookeeper (localhost:${ZOOKEEPER_PORT})"
     exit 1
 fi
@@ -114,7 +208,7 @@ if [[ "$(uname)" == "Darwin" ]]; then
         --log-driver json-file \
         --log-opt max-size=10m \
         --log-opt max-file=3 \
-        --health-cmd "kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1" \
+        --health-cmd "/bin/kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1" \
         --health-interval 30s \
         --health-timeout 15s \
         --health-retries 5 \
@@ -159,7 +253,7 @@ else
         --log-driver json-file \
         --log-opt max-size=10m \
         --log-opt max-file=3 \
-        --health-cmd "kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1" \
+        --health-cmd "/bin/kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1" \
         --health-interval 30s \
         --health-timeout 15s \
         --health-retries 5 \
@@ -186,13 +280,13 @@ timeout=120
 while [ $timeout -gt 0 ]; do
     if [[ "$(uname)" == "Darwin" ]]; then
         # macOS 使用 Confluent 镜像的命令
-        if docker exec "${CONTAINER_NAME}" kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
+        if docker exec "${CONTAINER_NAME}" /bin/kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
             echo "Kafka启动成功 ✅"
             break
         fi
     else
         # Linux 使用官方镜像的命令
-        if docker exec "${CONTAINER_NAME}" kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
+        if docker exec "${CONTAINER_NAME}" /bin/kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
             echo "Kafka启动成功 ✅"
             break
         fi
@@ -216,13 +310,13 @@ echo "📋 集群配置: 单节点集群 (broker.id=${KAFKA_BROKER_ID})"
 echo ""
 echo "🛠️  常用命令:"
 if [[ "$(uname)" == "Darwin" ]]; then
-    echo "  创建Topic: docker exec ${CONTAINER_NAME} kafka-topics --create --topic test --bootstrap-server localhost:9092"
-    echo "  列出Topics: docker exec ${CONTAINER_NAME} kafka-topics --list --bootstrap-server localhost:9092"
-    echo "  生产消息: docker exec -it ${CONTAINER_NAME} kafka-console-producer --topic test --bootstrap-server localhost:9092"
-    echo "  消费消息: docker exec -it ${CONTAINER_NAME} kafka-console-consumer --topic test --bootstrap-server localhost:9092 --from-beginning"
+    echo "  创建Topic: docker exec ${CONTAINER_NAME} /bin/kafka-topics --create --topic test --bootstrap-server localhost:9092"
+    echo "  列出Topics: docker exec ${CONTAINER_NAME} /bin/kafka-topics --list --bootstrap-server localhost:9092"
+    echo "  生产消息: docker exec -it ${CONTAINER_NAME} /bin/kafka-console-producer --topic test --bootstrap-server localhost:9092"
+    echo "  消费消息: docker exec -it ${CONTAINER_NAME} /bin/kafka-console-consumer --topic test --bootstrap-server localhost:9092 --from-beginning"
 else
-    echo "  创建Topic: docker exec ${CONTAINER_NAME} kafka-topics.sh --create --topic test --bootstrap-server localhost:9092"
-    echo "  列出Topics: docker exec ${CONTAINER_NAME} kafka-topics.sh --list --bootstrap-server localhost:9092"
-    echo "  生产消息: docker exec -it ${CONTAINER_NAME} kafka-console-producer.sh --topic test --bootstrap-server localhost:9092"
-    echo "  消费消息: docker exec -it ${CONTAINER_NAME} kafka-console-consumer.sh --topic test --bootstrap-server localhost:9092 --from-beginning"
+    echo "  创建Topic: docker exec ${CONTAINER_NAME} /bin/kafka-topics --create --topic test --bootstrap-server localhost:9092"
+    echo "  列出Topics: docker exec ${CONTAINER_NAME} /bin/kafka-topics --list --bootstrap-server localhost:9092"
+    echo "  生产消息: docker exec -it ${CONTAINER_NAME} /bin/kafka-console-producer --topic test --bootstrap-server localhost:9092"
+    echo "  消费消息: docker exec -it ${CONTAINER_NAME} /bin/kafka-console-consumer --topic test --bootstrap-server localhost:9092 --from-beginning"
 fi

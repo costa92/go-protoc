@@ -52,9 +52,32 @@ if [[ "${1:-}" == "--remove-data" ]]; then
     fi
 fi
 
-# 提示Zookeeper状态
+# 自动停止Zookeeper依赖
 echo ""
-echo "📋 注意: Zookeeper容器仍在运行，如需停止请运行:"
-echo "  make docker.zookeeper.stop"
-echo "  或"
-echo "  ./scripts/installation/templates/docker/zookeeper/docker-stop.sh"
+echo "🔄 正在停止Zookeeper依赖..."
+
+ZOOKEEPER_CONTAINER_NAME="${PROJ_PREFIX}-zookeeper"
+ZOOKEEPER_DATA_VOLUME_NAME="${PROJ_PREFIX}-zookeeper-data"
+ZOOKEEPER_LOGS_VOLUME_NAME="${PROJ_PREFIX}-zookeeper-logs"
+
+# 检查Zookeeper容器是否存在并停止
+if docker ps --format "{{.Names}}" | grep -q "^${ZOOKEEPER_CONTAINER_NAME}$"; then
+    echo "正在停止Zookeeper容器..."
+    if docker stop "${ZOOKEEPER_CONTAINER_NAME}" 2>/dev/null; then
+        echo "✅ Zookeeper容器已停止: ${ZOOKEEPER_CONTAINER_NAME}"
+    else
+        echo "❌ Zookeeper容器停止失败"
+    fi
+    
+    # 删除Zookeeper容器
+    if docker rm "${ZOOKEEPER_CONTAINER_NAME}" 2>/dev/null; then
+        echo "✅ Zookeeper容器已删除: ${ZOOKEEPER_CONTAINER_NAME}"
+    else
+        echo "❌ Zookeeper容器删除失败"
+    fi
+else
+    echo "📋 Zookeeper容器未运行或不存在"
+fi
+
+echo ""
+echo "🎉 Kafka 和 Zookeeper 服务已完全停止！"
