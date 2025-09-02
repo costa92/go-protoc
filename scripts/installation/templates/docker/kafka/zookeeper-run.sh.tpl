@@ -64,13 +64,14 @@ if [[ "$(uname)" == "Darwin" ]]; then
         -e ZOOKEEPER_MAX_CLIENT_CNXNS=60 \
         -e ZOOKEEPER_SNAP_RETAIN_COUNT=3 \
         -e ZOOKEEPER_PURGE_INTERVAL=12 \
+        -e ZOOKEEPER_4LW_COMMANDS_WHITELIST="*" \
         -e PROJ_SERVICE_NAME=zookeeper \
         -e PROJ_SERVICE_VERSION=${ZOOKEEPER_VERSION:-7.4.0} \
         -e PROJ_ENVIRONMENT=${PROJ_ENVIRONMENT:-development} \
         --log-driver json-file \
         --log-opt max-size=10m \
         --log-opt max-file=3 \
-        --health-cmd "echo ruok | nc localhost 2181 | grep imok" \
+        --health-cmd "echo srvr | nc localhost 2181 | grep -q 'Zookeeper version'" \
         --health-interval 30s \
         --health-timeout 10s \
         --health-retries 3 \
@@ -94,13 +95,14 @@ else
         -e ZOOKEEPER_MAX_CLIENT_CNXNS=60 \
         -e ZOOKEEPER_SNAP_RETAIN_COUNT=3 \
         -e ZOOKEEPER_PURGE_INTERVAL=12 \
+        -e ZOOKEEPER_4LW_COMMANDS_WHITELIST="*" \
         -e PROJ_SERVICE_NAME=zookeeper \
         -e PROJ_SERVICE_VERSION=${ZOOKEEPER_VERSION:-3.8} \
         -e PROJ_ENVIRONMENT=${PROJ_ENVIRONMENT:-development} \
         --log-driver json-file \
         --log-opt max-size=10m \
         --log-opt max-file=3 \
-        --health-cmd "echo ruok | nc localhost 2181 | grep imok" \
+        --health-cmd "echo srvr | nc localhost 2181 | grep -q 'Zookeeper version'" \
         --health-interval 30s \
         --health-timeout 10s \
         --health-retries 3 \

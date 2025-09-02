@@ -57,7 +57,7 @@ echo "✅ Redis目录创建完成"
 # 复制配置文件到配置目录
 echo "复制Redis配置文件..."
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CONFIG_FILE="${SCRIPT_DIR}/redis.conf"
+CONFIG_FILE="$SCRIPT_DIR/redis.conf"
 
 if [[ -f "$CONFIG_FILE" ]]; then
     # 使用与重构前一致的方法复制配置文件

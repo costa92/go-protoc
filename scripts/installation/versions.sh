@@ -35,9 +35,17 @@ export MONGODB_VERSION=${MONGODB_VERSION:-7.0.5}
 
 # 分布式系统 (Distributed Systems)
 export ETCD_VERSION=${ETCD_VERSION:-v3.5.12}
-export KAFKA_VERSION=${KAFKA_VERSION:-6.2.0}
+
+# Kafka 版本配置 - 根据平台自动选择
+# macOS/ARM64 使用 7.4.0，Linux/AMD64 使用 6.2.0
+if [[ "$(uname)" == "Darwin" ]]; then
+    export KAFKA_VERSION=${KAFKA_VERSION:-7.4.0}
+else
+    export KAFKA_VERSION=${KAFKA_VERSION:-6.2.0}
+fi
+
 export ZOOKEEPER_VERSION=${ZOOKEEPER_VERSION:-latest}
-export NACOS_VERSION=${NACOS_VERSION:-2.2.3}
+export NACOS_VERSION=${NACOS_VERSION:-v2.1.2}
 
 # 可观测性栈 (Observability Stack)
 export JAEGER_VERSION=${JAEGER_VERSION:-1.52.0}

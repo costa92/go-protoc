@@ -24,10 +24,11 @@ if docker ps --filter name="${CONTAINER_NAME}" --format "table {{.Names}}\t{{.St
     echo "=== Zookeeper依赖检查 ==="
     if docker ps --filter name="${PROJ_PREFIX}-zookeeper" --format "{{.Names}}" | grep -q "${PROJ_PREFIX}-zookeeper"; then
         echo "✅ Zookeeper容器正在运行"
-        if echo srvr | nc localhost "${ZOOKEEPER_PORT}" 2>/dev/null | grep -q "Zookeeper version"; then
-            echo "✅ Zookeeper服务正常 (srvr 响应正常)"
+        # 检查 Zookeeper 端口连通性，如果能连接则认为服务正常
+        if nc -z localhost "${ZOOKEEPER_PORT}" 2>/dev/null; then
+            echo "✅ Zookeeper服务正常 (端口 ${ZOOKEEPER_PORT} 可访问)"
         else
-            echo "❌ Zookeeper服务异常"
+            echo "❌ Zookeeper服务异常 (端口 ${ZOOKEEPER_PORT} 不可访问)"
         fi
     else
         echo "❌ Zookeeper容器未运行"

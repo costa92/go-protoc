@@ -2,7 +2,7 @@
 
 # Kafka Only Docker运行脚本模板
 # Project: ${PROJ_NAME:-go-protoc}
-# Service: Kafka ${KAFKA_VERSION} (仅Kafka)
+# Service: Kafka (仅Kafka)
 # Environment: ${PROJ_ENVIRONMENT:-development}
 
 set -eEuo pipefail
@@ -20,26 +20,17 @@ readonly LOG_DIR="${PROJ_KAFKA_LOG_DIR}"
 # Docker网络
 readonly NETWORK_NAME="${PROJ_NETWORK_NAME}"
 
-# 平台检测和镜像选择
-if [[ "$(uname)" == "Darwin" ]]; then
-    # macOS 使用 confluentinc 镜像，支持 ARM64
-    readonly IMAGE_NAME="confluentinc/cp-kafka:${KAFKA_VERSION:-7.4.0}"
-    readonly KAFKA_BROKER_ID=1
-    readonly KAFKA_ZOOKEEPER_CONNECT="${PROJ_PREFIX}-zookeeper:2181"
-    readonly KAFKA_ADVERTISED_LISTENERS="PLAINTEXT://localhost:${SERVICE_PORT},PLAINTEXT_INTERNAL://${PROJ_PREFIX}-kafka:29092"
-    readonly KAFKA_LISTENER_SECURITY_PROTOCOL_MAP="PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT"
-    readonly KAFKA_INTER_BROKER_LISTENER_NAME="PLAINTEXT_INTERNAL"
-else
-    # Linux 使用 Confluent 镜像
-    readonly IMAGE_NAME="confluentinc/cp-kafka:${KAFKA_VERSION:-6.2.0}"
-    readonly KAFKA_BROKER_ID=1
-    readonly KAFKA_ZOOKEEPER_CONNECT="${PROJ_PREFIX}-zookeeper:2181"
-    readonly KAFKA_ADVERTISED_LISTENERS="PLAINTEXT://localhost:${SERVICE_PORT},PLAINTEXT_INTERNAL://${PROJ_PREFIX}-kafka:29092"
-    readonly KAFKA_LISTENER_SECURITY_PROTOCOL_MAP="PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT"
-    readonly KAFKA_INTER_BROKER_LISTENER_NAME="PLAINTEXT_INTERNAL"
-fi
+# 镜像配置 - KAFKA_VERSION 已在 versions.sh 中根据平台设置
+# macOS/ARM64: 7.4.0, Linux/AMD64: 6.2.0
+readonly IMAGE_NAME="confluentinc/cp-kafka:${KAFKA_VERSION}"
+readonly KAFKA_BROKER_ID=1
+readonly KAFKA_ZOOKEEPER_CONNECT="${PROJ_PREFIX}-zookeeper:2181"
+readonly KAFKA_ADVERTISED_LISTENERS="PLAINTEXT://localhost:${SERVICE_PORT},PLAINTEXT_INTERNAL://${PROJ_PREFIX}-kafka:29092"
+readonly KAFKA_LISTENER_SECURITY_PROTOCOL_MAP="PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT"
+readonly KAFKA_INTER_BROKER_LISTENER_NAME="PLAINTEXT_INTERNAL"
 
 echo "检测到平台: $(uname)"
+echo "Kafka 版本: ${KAFKA_VERSION}"
 echo "使用镜像: ${IMAGE_NAME}"
 
 # 检查Zookeeper依赖 (不启动，只检查)
@@ -53,11 +44,24 @@ echo "✅ Zookeeper容器已在运行"
 
 # 验证Zookeeper连通性
 echo "验证Zookeeper连接..."
-if ! echo srvr | nc localhost "${PROJ_ZOOKEEPER_PORT:-2181}" 2>/dev/null | grep -q "Zookeeper version"; then
+# 等待Zookeeper健康检查通过，使用srvr命令替代ruok
+max_retries=30
+retry_count=0
+while [ $retry_count -lt $max_retries ]; do
+    if docker exec ${PROJ_PREFIX}-zookeeper sh -c "echo srvr | nc localhost 2181" 2>/dev/null | grep -q "Zookeeper version"; then
+        echo "✅ Zookeeper连接正常"
+        break
+    fi
+    echo "等待Zookeeper就绪... ($((retry_count+1))/$max_retries)"
+    sleep 2
+    ((retry_count++))
+done
+
+if [ $retry_count -eq $max_retries ]; then
     echo "❌ 无法连接到Zookeeper (localhost:${PROJ_ZOOKEEPER_PORT:-2181})"
+    docker logs ${PROJ_PREFIX}-zookeeper --tail 20
     exit 1
 fi
-echo "✅ Zookeeper连接正常"
 
 # 创建必要的目录
 mkdir -p "${CONFIG_DIR}" "${DATA_DIR}" "${LOG_DIR}"
@@ -73,97 +77,49 @@ docker volume create "${PROJ_PREFIX}-kafka-logs" 2>/dev/null || true
 docker stop "${CONTAINER_NAME}" 2>/dev/null || true
 docker rm "${CONTAINER_NAME}" 2>/dev/null || true
 
-# 根据平台选择不同的运行配置
-if [[ "$(uname)" == "Darwin" ]]; then
-    # macOS - 使用 Confluent 镜像
-    docker run -d \
-        --name "${CONTAINER_NAME}" \
-        --network "${NETWORK_NAME}" \
-        --restart unless-stopped \
-        -p "${SERVICE_PORT}:9092" \
-        -p "29092:29092" \
-        -v "${PROJ_PREFIX}-kafka-data:/var/lib/kafka/data" \
-        -v "${PROJ_PREFIX}-kafka-logs:/var/log/kafka" \
-        -v "${CONFIG_DIR}:/etc/kafka:ro" \
-        -v "${LOG_DIR}:/opt/kafka/logs" \
-        -e KAFKA_BROKER_ID=${KAFKA_BROKER_ID} \
-        -e KAFKA_ZOOKEEPER_CONNECT="${KAFKA_ZOOKEEPER_CONNECT}" \
-        -e KAFKA_ADVERTISED_LISTENERS="${KAFKA_ADVERTISED_LISTENERS}" \
-        -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP="${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}" \
-        -e KAFKA_INTER_BROKER_LISTENER_NAME="${KAFKA_INTER_BROKER_LISTENER_NAME}" \
-        -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
-        -e KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1 \
-        -e KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1 \
-        -e KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0 \
-        -e KAFKA_AUTO_CREATE_TOPICS_ENABLE=true \
-        -e KAFKA_DELETE_TOPIC_ENABLE=true \
-        -e KAFKA_LOG_RETENTION_HOURS=168 \
-        -e KAFKA_LOG_SEGMENT_BYTES=1073741824 \
-        -e KAFKA_LOG_CLEANUP_POLICY=delete \
-        -e KAFKA_NUM_PARTITIONS=3 \
-        -e KAFKA_DEFAULT_REPLICATION_FACTOR=1 \
-        -e KAFKA_MIN_INSYNC_REPLICAS=1 \
-        -e KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE=false \
-        -e KAFKA_JMX_PORT=9999 \
-        -e KAFKA_JMX_HOSTNAME=localhost \
-        -e PROJ_SERVICE_NAME=kafka \
-        -e PROJ_SERVICE_VERSION=${KAFKA_VERSION:-7.4.0} \
-        -e PROJ_ENVIRONMENT=${PROJ_ENVIRONMENT:-development} \
-        --log-driver json-file \
-        --log-opt max-size=10m \
-        --log-opt max-file=3 \
-        --health-cmd "/bin/kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1" \
-        --health-interval 30s \
-        --health-timeout 15s \
-        --health-retries 5 \
-        --health-start-period 60s \
-        "${IMAGE_NAME}"
-else
-    # Linux - 使用官方镜像
-    docker run -d \
-        --name "${CONTAINER_NAME}" \
-        --network "${NETWORK_NAME}" \
-        --restart unless-stopped \
-        -p "${SERVICE_PORT}:9092" \
-        -p "29092:29092" \
-        -p "9999:9999" \
-        -v "${PROJ_PREFIX}-kafka-data:/opt/kafka/logs" \
-        -v "${PROJ_PREFIX}-kafka-logs:/var/log/kafka" \
-        -v "${CONFIG_DIR}:/opt/kafka/config:ro" \
-        -v "${LOG_DIR}:/opt/kafka/bin-logs" \
-        -e KAFKA_BROKER_ID=${KAFKA_BROKER_ID} \
-        -e KAFKA_ZOOKEEPER_CONNECT="${KAFKA_ZOOKEEPER_CONNECT}" \
-        -e KAFKA_ADVERTISED_LISTENERS="${KAFKA_ADVERTISED_LISTENERS}" \
-        -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP="${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}" \
-        -e KAFKA_INTER_BROKER_LISTENER_NAME="${KAFKA_INTER_BROKER_LISTENER_NAME}" \
-        -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
-        -e KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1 \
-        -e KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1 \
-        -e KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0 \
-        -e KAFKA_AUTO_CREATE_TOPICS_ENABLE=true \
-        -e KAFKA_DELETE_TOPIC_ENABLE=true \
-        -e KAFKA_LOG_RETENTION_HOURS=168 \
-        -e KAFKA_LOG_SEGMENT_BYTES=1073741824 \
-        -e KAFKA_LOG_CLEANUP_POLICY=delete \
-        -e KAFKA_NUM_PARTITIONS=3 \
-        -e KAFKA_DEFAULT_REPLICATION_FACTOR=1 \
-        -e KAFKA_MIN_INSYNC_REPLICAS=1 \
-        -e KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE=false \
-        -e KAFKA_JMX_PORT=9999 \
-        -e KAFKA_JMX_HOSTNAME=localhost \
-        -e PROJ_SERVICE_NAME=kafka \
-        -e PROJ_SERVICE_VERSION=${KAFKA_VERSION:-3.6.0} \
-        -e PROJ_ENVIRONMENT=${PROJ_ENVIRONMENT:-development} \
-        --log-driver json-file \
-        --log-opt max-size=10m \
-        --log-opt max-file=3 \
-        --health-cmd "/bin/kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1" \
-        --health-interval 30s \
-        --health-timeout 15s \
-        --health-retries 5 \
-        --health-start-period 60s \
-        "${IMAGE_NAME}"
-fi
+# 启动 Kafka 容器
+docker run -d \
+    --name "${CONTAINER_NAME}" \
+    --network "${NETWORK_NAME}" \
+    --restart unless-stopped \
+    -p "${SERVICE_PORT}:9092" \
+    -p "29092:29092" \
+    -p "9999:9999" \
+    -v "${PROJ_PREFIX}-kafka-data:/var/lib/kafka/data" \
+    -v "${PROJ_PREFIX}-kafka-logs:/var/log/kafka" \
+    -v "${LOG_DIR}:/opt/kafka/logs" \
+    -e KAFKA_BROKER_ID=${KAFKA_BROKER_ID} \
+    -e KAFKA_ZOOKEEPER_CONNECT="${KAFKA_ZOOKEEPER_CONNECT}" \
+    -e KAFKA_ADVERTISED_LISTENERS="${KAFKA_ADVERTISED_LISTENERS}" \
+    -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP="${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}" \
+    -e KAFKA_INTER_BROKER_LISTENER_NAME="${KAFKA_INTER_BROKER_LISTENER_NAME}" \
+    -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
+    -e KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1 \
+    -e KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1 \
+    -e KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0 \
+    -e KAFKA_AUTO_CREATE_TOPICS_ENABLE=true \
+    -e KAFKA_DELETE_TOPIC_ENABLE=true \
+    -e KAFKA_LOG_RETENTION_HOURS=168 \
+    -e KAFKA_LOG_SEGMENT_BYTES=1073741824 \
+    -e KAFKA_LOG_CLEANUP_POLICY=delete \
+    -e KAFKA_NUM_PARTITIONS=3 \
+    -e KAFKA_DEFAULT_REPLICATION_FACTOR=1 \
+    -e KAFKA_MIN_INSYNC_REPLICAS=1 \
+    -e KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE=false \
+    -e KAFKA_JMX_PORT=9999 \
+    -e KAFKA_JMX_HOSTNAME=localhost \
+    -e PROJ_SERVICE_NAME=kafka \
+    -e PROJ_SERVICE_VERSION=${KAFKA_VERSION} \
+    -e PROJ_ENVIRONMENT=${PROJ_ENVIRONMENT:-development} \
+    --log-driver json-file \
+    --log-opt max-size=10m \
+    --log-opt max-file=3 \
+    --health-cmd "/bin/kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1" \
+    --health-interval 30s \
+    --health-timeout 15s \
+    --health-retries 5 \
+    --health-start-period 60s \
+    "${IMAGE_NAME}"
 
 echo "Kafka容器已启动: ${CONTAINER_NAME}"
 echo "端口映射: localhost:${SERVICE_PORT} -> container:9092"
@@ -182,18 +138,9 @@ docker ps --filter name="${CONTAINER_NAME}" --format "table {{.Names}}\t{{.Statu
 echo "等待Kafka启动完成..."
 timeout=120
 while [ $timeout -gt 0 ]; do
-    if [[ "$(uname)" == "Darwin" ]]; then
-        # macOS 使用 Confluent 镜像的命令
-        if docker exec "${CONTAINER_NAME}" /bin/kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
-            echo "Kafka启动成功 ✅"
-            break
-        fi
-    else
-        # Linux 使用官方镜像的命令
-        if docker exec "${CONTAINER_NAME}" /bin/kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
-            echo "Kafka启动成功 ✅"
-            break
-        fi
+    if docker exec "${CONTAINER_NAME}" /bin/kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
+        echo "Kafka启动成功 ✅"
+        break
     fi
     sleep 3
     ((timeout-=3))
@@ -213,14 +160,7 @@ echo "🔌 Zookeeper连接: ${KAFKA_ZOOKEEPER_CONNECT}"
 echo "📋 集群配置: 单节点集群 (broker.id=${KAFKA_BROKER_ID})"
 echo ""
 echo "🛠️  常用命令:"
-if [[ "$(uname)" == "Darwin" ]]; then
-    echo "  创建Topic: docker exec ${CONTAINER_NAME} /bin/kafka-topics --create --topic test --bootstrap-server localhost:9092"
-    echo "  列出Topics: docker exec ${CONTAINER_NAME} /bin/kafka-topics --list --bootstrap-server localhost:9092"
-    echo "  生产消息: docker exec -it ${CONTAINER_NAME} /bin/kafka-console-producer --topic test --bootstrap-server localhost:9092"
-    echo "  消费消息: docker exec -it ${CONTAINER_NAME} /bin/kafka-console-consumer --topic test --bootstrap-server localhost:9092 --from-beginning"
-else
-    echo "  创建Topic: docker exec ${CONTAINER_NAME} /bin/kafka-topics --create --topic test --bootstrap-server localhost:9092"
-    echo "  列出Topics: docker exec ${CONTAINER_NAME} /bin/kafka-topics --list --bootstrap-server localhost:9092"
-    echo "  生产消息: docker exec -it ${CONTAINER_NAME} /bin/kafka-console-producer --topic test --bootstrap-server localhost:9092"
-    echo "  消费消息: docker exec -it ${CONTAINER_NAME} /bin/kafka-console-consumer --topic test --bootstrap-server localhost:9092 --from-beginning"
-fi
+echo "  创建Topic: docker exec ${CONTAINER_NAME} /bin/kafka-topics --create --topic test --bootstrap-server localhost:9092"
+echo "  列出Topics: docker exec ${CONTAINER_NAME} /bin/kafka-topics --list --bootstrap-server localhost:9092"
+echo "  生产消息: docker exec -it ${CONTAINER_NAME} /bin/kafka-console-producer --topic test --bootstrap-server localhost:9092"
+echo "  消费消息: docker exec -it ${CONTAINER_NAME} /bin/kafka-console-consumer --topic test --bootstrap-server localhost:9092 --from-beginning"
