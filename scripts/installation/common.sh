@@ -14,19 +14,35 @@ PROJ_ROOT_DIR="${INSTALLATION_DIR}/../.."
 # 都会统一加载 scripts/common.sh 脚本
 source "${PROJ_ROOT_DIR}/scripts/common.sh"
 
-# 加载统一版本管理配置
-source "${INSTALLATION_DIR}/versions.sh"
+# 设置 PROJ_ENV_FILE（重要） - 支持动态环境选择
+# 优先使用传入的 PROJ_ENVIRONMENT，否则默认为 dev
+PROJ_ENVIRONMENT=${PROJ_ENVIRONMENT:-development}
+case "${PROJ_ENVIRONMENT}" in
+    "development"|"dev")
+        PROJ_ENV_FILE=${PROJ_ENV_FILE:-${PROJ_ROOT_DIR}/manifests/env/env.dev}
+        ;;
+    "test"|"testing")
+        PROJ_ENV_FILE=${PROJ_ENV_FILE:-${PROJ_ROOT_DIR}/manifests/env/env.test}
+        ;;
+    "production"|"prod")
+        PROJ_ENV_FILE=${PROJ_ENV_FILE:-${PROJ_ROOT_DIR}/manifests/env/env.prod}
+        ;;
+    *)
+        PROJ_ENV_FILE=${PROJ_ENV_FILE:-${PROJ_ROOT_DIR}/manifests/env/env.dev}
+        ;;
+esac
+
+# 加载本地安装环境变量（非常重要的一步，后面很多步骤都依赖于env中的变量设置）
+source ${PROJ_ENV_FILE}
+
+# 注意：禁止在Docker模板系统中引用versions.sh，版本信息统一从manifests/env获取
+# 为兼容性保留，但Docker模板系统不使用
+# source "${INSTALLATION_DIR}/versions.sh"
 
 # 容器网络名称
 NETWORK_NAME=${NETWORK_NAME:-proj}
 
-
 COMMON_SOURCED=true # Sourced flag
-
-# 设置 PROJ_ENV_FILE（重要）
-PROJ_ENV_FILE=${PROJ_ENV_FILE:-${PROJ_ROOT_DIR}/manifests/env/env.dev}
-# 加载本地安装环境变量（非常重要的一步，后面很多步骤都依赖于env.local中的变量设置）
-source ${PROJ_ENV_FILE}
 
 # 确保 proj 容器网络存在。
 # 在 uninstall 时，可不删除 proj 容器网络，可以作为一个无害的无用数据

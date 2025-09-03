@@ -6,33 +6,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Production-ready Go microservice framework built on Kratos v2 with Protocol Buffers as unified data source. Uses Clean Architecture, Wire dependency injection, supports HTTP/gRPC APIs with complete error handling, i18n, auth, and observability.
 
-**Module Path**: `github.com/costa92/go-protoc/v2`  
-**Go Version**: 1.24.0+  
+**Module Path**: `github.com/costa92/go-protoc/v2`
+**Go Version**: 1.24.0+
 **Current Branch**: `v2`
 
 ## Critical Constraints
 
-- **Environment Variables**: MUST source from `manifests/env/env.dev` - do NOT create additional .env files
-- **Service Versions**: All third-party component versions defined in `scripts/installation/versions.sh`
-- **Service Management**: ⚠️ **PREFER Docker Template System** (`make docker.<service>.start`) over legacy service script
+- **Environment Variables**: MUST source from `manifests/env/` directory - do NOT create additional .env files
+- **Environment File Hierarchy**: Environment configs inherit from `manifests/env/env.base` (fixed values first, logical groupings)
+- **Version Management**: ⚠️ **NEVER reference `scripts/installation/versions.sh`** - all versions MUST come from `manifests/env/env.base`
+- **Multi-Environment Support**: Use `PROJ_ENVIRONMENT={dev,test,prod}` for environment-specific configurations
+- **Service Management**: ⚠️ **PREFER Docker Template System** (`make docker.<service>.start`) over legacy service scripts
 - **Infrastructure Setup**: All service installations use template system in `scripts/installation/templates/`
 - **Protobuf Files**: Must be placed under `pkg/api/<service>/<version>/` structure (per `.cursor/rules/buf.mdc`)
+- **Generated/System Files**: ⚠️ **NEVER modify files in `_*` directories** (`_output/`, `_thirdparty/`, `_generated/`) - these contain auto-generated files, build artifacts, and third-party service data
 
 ## Essential Development Commands
 
 ### Daily Commands
+
 - `make help` - Show all available commands
 - `make run-api` - Start development server (with hot reload)
-- `make build` - Build optimized binary to ./bin/apiserver  
+- `make build` - Build optimized binary to ./bin/apiserver
 - `make test` - Run all tests with verbose output
 - `make fmt` - Format code and sort imports
 - `make tidy` - Clean go.mod dependencies
 
 ### Code Generation
+
 - `make generate` - Generate protobuf/gRPC/HTTP code using buf
 - `make wire` - Regenerate dependency injection (run after structural changes)
 
 ### Environment Setup
+
 - `make dev-setup` - Complete development environment (tools + services + codegen)
 - `make dev-clean` - Clean development environment and stop services
 - `make dev-quick` - Quick development start (skip tool installation)
@@ -43,10 +49,11 @@ Production-ready Go microservice framework built on Kratos v2 with Protocol Buff
 ### Infrastructure & Service Management
 
 **⚠️ IMPORTANT: Use Docker Template System (Preferred)**
+
 ```bash
 # Individual service management via Make templates
 make docker.redis.start         # Start Redis using template system
-make docker.mariadb.start       # Start MariaDB via template  
+make docker.mariadb.start       # Start MariaDB via template
 make docker.prometheus.start    # Start Prometheus with auto-detection
 make docker.otelcol.start       # Start OTEL Collector
 make docker.victorialogs.start  # Start VictoriaLogs
@@ -61,12 +68,14 @@ make docker.redis.cleanup       # Clean up generated scripts
 **Available Template Services:** redis, mariadb, mongodb, kafka, etcd, jaeger, prometheus, grafana, victorialogs, otelcol, pyroscope
 
 **Batch Operations:**
+
 ```bash
 make docker.test-services.start # Start all test services
 make docker.test-services.stop  # Stop all test services
 ```
 
 **Legacy Service Script (NOT RECOMMENDED):**
+
 ```bash
 # These commands exist but are NOT the preferred method
 # Use docker templates above instead
@@ -75,8 +84,9 @@ make docker.test-services.stop  # Stop all test services
 ```
 
 ### Database Management
+
 - `make db-setup` - Complete MySQL setup (start + migrate)
-- `make db-connect` - Connect to MySQL via CLI  
+- `make db-connect` - Connect to MySQL via CLI
 - `make db-migrate` - Execute database migrations
 - Database config: `onex` database, `127.0.0.1:3306`, user: `root`, password: `proj(#)666`
 
@@ -85,17 +95,18 @@ make docker.test-services.stop  # Stop all test services
 Version-aware build system with automatic Git version injection:
 
 - `make build` - Build with version info (default: apiserver)
-- `SERVICE_NAME=myservice make build` - Build with custom service name  
+- `SERVICE_NAME=myservice make build` - Build with custom service name
 - `./bin/apiserver --version` - Show version info
 - Auto-injected: Git version, branch, commit, build time, clean/dirty status
 
 ## Architecture Overview
 
 ### Clean Architecture Layers
+
 ```
 cmd/                    → Entry points (apiserver, ai, pump)
 internal/apiserver/     → Core business logic
- ├── handler/           → HTTP/gRPC handlers (delivery layer) 
+ ├── handler/           → HTTP/gRPC handlers (delivery layer)
  ├── biz/              → Use cases (application layer)
  ├── store/            → Data access (infrastructure layer)
  └── config/           → Internal configuration
@@ -103,7 +114,7 @@ internal/apiserver/     → Core business logic
 pkg/                   → Reusable packages
  ├── api/              → Protobuf definitions and generated code
  ├── errorsx/          → Context-aware error system (i18n support)
- ├── authn/           → JWT authentication utilities  
+ ├── authn/           → JWT authentication utilities
  ├── db/              → Database abstractions
  ├── logger/          → Unified logging interface with OTLP support
  ├── server/          → HTTP/gRPC server configuration
@@ -113,9 +124,11 @@ pkg/                   → Reusable packages
 ```
 
 ### Infrastructure Template System
+
 The project uses a sophisticated template-based infrastructure management system:
 
 **Template Structure:**
+
 ```
 scripts/installation/templates/docker/
  ├── prometheus/        → Prometheus with auto-discovery
@@ -127,19 +140,35 @@ scripts/installation/templates/docker/
  └── kafka/            → Kafka stack templates
 ```
 
+**System Directories (DO NOT MODIFY):**
+
+```
+_output/               → Build artifacts, binaries, compiled assets
+_thirdparty/          → Third-party service data and configurations
+ ├── redis/data/       → Redis persistence files
+ ├── mariadb/mysql/    → MariaDB database files
+ ├── nacos/config/     → Nacos service configurations
+ └── [service]/logs/   → Service log files
+_generated/           → Auto-generated Docker scripts and configurations
+ └── docker-scripts/   → Generated from templates, regenerated on each run
+```
+
 **Key Features:**
+
 - **Environment Variable Injection**: All templates use `envsubst` for dynamic configuration
 - **Service Auto-Discovery**: Prometheus automatically detects running services and starts exporters
 - **Modular Design**: Reusable components across different services
 - **Security**: Database credentials from environment variables, never hardcoded
 
 ### Dependency Injection (Wire)
+
 - **Centralized**: `internal/apiserver/wire.go`
-- **Generated**: `internal/apiserver/wire_gen.go` 
+- **Generated**: `internal/apiserver/wire_gen.go`
 - **Auto-discovery**: Run `make wire` after adding new dependencies
 - **Connection Pool Monitoring**: Integrated via Wire for optional metrics collection
 
 ### Request Flow
+
 ```
 HTTP Request → gRPC-Gateway → Handler → Business → Store → Database
      ↓                                             ↓
@@ -149,13 +178,15 @@ OpenAPI Docs (auto-generated)            GORM + Context Transactions + Pool Moni
 ## Development Workflow
 
 ### Adding New API Endpoints
+
 1. **Define API**: Edit `pkg/api/apiserver/v1/apiserver.proto`
-2. **Generate Code**: `make generate` 
+2. **Generate Code**: `make generate`
 3. **Implement Handler**: Create in `internal/apiserver/handler/`
 4. **Wire Dependencies**: Run `make wire`
 5. **Documentation**: Auto-generated in `api/openapi/apiserver/v1/`
 
 ### Testing
+
 ```bash
 go test ./...                    # Run all tests
 go test -v ./pkg/errorsx/       # Verbose package test
@@ -164,6 +195,7 @@ go test -bench=. ./...          # Run benchmarks
 ```
 
 ### Local Development Setup
+
 ```bash
 cp configs/apiserver.yaml configs/apiserver_local.yaml  # Copy config
 # Edit local config for database settings
@@ -172,50 +204,58 @@ go run cmd/apiserver/main.go -c configs/apiserver_local.yaml  # Run server
 ```
 
 ### Key Development Conventions
+
 - **Error Codes**: Defined in protobuf, auto-generated using `protoc-gen-go-errors-code`
 - **Validation**: Use protoc-gen-validate annotations
-- **i18n**: Use `pkg/i18n/` with context language detection  
+- **i18n**: Use `pkg/i18n/` with context language detection
 - **Logging**: Structured logging via context middleware
 - **Testing**: Follow `Test<Level><Description>` pattern
 
 ### Protocol Buffers Development Rules
+
 ⚠️ **CRITICAL**: Follow these protobuf conventions (from `.cursor/rules/buf.mdc`):
 
 1. **File Location**: ALL `.proto` files MUST be placed under `pkg/api` directory
 2. **Directory Structure**: Use `pkg/api/<service>/<version>/*.proto` pattern
 3. **Example**: `pkg/api/apiserver/v1/error.proto`
-4. **Build Tool**: Use `buf` (reference: https://buf.build/docs/cli/quickstart/)
+4. **Build Tool**: Use `buf` (reference: <https://buf.build/docs/cli/quickstart/>)
 5. **Generated Code**: Outputs to `pkg/api` directory automatically
 6. **Documentation**: Generated to `docs` directory
 
 ## Observability & Monitoring
 
 ### Monitoring Endpoints
+
 - **Health Check**: `GET /health`
 - **Metrics**: `GET /metrics` (Prometheus format with version labels and connection pool stats)
 - **Jaeger UI**: `http://localhost:16686` - Distributed tracing
-- **Grafana**: `http://localhost:3000` - Unified monitoring dashboard  
+- **Grafana**: `http://localhost:3000` - Unified monitoring dashboard
 - **VictoriaLogs UI**: `http://127.0.0.1:9428/select/vmui/` - Log analysis
 - **Prometheus**: `http://localhost:9090` - Metrics collection
 
 ### Connection Pool Monitoring
+
 The project features **dependency-injected connection pool monitoring**:
 
 **Key Metrics:**
+
 - `database_pool_connections{database,state}` - MySQL/PostgreSQL pool status
-- `redis_pool_connections{instance,state}` - Redis connection pool status  
+- `redis_pool_connections{instance,state}` - Redis connection pool status
 - `database_queries_total{database,operation,status}` - Query statistics
 - `redis_commands_total{instance,command,status}` - Redis command statistics
 
 **Architecture Benefits:**
+
 - ✅ **Zero Intrusion**: Database packages remain clean, monitoring is optional
 - ✅ **Wire Integration**: Automatically injected through dependency injection
 - ✅ **Version Aware**: All metrics include service version labels
 
 ### Unified Logging System
+
 Complete log collection via **OpenTelemetry Collector + VictoriaLogs**:
 
 **Deployment Commands:**
+
 ```bash
 ./scripts/deploy-logging.sh local    # Local development
 ./scripts/deploy-logging.sh docker   # Docker environment with Grafana
@@ -223,43 +263,46 @@ Complete log collection via **OpenTelemetry Collector + VictoriaLogs**:
 ```
 
 **Log Querying:**
+
 ```bash
 # Basic queries
 curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=level:error'
 curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=service.name:apiserver'
 curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=_time:>now-1h'
 
-# Advanced queries  
+# Advanced queries
 curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=service.name:apiserver AND level:error AND _time:>now-30m'
 ```
 
 ## Key Entry Points for Code Navigation
 
-**Server Startup**: `cmd/apiserver/app/server.go:Start()`  
-**Version Info**: `pkg/version/version.go:Get()`  
-**HTTP Server**: `pkg/server/http_server.go:RunOrDie()`  
-**gRPC Server**: `pkg/server/grpc_server.go:RunOrDie()`  
-**Wire Setup**: `internal/apiserver/wire_gen.go:InitializeWebServer()`  
-**Handler Example**: `internal/apiserver/handler/user.go`  
-**Error Handling**: `pkg/errorsx/builder.go:NewCode()`  
+**Server Startup**: `cmd/apiserver/app/server.go:Start()`
+**Version Info**: `pkg/version/version.go:Get()`
+**HTTP Server**: `pkg/server/http_server.go:RunOrDie()`
+**gRPC Server**: `pkg/server/grpc_server.go:RunOrDie()`
+**Wire Setup**: `internal/apiserver/wire_gen.go:InitializeWebServer()`
+**Handler Example**: `internal/apiserver/handler/user.go`
+**Error Handling**: `pkg/errorsx/builder.go:NewCode()`
 **Database Setup**: `pkg/db/mysql.go:NewMySQL()`
 
 ## Configuration
 
-**Config Files**: `configs/apiserver.yaml` (default), `configs/apiserver_local.yaml` (local dev)  
+**Config Files**: `configs/apiserver.yaml` (default), `configs/apiserver_local.yaml` (local dev)
 **Environment-specific**: Use format `apiserver_<env>.yaml`
 
 ## Important Notes
 
 - **Wire Dependency Injection**: Always run `make wire` after adding new dependencies
-- **Protobuf Changes**: Run `make generate` after editing .proto files  
+- **Protobuf Changes**: Run `make generate` after editing .proto files
 - **Version Info**: Available at runtime via `pkg/version/version.go:Get()`
 - **Error Handling**: Use `pkg/errorsx` for context-aware, i18n-enabled errors
 - **Testing**: Include integration tests with Docker services when needed
+- **System Directories**: Never modify files in `_output/`, `_thirdparty/`, `_generated/` directories - these are automatically managed
 
 ## Infrastructure Components
 
 ### Supported Services with Versions
+
 | Component | Version | Purpose | **Preferred Management** |
 |-----------|---------|---------|--------------------------|
 | Redis | 7.2.4 | Caching, sessions | `make docker.redis.start` |
@@ -273,14 +316,22 @@ curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=service.name:apise
 | OTEL Collector | 0.132.0 | Telemetry collection | `make docker.otelcol.start` |
 
 ### Environment Configuration
+
 **Primary Config**: `manifests/env/env.dev` - Contains all service configurations, ports, credentials
-**Version Management**: `scripts/installation/versions.sh` - Centralized version definitions
+**Version Management**: `scripts/installation/versions.sh` - Centralized version definitions  
 **Template Generation**: `scripts/installation/lib/docker_script_manager.sh` - Dynamic script generation
 
+**⚠️ Environment File Constraints:**
+- `manifests/env/` files MUST be self-contained and NOT reference `scripts/` directory
+- All required environment variables should be defined inline in `env.dev`
+- This ensures portability and avoids circular dependencies between manifests and scripts
+
 ### Database Setup Requirements
+
 When working with database monitoring (especially Prometheus MySQL exporter):
 
 **MySQL/MariaDB Monitoring User Setup:**
+
 ```bash
 # Required for Prometheus MySQL exporter - use template system
 make docker.mariadb.start
@@ -295,6 +346,7 @@ FLUSH PRIVILEGES;"
 ```
 
 **Security Requirements:**
+
 - Database credentials MUST use environment variables from `manifests/env/env.dev`
 - Never hardcode passwords in templates or scripts
 - Use dedicated monitoring users with minimal required privileges
@@ -304,14 +356,16 @@ FLUSH PRIVILEGES;"
 Complete log collection via **OpenTelemetry Collector + VictoriaLogs** with multi-environment support.
 
 ### Core Features
+
 - **Dual Collection**: OTLP protocol + file monitoring
-- **Structured JSON**: Automatic parsing and field extraction  
+- **Structured JSON**: Automatic parsing and field extraction
 - **Real-time**: Millisecond-level log collection latency
 - **Multi-environment**: Local, Docker, and Kubernetes deployment
 - **Unified Config**: Centralized parameter management
 - **High Availability**: Fault tolerance and retry mechanisms
 
 ### Quick Deployment
+
 ```bash
 ./scripts/deploy-logging.sh local    # Local development
 ./scripts/deploy-logging.sh docker   # Docker with Grafana
@@ -320,18 +374,20 @@ Complete log collection via **OpenTelemetry Collector + VictoriaLogs** with mult
 ```
 
 ### Access Points
+
 - **VictoriaLogs UI**: `http://127.0.0.1:9428/select/vmui/` (recommended)
 - **API Queries**: `curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=*'`
 - **Grafana Dashboard**: `http://127.0.0.1:3000` (admin/admin for Docker env)
 
 ### Log Query Syntax Examples
+
 ```bash
 # Basic queries
 level:error                          # Error logs
 service.name:apiserver               # Specific service
 _time:>now-1h                        # Last hour
 
-# Complex queries  
+# Complex queries
 service.name:apiserver AND level:error AND _time:>now-30m
 level:(error OR warn) AND k8s.namespace.name:app
 
@@ -341,7 +397,9 @@ error:~"database.*connection"        # Database connection errors
 ```
 
 ### OTLP Configuration
+
 Application logging config in `configs/apiserver.yaml`:
+
 ```yaml
 log:
   type: "zap"
@@ -360,7 +418,9 @@ log:
 ```
 
 ### Troubleshooting
+
 **VictoriaLogs _msg Field Issue**: If getting `"_msg":"missing _msg field"` error:
+
 1. Check OTEL Collector config mapping: `attributes.msg` → `attributes._msg`
 2. Restart collector: `docker restart proj-otelcol`
 3. Verify: `curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=_msg:*'`
@@ -660,3 +720,5 @@ Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
 NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+NEVER modify or repair files within `_*` directories (`_output/`, `_thirdparty/`, `_generated/`) - these contain auto-generated content, build artifacts, and third-party service data that should not be manually edited.
+NEVER reference `scripts/` files from `manifests/env/` files - environment configurations must be self-contained to avoid circular dependencies and ensure portability.

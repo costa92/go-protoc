@@ -267,16 +267,38 @@ server, _ := httpOpts.NewServer()
 
 ## 🏗️ 基础设施
 
-项目集成了完整的微服务基础设施栈，支持一键安装和管理。
+项目集成了完整的微服务基础设施栈，支持**多环境部署**和**统一配置管理**。
+
+### 环境支持
+
+支持 Development/Test/Production 三个环境，每个环境使用不同的端口前缀和网络，确保环境隔离：
+
+| 环境 | 端口前缀 | 网络名称 | Redis端口 | MariaDB端口 | 配置文件 |
+|------|---------|----------|----------|-------------|----------|
+| Development (默认) | 1 | proj-dev-network | 16379 | 13306 | `manifests/env/env.dev` |
+| Test | 2 | proj-test-network | 26379 | 23306 | `manifests/env/env.test` |
+| Production | 无前缀 | proj-prod-network | 6379 | 3306 | `manifests/env/env.prod` |
+
+### 统一配置管理
+
+所有版本和配置信息统一在 `manifests/env` 目录管理，**禁止引用** `scripts/installation/versions.sh`：
+
+```
+manifests/env/
+├── env.base    # 基础配置，包含所有版本信息和通用设置
+├── env.dev     # 开发环境特定配置
+├── env.test    # 测试环境特定配置
+└── env.prod    # 生产环境特定配置
+```
 
 ### 数据存储层
 
-| 组件 | 版本 | 端口 | 用途 |
-|------|------|------|------|
-| Redis | 7.2.4 | 6379 | 高性能缓存服务 |
-| MariaDB | 11.2.2 | 3306 | MySQL兼容的关系型数据库 |
-| MongoDB | 7.0.5 | 27017 | NoSQL文档数据库 |
-| etcd | v3.5.12 | 2379 | 分布式键值存储，服务发现 |
+| 组件 | 版本 | 默认端口 | 开发环境端口 | 测试环境端口 | 用途 |
+|------|------|---------|------------|------------|------|
+| Redis | 7.2.4 | 6379 | 16379 | 26379 | 高性能缓存服务 |
+| MariaDB | 11.2.2 | 3306 | 13306 | 23306 | MySQL兼容的关系型数据库 |
+| MongoDB | 7.0.5 | 27017 | 127017 | 227017 | NoSQL文档数据库 |
+| etcd | 3.5.10 | 2379 | 12379 | 22379 | 分布式键值存储，服务发现 |
 
 ### 消息传输层
 
@@ -297,30 +319,41 @@ server, _ := httpOpts.NewServer()
 
 ### 服务管理命令
 
+基于 Docker 模板系统，支持多环境服务管理：
+
 ```bash
-# 启动所有服务
-make start-all
+# 基础服务管理（开发环境，默认）
+make docker.redis.start        # 启动 Redis（端口: 16379）
+make docker.mariadb.start      # 启动 MariaDB（端口: 13306）
+make docker.victorialogs.start # 启动 VictoriaLogs（端口: 19428）
 
-# 启动特定服务组
-make start-database      # 启动数据库服务组
-make start-observability # 启动可观测性服务组
+# 测试环境
+PROJ_ENVIRONMENT=test make docker.redis.start     # Redis 端口: 26379
+PROJ_ENVIRONMENT=test make docker.mariadb.start   # MariaDB 端口: 23306
 
-# 启动单个服务
-make run-redis
-make run-mysql
-make run-jaeger
-make run-prometheus
+# 生产环境
+PROJ_ENVIRONMENT=prod make docker.redis.start     # Redis 端口: 6379
+PROJ_ENVIRONMENT=prod make docker.mariadb.start   # MariaDB 端口: 3306
 
-# 停止服务
-make stop-all
-make stop-redis
-make stop-mysql
+# 批量服务管理
+make docker.test-services.start   # 启动所有测试服务
+make docker.test-services.stop    # 停止所有测试服务
+make docker.test-services.status  # 检查所有服务状态
 
-# 查看服务状态
-make status-all
+# 服务状态和日志
+make docker.redis.status          # 检查 Redis 状态
+make docker.redis.logs            # 查看 Redis 日志
+make docker.mariadb.connect       # 连接到 MariaDB
 
-# 查看服务日志
-make logs-all
+# 环境信息
+make docker.env.versions          # 显示版本信息
+make docker.env.check             # 检查 Docker 环境
+make docker.help.templates        # 显示完整帮助
+
+# 网络和基础设施
+make docker.network.create        # 创建项目网络
+make docker.containers.info       # 显示项目容器
+make docker.volumes.info           # 显示项目数据卷
 ```
 
 ### 可观测性数据流

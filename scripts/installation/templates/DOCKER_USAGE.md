@@ -7,6 +7,8 @@
 ✅ **无docker-compose依赖**: 只需要docker命令  
 ✅ **脚本化管理**: 生成的脚本可直接执行  
 ✅ **模板化配置**: 支持环境变量定制  
+✅ **多环境支持**: 支持 dev/test/prod 环境动态切换  
+✅ **统一配置源**: 所有配置来自 `manifests/env` 统一管理  
 ✅ **统一网络管理**: 自动创建和管理项目网络  
 ✅ **健康检查集成**: 内置容器健康监控  
 ✅ **日志标准化**: 统一的日志配置和轮转  
@@ -21,9 +23,57 @@ templates/docker/{service}/
 └── {service}.conf.tpl   # 服务配置文件模板
 ```
 
+## 配置系统
+
+本项目使用**统一配置源**，所有版本和环境配置来自 `manifests/env` 目录，**禁止引用** `scripts/installation/versions.sh`。
+
+### 环境配置文件
+
+```
+manifests/env/
+├── env.base    # 基础配置，包含所有版本信息
+├── env.dev     # 开发环境配置
+├── env.test    # 测试环境配置
+└── env.prod    # 生产环境配置
+```
+
+### 环境变量优先级
+
+1. **固定值配置**: 项目标识、版本信息等
+2. **第三方组件版本**: Redis 7.2.4, MariaDB 11.2.2 等
+3. **环境特定配置**: 端口前缀、网络名称等
+4. **服务配置**: 按依赖顺序 DB → Cache → MQ → Discovery → Monitoring
+
 ## 使用方法
 
-### 1. 基础使用
+### 1. Makefile集成使用（推荐）
+
+```bash
+# 开发环境（默认，端口前缀: 1）
+make docker.redis.start
+make docker.redis.status
+make docker.redis.stop
+
+# 测试环境（端口前缀: 2）
+PROJ_ENVIRONMENT=test make docker.redis.start
+PROJ_ENVIRONMENT=test make docker.redis.status
+PROJ_ENVIRONMENT=test make docker.redis.stop
+
+# 生产环境（无端口前缀）
+PROJ_ENVIRONMENT=prod make docker.redis.start
+PROJ_ENVIRONMENT=prod make docker.redis.status
+PROJ_ENVIRONMENT=prod make docker.redis.stop
+
+# 查看版本信息
+make docker.env.versions
+PROJ_ENVIRONMENT=test make docker.env.versions
+PROJ_ENVIRONMENT=prod make docker.env.versions
+
+# 查看帮助
+make docker.help.templates
+```
+
+### 2. 低级API直接使用
 
 ```bash
 # 加载工具库
@@ -39,23 +89,26 @@ proj::docker::check_service_status_from_template "redis"
 proj::docker::stop_service_from_template "redis"
 ```
 
-### 2. 批量服务管理
+### 3. 批量服务管理
 
 ```bash
-# 启动多个服务
+# Makefile批量操作（推荐）
+make docker.test-services.start   # 启动所有测试服务
+make docker.test-services.status  # 检查所有服务状态  
+make docker.test-services.stop    # 停止所有服务
+
+# 不同环境的批量操作
+PROJ_ENVIRONMENT=test make docker.test-services.start
+PROJ_ENVIRONMENT=prod make docker.test-services.start
+
+# 低级API批量操作
 proj::docker::manage_services "start" "redis" "mysql" "victorialogs"
-
-# 检查多个服务状态
 proj::docker::manage_services "status" "redis" "mysql" "victorialogs"
-
-# 停止多个服务
 proj::docker::manage_services "stop" "redis" "mysql" "victorialogs"
-
-# 重启服务
 proj::docker::manage_services "restart" "redis"
 ```
 
-### 3. 手动脚本生成
+### 4. 手动脚本生成
 
 ```bash
 # 生成特定服务的Docker脚本
@@ -65,20 +118,26 @@ proj::docker::generate_service_scripts "redis" "/tmp/redis-scripts"
 bash /tmp/redis-scripts/docker-run.sh
 bash /tmp/redis-scripts/docker-status.sh
 bash /tmp/redis-scripts/docker-stop.sh
+
+# Makefile脚本管理（推荐）
+make docker.redis.cleanup     # 清理Redis脚本
+make docker.scripts.list      # 列出所有生成的脚本
+make docker.scripts.cleanup-all  # 清理所有脚本
 ```
 
-### 4. 脚本管理
+### 5. 脚本管理
 
 ```bash
-# 列出所有生成的脚本
+# 低级API脚本管理
 proj::docker::list_generated_scripts
-
-# 列出特定服务的脚本
 proj::docker::list_generated_scripts "redis"
+proj::docker::cleanup_generated_scripts "redis"
+proj::docker::cleanup_generated_scripts
 
-# 清理生成的脚本
-proj::docker::cleanup_generated_scripts "redis"  # 清理特定服务
-proj::docker::cleanup_generated_scripts          # 清理所有脚本
+# Makefile脚本管理（推荐）
+make docker.scripts.list           # 列出所有生成的脚本
+make docker.redis.cleanup          # 清理特定服务脚本
+make docker.scripts.cleanup-all    # 清理所有脚本
 ```
 
 ## 脚本功能详解
@@ -110,46 +169,68 @@ proj::docker::cleanup_generated_scripts          # 清理所有脚本
 
 ## 服务配置
 
+### 多环境配置示例
+
+所有配置统一从 `manifests/env` 目录加载，支持环境特定的端口和网络配置：
+
+| 环境 | 端口前缀 | 网络名称 | Redis端口 | MySQL端口 |
+|-----|---------|----------|----------|-----------|
+| Development (默认) | 1 | proj-dev-network | 16379 | 13306 |
+| Test | 2 | proj-test-network | 26379 | 23306 |
+| Production | 无前缀 | proj-prod-network | 6379 | 3306 |
+
 ### Redis 配置示例
 
 ```bash
-# 环境变量配置
-export REDIS_VERSION="7.2.4"
-export PROJ_REDIS_PORT="6379"
-export PROJ_REDIS_CONFIG_DIR="/Users/costalong/code/go/src/github.com/costa92/go-protoc/_data/redis/config"
-export PROJ_REDIS_DATA_DIR="/Users/costalong/code/go/src/github.com/costa92/go-protoc/_data/redis/data"
+# 开发环境（默认）
+make docker.redis.start  # 端口: 16379, 网络: proj-dev-network
 
-# 启动Redis
-proj::docker::run_service_from_template "redis"
+# 测试环境  
+PROJ_ENVIRONMENT=test make docker.redis.start  # 端口: 26379, 网络: proj-test-network
+
+# 生产环境
+PROJ_ENVIRONMENT=prod make docker.redis.start  # 端口: 6379, 网络: proj-prod-network
 ```
 
-生成的Docker命令：
+生成的Docker命令示例（开发环境）：
 ```bash
 docker run -d \
     --name "proj-redis" \
-    --network "proj-network" \
+    --network "proj-dev-network" \
     --restart unless-stopped \
-    -p "6379:6379" \
+    -p "16379:6379" \
     -v proj-redis-data:/data \
     -v "${CONFIG_DIR}/redis.conf:/usr/local/etc/redis/redis.conf:ro" \
     -e REDIS_REPLICATION_MODE=master \
+    -e PROJ_SERVICE_NAME=redis \
+    -e PROJ_SERVICE_VERSION=7.2.4 \
+    -e PROJ_ENVIRONMENT=development \
     --health-cmd "redis-cli ping" \
     redis:7.2.4 \
     redis-server /usr/local/etc/redis/redis.conf
 ```
 
-### MySQL 配置示例
+### MySQL/MariaDB 配置示例
 
 ```bash
-# 环境变量配置
-export MYSQL_VERSION="8.0"
-export PROJ_MYSQL_PORT="3306"
-export MYSQL_ROOT_PASSWORD="proj(#)666"
-export MYSQL_DATABASE="onex"
+# 开发环境（端口: 13306）
+make docker.mariadb.start
 
-# 启动MySQL
-proj::docker::run_service_from_template "mysql"
+# 测试环境（端口: 23306）
+PROJ_ENVIRONMENT=test make docker.mariadb.start
+
+# 生产环境（端口: 3306）
+PROJ_ENVIRONMENT=prod make docker.mariadb.start
+
+# 连接到数据库
+make docker.mariadb.connect
+# 或者直接使用: docker exec -it proj-mariadb mariadb -u root -p
 ```
+
+配置来源（自动从环境文件加载）：
+- **版本**: MariaDB 11.2.2（来自 env.base）
+- **数据库名**: protoc（开发环境）、test_protoc（测试环境）、protoc_prod（生产环境）
+- **用户凭据**: root/proj(#)666（来自环境配置）
 
 ### Kafka 配置示例
 
@@ -211,24 +292,48 @@ proj::docker::run_service_from_template "otelcol"
 
 ## 网络架构
 
-所有服务运行在统一的Docker网络 `proj-network` 中：
+每个环境运行在独立的Docker网络中，避免环境间的冲突：
 
+### 开发环境网络 (`proj-dev-network`)
 ```
-proj-network (bridge)
-├── proj-redis (6379)
-├── proj-mysql (3306)  
-├── proj-kafka (9092, 29092, 9999)
-├── proj-zookeeper (2181, 2888, 3888)
-├── proj-otelcol (4327, 4328, 8888, 13133)
-├── proj-victorialogs (9428)
+proj-dev-network (bridge)
+├── proj-redis (内部:6379, 外部:16379)
+├── proj-mariadb (内部:3306, 外部:13306)
+├── proj-kafka (内部:9092, 外部:19092)
+├── proj-nacos (内部:8848, 外部:18848)
+├── proj-victorialogs (内部:9428, 外部:19428)
 └── proj-{service} (...)
 ```
 
-服务间可以通过容器名直接通信：
+### 测试环境网络 (`proj-test-network`)  
+```
+proj-test-network (bridge)
+├── proj-redis (内部:6379, 外部:26379)
+├── proj-mariadb (内部:3306, 外部:23306)
+├── proj-kafka (内部:9092, 外部:29092)
+├── proj-nacos (内部:8848, 外部:28848)
+├── proj-victorialogs (内部:9428, 外部:29428)
+└── proj-{service} (...)
+```
+
+### 生产环境网络 (`proj-prod-network`)
+```
+proj-prod-network (bridge)  
+├── proj-redis (内部:6379, 外部:6379)
+├── proj-mariadb (内部:3306, 外部:3306)
+├── proj-kafka (内部:9092, 外部:9092)
+├── proj-nacos (内部:8848, 外部:8848)
+├── proj-victorialogs (内部:9428, 外部:9428)
+└── proj-{service} (...)
+```
+
+### 服务间通信
+
+在同一环境内，服务可以通过容器名直接通信（使用内部端口）：
 - Redis: `proj-redis:6379`
-- MySQL: `proj-mysql:3306`  
+- MariaDB: `proj-mariadb:3306`  
 - Kafka: `proj-kafka:9092` (外部) / `proj-kafka:29092` (内部)
-- Zookeeper: `proj-zookeeper:2181`
+- Nacos: `proj-nacos:8848`
 - VictoriaLogs: `proj-victorialogs:9428`
 
 ## 数据持久化
@@ -312,64 +417,204 @@ docker rm proj-kafka proj-zookeeper
 
 ## 与Makefile集成
 
-推荐在Makefile中集成这些Docker脚本管理功能：
+本项目已完全集成Docker模板系统到Makefile中，**推荐使用Make命令**进行日常操作：
+
+### 可用的Make命令
+
+```bash
+# 个人服务管理（支持环境切换）
+make docker.{service}.start      # 启动服务
+make docker.{service}.stop       # 停止服务  
+make docker.{service}.status     # 检查状态
+make docker.{service}.restart    # 重启服务
+make docker.{service}.cleanup    # 清理脚本
+
+# 支持的服务: redis, mysql, mariadb, etcd, otelcol, victorialogs, prometheus, kafka, nacos 等
+
+# 批量服务管理
+make docker.test-services.start   # 启动所有测试服务
+make docker.test-services.stop    # 停止所有测试服务
+make docker.test-services.status  # 检查所有服务状态
+make docker.test-services.restart # 重启所有服务
+
+# 环境和配置管理
+make docker.env.check             # 检查Docker环境
+make docker.env.versions          # 显示版本信息
+make docker.network.create        # 创建项目网络
+make docker.network.info          # 显示网络信息
+
+# 脚本和调试
+make docker.scripts.list          # 列出生成的脚本
+make docker.scripts.cleanup-all   # 清理所有脚本
+make docker.debug.redis           # Redis调试信息
+
+# 连接和日志
+make docker.redis.connect         # 连接Redis CLI
+make docker.mariadb.connect       # 连接MariaDB CLI  
+make docker.redis.logs            # 显示Redis日志
+make docker.mariadb.logs          # 显示MariaDB日志
+
+# 帮助
+make docker.help.templates        # 显示完整帮助信息
+```
+
+### 环境切换示例
+
+```bash
+# 开发环境（默认）
+make docker.redis.start           # 端口: 16379
+
+# 测试环境
+PROJ_ENVIRONMENT=test make docker.redis.start    # 端口: 26379
+
+# 生产环境  
+PROJ_ENVIRONMENT=prod make docker.redis.start    # 端口: 6379
+
+# 查看不同环境的版本
+make docker.env.versions
+PROJ_ENVIRONMENT=test make docker.env.versions
+PROJ_ENVIRONMENT=prod make docker.env.versions
+```
+
+### 自定义集成
+
+如果需要添加自定义的Makefile规则：
 
 ```makefile
-# Docker服务管理
-.PHONY: docker-start-redis docker-stop-redis docker-status-redis
-.PHONY: docker-start-kafka docker-stop-kafka docker-status-kafka
+# 自定义服务操作
+.PHONY: dev-setup test-setup prod-deploy
 
-docker-start-redis:
-	@./scripts/installation/lib/docker_script_manager.sh start redis
+dev-setup:
+	@echo "设置开发环境..."
+	@make docker.redis.start
+	@make docker.mariadb.start
+	@make docker.victorialogs.start
 
-docker-stop-redis:
-	@./scripts/installation/lib/docker_script_manager.sh stop redis
+test-setup:
+	@echo "设置测试环境..."
+	@PROJ_ENVIRONMENT=test make docker.redis.start
+	@PROJ_ENVIRONMENT=test make docker.mariadb.start
 
-docker-status-redis:
-	@./scripts/installation/lib/docker_script_manager.sh status redis
-
-docker-start-kafka:
-	@./scripts/installation/lib/docker_script_manager.sh start kafka
-
-docker-stop-kafka:
-	@./scripts/installation/lib/docker_script_manager.sh stop kafka
-
-docker-status-kafka:
-	@./scripts/installation/lib/docker_script_manager.sh status kafka
+prod-deploy:
+	@echo "部署生产环境..."
+	@PROJ_ENVIRONMENT=prod make docker.redis.start
+	@PROJ_ENVIRONMENT=prod make docker.mariadb.start
 ```
 
 ## 高级功能
 
-### 自定义环境变量文件
+### 配置管理最佳实践
+
+#### 1. 环境配置定制
+
+修改 `manifests/env/env.{dev,test,prod}` 文件来定制环境特定的配置：
 
 ```bash
-# 创建环境变量文件
-cat > /tmp/redis.env << EOF
-REDIS_MAX_MEMORY=512mb
-REDIS_PASSWORD=my-secret
-EOF
+# manifests/env/env.dev 示例
+export PROJ_ENVIRONMENT=development
+export PROJ_ACCESS_PORT_PREFIX="1"
 
-# 使用自定义环境变量启动
-proj::docker::run_service_from_template "redis" "/tmp/redis.env"
+# 开发环境特定配置
+export REDIS_MAX_MEMORY=512m  # 开发环境使用较小内存
+export NACOS_MAX_MEMORY=512m
 ```
 
-### 脚本钩子
+#### 2. 版本管理
 
-可以在生成的脚本中添加前置和后置钩子：
+所有版本信息统一在 `manifests/env/env.base` 中管理：
 
 ```bash
-# 在docker-run.sh.tpl中添加
+# 第三方组件版本 (Third-party Component Versions)
+export REDIS_VERSION=7.2.4
+export MARIADB_VERSION=11.2.2
+export MONGODB_VERSION=7.0.5
+# ... 其他版本
+```
+
+**重要**: 禁止在Docker模板系统中引用 `scripts/installation/versions.sh`，确保版本信息来源唯一。
+
+#### 3. 网络和端口定制
+
+通过环境变量定制网络和端口配置：
+
+```bash
+# 自定义网络名称
+export PROJ_NETWORK_NAME="my-custom-network"
+
+# 自定义端口前缀（测试环境示例）
+export PROJ_ACCESS_PORT_PREFIX="3"  # 所有服务端口前缀为3
+
+# 启动服务
+PROJ_ENVIRONMENT=test make docker.redis.start  # 端口: 36379
+```
+
+#### 4. 脚本钩子和扩展
+
+可以在生成的脚本模板中添加钩子：
+
+```bash
+# 在 scripts/installation/templates/docker/redis/docker-run.sh.tpl 中添加
 # Pre-start hook
-if [[ -x "${CONFIG_DIR}/pre-start.sh" ]]; then
-    bash "${CONFIG_DIR}/pre-start.sh"
+if [[ -x "${PROJ_REDIS_CONFIG_DIR}/pre-start.sh" ]]; then
+    echo "执行Redis启动前钩子..."
+    bash "${PROJ_REDIS_CONFIG_DIR}/pre-start.sh"
 fi
 
 # ... container run command ...
 
 # Post-start hook  
-if [[ -x "${CONFIG_DIR}/post-start.sh" ]]; then
-    bash "${CONFIG_DIR}/post-start.sh"
+if [[ -x "${PROJ_REDIS_CONFIG_DIR}/post-start.sh" ]]; then
+    echo "执行Redis启动后钩子..."
+    bash "${PROJ_REDIS_CONFIG_DIR}/post-start.sh"
 fi
 ```
 
-这种设计提供了最大的灵活性和可控性，同时保持了简洁性和标准化。
+#### 5. 调试和故障排除
+
+```bash
+# 调试特定服务的模板生成
+make docker.debug.redis
+
+# 查看生成的脚本内容
+make docker.scripts.list
+cat _generated/docker-scripts/redis/docker-run.sh
+
+# 手动执行步骤进行调试
+make docker.redis.cleanup
+PROJ_ENVIRONMENT=test make docker.redis.start
+```
+
+### 系统集成
+
+#### CI/CD 集成示例
+
+```bash
+# .github/workflows/test.yml 示例
+- name: Setup Test Environment
+  run: |
+    PROJ_ENVIRONMENT=test make docker.test-services.start
+    
+- name: Run Tests
+  run: |
+    # 测试服务现在运行在测试端口
+    # Redis: localhost:26379
+    # MariaDB: localhost:23306
+    make test
+    
+- name: Cleanup
+  run: |
+    PROJ_ENVIRONMENT=test make docker.test-services.stop
+```
+
+#### Docker Compose 迁移
+
+如果从docker-compose迁移，这个系统提供了相同的功能：
+
+| docker-compose | Docker模板系统 |
+|----------------|---------------|
+| `docker-compose up redis` | `make docker.redis.start` |
+| `docker-compose ps` | `make docker.containers.info` |
+| `docker-compose down` | `make docker.test-services.stop` |
+| `docker-compose logs redis` | `make docker.redis.logs` |
+
+这种设计提供了比docker-compose更精细的控制，同时保持了简洁性和可扩展性。

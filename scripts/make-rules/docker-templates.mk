@@ -5,7 +5,11 @@
 
 # Docker template testing variables
 DOCKER_TEST_SERVICES := redis mysql mariadb etcd otelcol victorialogs prometheus
-DOCKER_TEMPLATE_LIB_LOADER = source $(PROJ_ROOT_DIR)/scripts/installation/versions.sh && \
+# 动态环境选择：支持 PROJ_ENVIRONMENT 变量控制环境配置
+# 使用方式：PROJ_ENVIRONMENT=test make docker.redis.start
+DOCKER_ENV_FILE = $(PROJ_ROOT_DIR)/manifests/env/env.$(or $(PROJ_ENVIRONMENT),dev)
+# 注意：禁止引用 scripts/installation/versions.sh，只使用 manifests/env 配置
+DOCKER_TEMPLATE_LIB_LOADER = source $(DOCKER_ENV_FILE) && \
 							 source $(PROJ_ROOT_DIR)/scripts/installation/common.sh && \
 							 source $(PROJ_ROOT_DIR)/scripts/installation/lib/common_lib.sh
 
@@ -210,8 +214,29 @@ docker.env.check: ## Check Docker environment and prerequisites
 
 .PHONY: docker.env.versions
 docker.env.versions: ## Show version information for all Docker services
-	@echo "===========> Service versions from configuration"
-	@$(DOCKER_TEMPLATE_LIB_LOADER) && proj::versions::show_all
+	@echo "===========> Service versions from manifests/env configuration"
+	@echo "使用环境配置文件: $(DOCKER_ENV_FILE)"
+	@source $(DOCKER_ENV_FILE) && echo "✅ 环境配置已加载: $$PROJ_ENVIRONMENT (端口前缀: $$PROJ_ACCESS_PORT_PREFIX)" && \
+	 echo "=== 第三方组件版本信息 ===" && \
+	 echo "数据库组件:" && \
+	 echo "  Redis:        $$REDIS_VERSION" && \
+	 echo "  MariaDB:      $$MARIADB_VERSION" && \
+	 echo "  MySQL:        $$MYSQL_VERSION" && \
+	 echo "  MongoDB:      $$MONGODB_VERSION" && \
+	 echo "分布式系统:" && \
+	 echo "  etcd:         $$ETCD_VERSION" && \
+	 echo "  Kafka:        $$KAFKA_VERSION" && \
+	 echo "  Zookeeper:    $$ZOOKEEPER_VERSION" && \
+	 echo "  Nacos:        $$NACOS_VERSION" && \
+	 echo "监控与可观测性:" && \
+	 echo "  Jaeger:       $$JAEGER_VERSION" && \
+	 echo "  Prometheus:   $$PROMETHEUS_VERSION" && \
+	 echo "  Grafana:      $$GRAFANA_VERSION" && \
+	 echo "  AlertManager: $$ALERTMANAGER_VERSION" && \
+	 echo "  OTEL Collector: $$OTEL_COLLECTOR_VERSION" && \
+	 echo "  Pyroscope:    $$PYROSCOPE_VERSION" && \
+	 echo "  VictoriaLogs: $$VICTORIALOGS_VERSION" && \
+	 echo "  VictoriaMetrics: $$VICTORIAMETRICS_VERSION"
 
 .PHONY: docker.debug.redis
 docker.debug.redis: ## Debug Redis Docker template generation
@@ -240,6 +265,12 @@ docker.help.templates: ## Show help for Docker template system
 	@echo "  make docker.redis.restart    - Restart Redis container"
 	@echo "  make docker.redis.cleanup    - Clean up Redis scripts"
 	@echo ""
+	@echo "🌍 Environment Support:"
+	@echo "  make docker.redis.start                     - Development environment (default)"
+	@echo "  PROJ_ENVIRONMENT=test make docker.redis.start    - Test environment"
+	@echo "  PROJ_ENVIRONMENT=prod make docker.redis.start    - Production environment"
+	@echo "  make docker.env.versions                    - Show current environment versions"
+	@echo ""
 	@echo "📦 Batch Operations:"
 	@echo "  make docker.test-services.start   - Start all test services"
 	@echo "  make docker.test-services.stop    - Stop all test services"
@@ -257,5 +288,6 @@ docker.help.templates: ## Show help for Docker template system
 	@echo "  make docker.volumes.info      - Show project volumes"
 	@echo ""
 	@echo "📋 Available Services: $(DOCKER_TEST_SERVICES)"
+	@echo "📁 Environment Files: manifests/env/env.{dev,test,prod}"
 	@echo ""
 	@echo "For more information, see: scripts/installation/templates/DOCKER_USAGE.md"
