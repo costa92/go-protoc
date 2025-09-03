@@ -23,28 +23,28 @@ stop_container() {
     local container_name="$1"
     local description="${2:-容器}"
     
-    if docker ps -a --filter name="^${container_name}$" --format "{{.Names}}" | grep -q "^${container_name}$"; then
-        echo "停止${description}: ${container_name}"
-        docker stop "${container_name}" 2>/dev/null || true
-        docker rm "${container_name}" 2>/dev/null || true
-        echo "✅ ${description}已停止并删除"
+    if docker ps -a --filter name="^\${container_name}\$" --format "{{.Names}}" | grep -q "^\${container_name}\$"; then
+        echo "停止\${description}: \${container_name}"
+        docker stop "\${container_name}" 2>/dev/null || true
+        docker rm "\${container_name}" 2>/dev/null || true
+        echo "✅ \${description}已停止并删除"
     else
-        echo "ℹ️ ${description}不存在，跳过"
+        echo "ℹ️ \${description}不存在，跳过"
     fi
 }
 
 # 停止所有exporter
 echo ""
 echo "🔌 停止监控组件..."
-for exporter in "${EXPORTER_CONTAINERS[@]}"; do
-    exporter_type="${exporter#${PROJ_PREFIX}-}"
-    stop_container "${exporter}" "${exporter_type}"
+for exporter in "\${EXPORTER_CONTAINERS[@]}"; do
+    exporter_type="\${exporter#${PROJ_PREFIX}-}"
+    stop_container "\${exporter}" "\${exporter_type}"
 done
 
 # 停止Prometheus主服务
 echo ""
 echo "📊 停止Prometheus主服务..."
-stop_container "${CONTAINER_NAME}" "Prometheus主服务"
+stop_container "\${CONTAINER_NAME}" "Prometheus主服务"
 
 # 处理数据卷
 echo ""
@@ -73,8 +73,8 @@ else
         if [ -t 0 ]; then  # 交互式终端
             read -p "是否删除Prometheus数据卷？这将永久删除所有监控数据 (y/N): " -n 1 -r
             echo
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
-                if docker volume rm "${DATA_VOLUME_NAME}" 2>/dev/null; then
+            if [[ \$REPLY =~ ^[Yy]\$ ]]; then
+                if docker volume rm "\${DATA_VOLUME_NAME}" 2>/dev/null; then
                     echo "✅ 数据卷已删除"
                 else
                     echo "❌ 数据卷删除失败"
@@ -96,4 +96,4 @@ echo ""
 echo "💡 常用命令:"
 echo "  重新启动: make docker.prometheus.start"
 echo "  查看状态: make docker.prometheus.status"
-echo "  完全清理: $0 --remove-data"
+echo "  完全清理: \$0 --remove-data"

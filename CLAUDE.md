@@ -14,7 +14,7 @@ Production-ready Go microservice framework built on Kratos v2 with Protocol Buff
 
 - **Environment Variables**: MUST source from `manifests/env/` directory - do NOT create additional .env files
 - **Environment File Hierarchy**: Environment configs inherit from `manifests/env/env.base` (fixed values first, logical groupings)
-- **Version Management**: ⚠️ **NEVER reference `scripts/installation/versions.sh`** - all versions MUST come from `manifests/env/env.base`
+- **Version Management**: ⚠️ **ALL versions MUST come from `manifests/env/env.base`** - scripts must source from manifests/env, NOT the reverse
 - **Multi-Environment Support**: Use `PROJ_ENVIRONMENT={dev,test,prod}` for environment-specific configurations
 - **Service Management**: ⚠️ **PREFER Docker Template System** (`make docker.<service>.start`) over legacy service scripts
 - **Infrastructure Setup**: All service installations use template system in `scripts/installation/templates/`
@@ -317,14 +317,40 @@ curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=service.name:apise
 
 ### Environment Configuration
 
-**Primary Config**: `manifests/env/env.dev` - Contains all service configurations, ports, credentials
-**Version Management**: `scripts/installation/versions.sh` - Centralized version definitions  
+**Environment File Hierarchy**:
+- `manifests/env/env.base` - Master configuration with all versions and base settings
+- `manifests/env/env.dev` - Development environment (sources from env.base)
+- `manifests/env/env.test` - Test environment (sources from env.base)  
+- `manifests/env/env.prod` - Production environment (sources from env.base)
+- `manifests/env/env.local` - Local overrides (sources from env.base)
+
 **Template Generation**: `scripts/installation/lib/docker_script_manager.sh` - Dynamic script generation
 
-**⚠️ Environment File Constraints:**
-- `manifests/env/` files MUST be self-contained and NOT reference `scripts/` directory
-- All required environment variables should be defined inline in `env.dev`
+**⚠️ Critical Environment File Constraints:**
+- `manifests/env/` files MUST be self-contained and NOT reference `scripts/` directory  
+- `scripts/` directory MUST source ALL environment variables from `manifests/env/` files
+- ALL version definitions MUST come from `manifests/env/env.base`, never from `scripts/installation/versions.sh`
+- Environment-specific files inherit from `env.base` and override only necessary values
+- Use `PROJ_ENVIRONMENT={development,test,production}` to load appropriate environment config
 - This ensures portability and avoids circular dependencies between manifests and scripts
+
+**Environment Loading Pattern**:
+```bash
+# Correct way - scripts source from manifests
+source manifests/env/env.dev  # This automatically loads env.base first
+
+# NEVER do this - creates circular dependency  
+source scripts/installation/versions.sh
+```
+
+**Multi-Environment Port Management**:
+The project uses sophisticated port prefixing for multi-environment support:
+- **Development**: ports prefixed with `1` (e.g., Redis: 16379, MySQL: 13306)
+- **Test**: ports prefixed with `2` (e.g., Redis: 26379, MySQL: 23306)  
+- **Production**: standard ports (e.g., Redis: 6379, MySQL: 3306)
+- **Custom**: ports prefixed with `9` (e.g., Redis: 96379, MySQL: 93306)
+
+This allows multiple environments to run simultaneously without port conflicts.
 
 ### Database Setup Requirements
 

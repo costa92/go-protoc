@@ -29,8 +29,8 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
-    cluster: 'go-protoc'
-    environment: 'development'
+    cluster: '${PROJ_NAME}'
+    environment: '${PROJ_ENVIRONMENT:-development}'
 
 rule_files:
   - "/etc/prometheus/rules/*.yml"
@@ -38,7 +38,7 @@ rule_files:
 scrape_configs:
   - job_name: 'prometheus'
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ['localhost:${SERVICE_PORT}']
         labels:
           service: 'prometheus'
           version: '${PROMETHEUS_VERSION}'
@@ -48,7 +48,7 @@ scrape_configs:
       - targets: ['${PROJ_PREFIX}-apiserver:8080']
         labels:
           service: 'apiserver'
-          environment: 'development'
+          environment: '${PROJ_ENVIRONMENT:-development}'
     metrics_path: '/metrics'
     scrape_interval: 30s
 
@@ -75,6 +75,7 @@ if docker ps --filter name="${PROJ_PREFIX}-redis" --format "{{.Names}}" | grep -
             --restart unless-stopped \
             -p 9121:9121 \
             -e REDIS_ADDR="redis://${PROJ_PREFIX}-redis:6379" \
+            $(if [[ -n "${PROJ_REDIS_PASSWORD}" ]]; then echo "-e REDIS_PASSWORD=${PROJ_REDIS_PASSWORD}"; fi) \
             oliver006/redis_exporter:latest
     fi
     
@@ -85,7 +86,7 @@ if docker ps --filter name="${PROJ_PREFIX}-redis" --format "{{.Names}}" | grep -
       - targets: ['\''${PROJ_PREFIX}-redis-exporter:9121'\'']\
         labels:\
           service: '\''redis'\''\
-          environment: '\''development'\''\
+          environment: '\''${PROJ_ENVIRONMENT:-development}'\''\
     scrape_interval: 30s\
 ' "${CONFIG_DIR}/prometheus.yml"
 fi
@@ -101,15 +102,37 @@ fi
 if [[ -n "${mysql_service}" ]]; then
     echo "✅ 发现${mysql_service}服务，添加监控配置"
     
-    # 启动MySQL exporter（如果未运行）
-    if ! docker ps --filter name="${PROJ_PREFIX}-mysql-exporter" --format "{{.Names}}" | grep -q "${PROJ_PREFIX}-mysql-exporter"; then
+    # 验证并创建MySQL监控用户
+    echo "验证MySQL监控用户..."
+    mysql_container="${PROJ_PREFIX}-${mysql_service}"
+    
+    # 检查监控用户是否存在，如果不存在则创建
+    if ! docker exec "${mysql_container}" mysql -u"${PROJ_MYSQL_ADMIN_USERNAME}" -p"${PROJ_MYSQL_ADMIN_PASSWORD}" -e "SELECT User FROM mysql.user WHERE User='${MYSQL_EXPORTER_USER}';" 2>/dev/null | grep -q "${MYSQL_EXPORTER_USER}"; then
+        echo "创建MySQL监控用户: ${MYSQL_EXPORTER_USER}"
+        docker exec "${mysql_container}" mysql -u"${PROJ_MYSQL_ADMIN_USERNAME}" -p"${PROJ_MYSQL_ADMIN_PASSWORD}" -e "
+            CREATE USER IF NOT EXISTS '${MYSQL_EXPORTER_USER}'@'%' IDENTIFIED BY '${MYSQL_EXPORTER_PASSWORD}';
+            GRANT PROCESS ON *.* TO '${MYSQL_EXPORTER_USER}'@'%';
+            GRANT REPLICATION CLIENT ON *.* TO '${MYSQL_EXPORTER_USER}'@'%';
+            GRANT SELECT ON performance_schema.* TO '${MYSQL_EXPORTER_USER}'@'%';
+            FLUSH PRIVILEGES;
+        " 2>/dev/null || {
+            echo "❌ 无法创建MySQL监控用户，请检查MySQL服务状态"
+            echo "跳过MySQL监控配置"
+            mysql_service=""
+        }
+    else
+        echo "MySQL监控用户已存在"
+    fi
+    
+    # 启动MySQL exporter（如果未运行且用户验证成功）
+    if [[ -n "${mysql_service}" ]] && ! docker ps --filter name="${PROJ_PREFIX}-mysql-exporter" --format "{{.Names}}" | grep -q "${PROJ_PREFIX}-mysql-exporter"; then
         echo "启动MySQL exporter..."
         docker run -d \
             --name "${PROJ_PREFIX}-mysql-exporter" \
             --network "${NETWORK_NAME}" \
             --restart unless-stopped \
             -p 9104:9104 \
-            -e DATA_SOURCE_NAME="root:proj(#)666@tcp(${PROJ_PREFIX}-${mysql_service}:3306)/" \
+            -e DATA_SOURCE_NAME="${MYSQL_EXPORTER_USER}:${MYSQL_EXPORTER_PASSWORD}@tcp(${PROJ_PREFIX}-${mysql_service}:3306)/" \
             prom/mysqld-exporter:latest
     fi
     
@@ -121,7 +144,7 @@ if [[ -n "${mysql_service}" ]]; then
         labels:\
           service: '\''mysql'\''\
           database: '\''${mysql_service}'\''\
-          environment: '\''development'\''\
+          environment: '\''${PROJ_ENVIRONMENT:-development}'\''\
     scrape_interval: 30s\
 ' "${CONFIG_DIR}/prometheus.yml"
 fi
@@ -164,12 +187,12 @@ docker run -d \
     --web.console.libraries=/etc/prometheus/console_libraries \
     --web.console.templates=/etc/prometheus/consoles \
     --web.enable-lifecycle \
-    --web.external-url=http://localhost:${SERVICE_PORT}
+    --web.external-url=http://${PROJ_ACCESS_HOST}:${SERVICE_PORT}
 
 echo ""
 echo "✅ Prometheus启动完成！"
-echo "🌐 Web界面: http://localhost:${SERVICE_PORT}"
-echo "📊 指标端点: http://localhost:${SERVICE_PORT}/metrics"
+echo "🌐 Web界面: http://${PROJ_ACCESS_HOST}:${SERVICE_PORT}"
+echo "📊 指标端点: http://${PROJ_ACCESS_HOST}:${SERVICE_PORT}/metrics"
 echo ""
 
 # 显示容器状态
