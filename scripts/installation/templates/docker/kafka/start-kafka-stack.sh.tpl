@@ -108,16 +108,23 @@ fi
 echo ""
 echo -e "${BLUE}📋 第4步: 集成测试${NC}"
 
+# 平台检测和工具路径设置
+if [[ "$(uname)" == "Darwin" ]]; then
+    KAFKA_TOOLS_PATH="/bin"
+else
+    KAFKA_TOOLS_PATH="/opt/bitnami/kafka/bin"
+fi
+
 # 测试Kafka Topic操作
 echo "测试Kafka功能..."
-if docker exec "${KAFKA_CONTAINER}" /bin/kafka-topics --create --topic test-integration --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1 >/dev/null 2>&1; then
+if docker exec "${KAFKA_CONTAINER}" ${KAFKA_TOOLS_PATH}/kafka-topics --create --topic test-integration --bootstrap-server ${PROJ_KAFKA_INTERNAL_BROKER} --partitions 1 --replication-factor 1 >/dev/null 2>&1; then
     echo -e "${GREEN}✅ Topic创建成功${NC}"
     
-    if docker exec "${KAFKA_CONTAINER}" /bin/kafka-topics --list --bootstrap-server localhost:9092 2>/dev/null | grep -q "test-integration"; then
+    if docker exec "${KAFKA_CONTAINER}" ${KAFKA_TOOLS_PATH}/kafka-topics --list --bootstrap-server ${PROJ_KAFKA_INTERNAL_BROKER} 2>/dev/null | grep -q "test-integration"; then
         echo -e "${GREEN}✅ Topic列表查询正常${NC}"
         
         # 清理测试Topic
-        docker exec "${KAFKA_CONTAINER}" /bin/kafka-topics --delete --topic test-integration --bootstrap-server localhost:9092 >/dev/null 2>&1
+        docker exec "${KAFKA_CONTAINER}" ${KAFKA_TOOLS_PATH}/kafka-topics --delete --topic test-integration --bootstrap-server ${PROJ_KAFKA_INTERNAL_BROKER} >/dev/null 2>&1
     else
         echo -e "${YELLOW}⚠️  Topic列表查询异常${NC}"
     fi
@@ -137,13 +144,13 @@ echo "  🌐 Docker网络: ${NETWORK_NAME}"
 echo ""
 echo -e "${BLUE}🛠️  快速测试命令:${NC}"
 echo "  # 创建Topic"
-echo "  docker exec ${KAFKA_CONTAINER} /bin/kafka-topics --create --topic test --bootstrap-server localhost:9092"
+echo "  docker exec ${KAFKA_CONTAINER} ${KAFKA_TOOLS_PATH}/kafka-topics --create --topic test --bootstrap-server ${PROJ_KAFKA_INTERNAL_BROKER}"
 echo ""  
 echo "  # 生产消息"
-echo "  docker exec -it ${KAFKA_CONTAINER} /bin/kafka-console-producer --topic test --bootstrap-server localhost:9092"
+echo "  docker exec -it ${KAFKA_CONTAINER} ${KAFKA_TOOLS_PATH}/kafka-console-producer --topic test --bootstrap-server ${PROJ_KAFKA_INTERNAL_BROKER}"
 echo ""
 echo "  # 消费消息"  
-echo "  docker exec -it ${KAFKA_CONTAINER} /bin/kafka-console-consumer --topic test --bootstrap-server localhost:9092 --from-beginning"
+echo "  docker exec -it ${KAFKA_CONTAINER} ${KAFKA_TOOLS_PATH}/kafka-console-consumer --topic test --bootstrap-server ${PROJ_KAFKA_INTERNAL_BROKER} --from-beginning"
 echo ""
 echo "  # 停止服务"
 echo "  make docker.kafka.stop"

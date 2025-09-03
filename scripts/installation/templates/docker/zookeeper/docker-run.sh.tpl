@@ -62,7 +62,6 @@ if [[ "$(uname)" == "Darwin" ]]; then
         -p "3888:3888" \
         -v "${PROJ_PREFIX}-zookeeper-data:/var/lib/zookeeper/data" \
         -v "${PROJ_PREFIX}-zookeeper-logs:/var/lib/zookeeper/log" \
-        -v "${CONFIG_DIR}:/etc/zookeeper:ro" \
         -v "${LOG_DIR}:/var/log/zookeeper" \
         -e ZOOKEEPER_CLIENT_PORT=2181 \
         -e ZOOKEEPER_TICK_TIME=2000 \
@@ -71,6 +70,7 @@ if [[ "$(uname)" == "Darwin" ]]; then
         -e ZOOKEEPER_MAX_CLIENT_CNXNS=60 \
         -e ZOOKEEPER_AUTOPURGE_SNAP_RETAIN_COUNT=3 \
         -e ZOOKEEPER_AUTOPURGE_PURGE_INTERVAL=24 \
+        -e ZOOKEEPER_4LW_COMMANDS_WHITELIST="srvr,ruok,conf,isro" \
         -e ZOOKEEPER_SERVER_ID=${ZOO_MY_ID} \
         -e PROJ_SERVICE_NAME=zookeeper \
         -e PROJ_SERVICE_VERSION=${ZOOKEEPER_VERSION:-7.4.0} \
@@ -95,7 +95,6 @@ else
         -p "3888:3888" \
         -v "${PROJ_PREFIX}-zookeeper-data:/data" \
         -v "${PROJ_PREFIX}-zookeeper-logs:/datalog" \
-        -v "${CONFIG_DIR}:/conf:ro" \
         -v "${LOG_DIR}:/logs" \
         -e ZOO_MY_ID=${ZOO_MY_ID} \
         -e ZOO_SERVERS="${ZOO_SERVERS}" \

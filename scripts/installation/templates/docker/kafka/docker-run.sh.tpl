@@ -73,10 +73,22 @@ echo "  🌐 Docker网络: ${PROJ_NETWORK_NAME:-proj-network}"
 echo ""
 echo -e "${BLUE}🛠️  快速测试命令:${NC}"
 echo "  # 创建Topic"
-echo "  docker exec ${PROJ_PREFIX}-kafka /bin/kafka-topics --create --topic test --bootstrap-server localhost:9092"
+if [[ "$(uname)" == "Darwin" ]]; then
+    echo "  docker exec ${PROJ_PREFIX}-kafka /bin/kafka-topics --create --topic test --bootstrap-server localhost:9092"
+else
+    echo "  docker exec ${PROJ_PREFIX}-kafka /opt/bitnami/kafka/bin/kafka-topics.sh --create --topic test --bootstrap-server localhost:9092"
+fi
 echo ""  
 echo "  # 生产消息"
-echo "  docker exec -it ${PROJ_PREFIX}-kafka /bin/kafka-console-producer --topic test --bootstrap-server localhost:9092"
+if [[ "$(uname)" == "Darwin" ]]; then
+    echo "  docker exec -it ${PROJ_PREFIX}-kafka /bin/kafka-console-producer --topic test --bootstrap-server localhost:9092"
+else
+    echo "  docker exec -it ${PROJ_PREFIX}-kafka /opt/bitnami/kafka/bin/kafka-console-producer.sh --topic test --bootstrap-server localhost:9092"
+fi
 echo ""
-echo "  # 消费消息"  
-echo "  docker exec -it ${PROJ_PREFIX}-kafka /bin/kafka-console-consumer --topic test --bootstrap-server localhost:9092 --from-beginning"
+echo "  # 消费消息"
+if [[ "$(uname)" == "Darwin" ]]; then
+    echo "  docker exec -it ${PROJ_PREFIX}-kafka /bin/kafka-console-consumer --topic test --bootstrap-server localhost:9092 --from-beginning"
+else
+    echo "  docker exec -it ${PROJ_PREFIX}-kafka /opt/bitnami/kafka/bin/kafka-console-consumer.sh --topic test --bootstrap-server localhost:9092 --from-beginning"  
+fi

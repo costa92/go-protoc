@@ -20,12 +20,19 @@ readonly LOG_DIR="${PROJ_KAFKA_LOG_DIR}"
 # Docker网络
 readonly NETWORK_NAME="${PROJ_NETWORK_NAME}"
 
-# 镜像配置 - KAFKA_VERSION 已在 versions.sh 中根据平台设置
-# macOS/ARM64: 7.4.0, Linux/AMD64: 6.2.0
-readonly IMAGE_NAME="confluentinc/cp-kafka:${KAFKA_VERSION}"
+# 平台检测和镜像选择
+if [[ "$(uname)" == "Darwin" ]]; then
+    # macOS - 使用 Confluent 镜像
+    readonly IMAGE_NAME="confluentinc/cp-kafka:${KAFKA_VERSION}"
+    readonly KAFKA_TOOLS_PATH="/bin"
+else
+    # Linux - 使用 Bitnami 镜像
+    readonly IMAGE_NAME="bitnami/kafka:${KAFKA_VERSION}"
+    readonly KAFKA_TOOLS_PATH="/opt/bitnami/kafka/bin"
+fi
 readonly KAFKA_BROKER_ID=1
-readonly KAFKA_ZOOKEEPER_CONNECT="${PROJ_PREFIX}-zookeeper:2181"
-readonly KAFKA_ADVERTISED_LISTENERS="PLAINTEXT://localhost:${SERVICE_PORT},PLAINTEXT_INTERNAL://${PROJ_PREFIX}-kafka:29092"
+readonly KAFKA_ZOOKEEPER_CONNECT="${CONTAINER_NAME_ZOOKEEPER}:2181"
+readonly KAFKA_ADVERTISED_LISTENERS="PLAINTEXT://localhost:${SERVICE_PORT},PLAINTEXT_INTERNAL://${CONTAINER_NAME_KAFKA}:${PROJ_KAFKA_INTERNAL_PORT}"
 readonly KAFKA_LISTENER_SECURITY_PROTOCOL_MAP="PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT"
 readonly KAFKA_INTER_BROKER_LISTENER_NAME="PLAINTEXT_INTERNAL"
 
@@ -114,7 +121,7 @@ docker run -d \
     --log-driver json-file \
     --log-opt max-size=10m \
     --log-opt max-file=3 \
-    --health-cmd "/bin/kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1" \
+    --health-cmd "${KAFKA_TOOLS_PATH}/kafka-topics --bootstrap-server ${PROJ_KAFKA_INTERNAL_BROKER} --list >/dev/null 2>&1" \
     --health-interval 30s \
     --health-timeout 15s \
     --health-retries 5 \
@@ -138,7 +145,7 @@ docker ps --filter name="${CONTAINER_NAME}" --format "table {{.Names}}\t{{.Statu
 echo "等待Kafka启动完成..."
 timeout=120
 while [ $timeout -gt 0 ]; do
-    if docker exec "${CONTAINER_NAME}" /bin/kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
+    if docker exec "${CONTAINER_NAME}" ${KAFKA_TOOLS_PATH}/kafka-topics --bootstrap-server ${PROJ_KAFKA_INTERNAL_BROKER} --list >/dev/null 2>&1; then
         echo "Kafka启动成功 ✅"
         break
     fi
@@ -160,7 +167,7 @@ echo "🔌 Zookeeper连接: ${KAFKA_ZOOKEEPER_CONNECT}"
 echo "📋 集群配置: 单节点集群 (broker.id=${KAFKA_BROKER_ID})"
 echo ""
 echo "🛠️  常用命令:"
-echo "  创建Topic: docker exec ${CONTAINER_NAME} /bin/kafka-topics --create --topic test --bootstrap-server localhost:9092"
-echo "  列出Topics: docker exec ${CONTAINER_NAME} /bin/kafka-topics --list --bootstrap-server localhost:9092"
-echo "  生产消息: docker exec -it ${CONTAINER_NAME} /bin/kafka-console-producer --topic test --bootstrap-server localhost:9092"
-echo "  消费消息: docker exec -it ${CONTAINER_NAME} /bin/kafka-console-consumer --topic test --bootstrap-server localhost:9092 --from-beginning"
+echo "  创建Topic: docker exec ${CONTAINER_NAME} ${KAFKA_TOOLS_PATH}/kafka-topics --create --topic test --bootstrap-server ${PROJ_KAFKA_INTERNAL_BROKER}"
+echo "  列出Topics: docker exec ${CONTAINER_NAME} ${KAFKA_TOOLS_PATH}/kafka-topics --list --bootstrap-server ${PROJ_KAFKA_INTERNAL_BROKER}"
+echo "  生产消息: docker exec -it ${CONTAINER_NAME} ${KAFKA_TOOLS_PATH}/kafka-console-producer --topic test --bootstrap-server ${PROJ_KAFKA_INTERNAL_BROKER}"
+echo "  消费消息: docker exec -it ${CONTAINER_NAME} ${KAFKA_TOOLS_PATH}/kafka-console-consumer --topic test --bootstrap-server ${PROJ_KAFKA_INTERNAL_BROKER} --from-beginning"
