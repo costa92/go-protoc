@@ -51,6 +51,13 @@ if docker ps --filter name="${CONTAINER_NAME}" --format "table {{.Names}}\t{{.St
     echo "⚡ gRPC端口:  localhost:${GRPC_PORT}"
     echo "👤 默认用户名/密码: nacos/nacos"
     
+    # 显示内存信息
+    echo ""
+    echo "=== 内存配置 ==="
+    echo "📊 容器内存限制: ${NACOS_MAX_MEMORY:-1g}"
+    echo "☕ JVM堆内存: ${NACOS_JVM_XMS:-512m} - ${NACOS_JVM_XMX:-1g}"
+    echo "🔥 新生代内存: ${NACOS_JVM_XMN:-256m}"
+    
     # 显示最近日志
     echo ""
     echo "=== 最近日志 (最后10行) ==="

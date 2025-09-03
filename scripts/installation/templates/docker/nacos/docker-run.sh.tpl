@@ -55,6 +55,9 @@ docker run -d \
     --name "$CONTAINER_NAME" \
     --network "$NETWORK_NAME" \
     --restart unless-stopped \
+    --memory="${NACOS_MAX_MEMORY}" \
+    --memory-swap="${NACOS_MAX_MEMORY}" \
+    --oom-kill-disable=false \
     -p "${HTTP_PORT}:9848" \
     -p "${GRPC_PORT}:8848" \
     -p "9849:9849" \
@@ -70,6 +73,9 @@ docker run -d \
     -e NACOS_AUTH_IDENTITY_KEY="$NACOS_AUTH_IDENTITY_KEY" \
     -e NACOS_AUTH_IDENTITY_VALUE="$NACOS_AUTH_IDENTITY_VALUE" \
     -e NACOS_AUTH_CACHE_ENABLE=false \
+    -e JVM_XMS="${NACOS_JVM_XMS}" \
+    -e JVM_XMX="${NACOS_JVM_XMX}" \
+    -e JVM_XMN="${NACOS_JVM_XMN}" \
     -e PROJ_SERVICE_NAME=nacos \
     -e PROJ_SERVICE_VERSION=${NACOS_VERSION} \
     -e PROJ_ENVIRONMENT=${PROJ_ENVIRONMENT:-development} \
@@ -89,6 +95,7 @@ echo "HTTP端口: localhost:$HTTP_PORT -> container:9848"
 echo "gRPC端口: localhost:$GRPC_PORT -> container:8848"
 echo "运行模式: $MODE"
 echo "认证状态: $NACOS_AUTH_ENABLE"
+echo "内存配置: 容器最大内存=${NACOS_MAX_MEMORY}, JVM堆内存=${NACOS_JVM_XMS}-${NACOS_JVM_XMX}"
 echo "配置目录: $CONFIG_DIR"
 echo "数据目录: $DATA_DIR"
 echo "日志目录: $LOG_DIR"
