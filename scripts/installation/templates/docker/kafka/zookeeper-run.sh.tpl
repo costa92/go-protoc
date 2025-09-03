@@ -21,13 +21,7 @@ readonly LOG_DIR="${PROJ_ZOOKEEPER_LOG_DIR}"
 readonly NETWORK_NAME="${PROJ_NETWORK_NAME}"
 
 # 平台检测和镜像选择
-if [[ "$(uname)" == "Darwin" ]]; then
-    # macOS - 使用 Confluent 镜像，支持 ARM64
-    readonly IMAGE_NAME="confluentinc/cp-zookeeper:${ZOOKEEPER_VERSION:-7.4.0}"
-else
-    # Linux - 使用 Confluent 镜像
-    readonly IMAGE_NAME="confluentinc/cp-zookeeper:${ZOOKEEPER_VERSION:-latest}"
-fi
+readonly IMAGE_NAME="confluentinc/cp-zookeeper:${ZOOKEEPER_VERSION}"
 
 echo "检测到平台: $(uname)"
 echo "使用镜像: ${IMAGE_NAME}"
@@ -66,7 +60,7 @@ if [[ "$(uname)" == "Darwin" ]]; then
         -e ZOOKEEPER_PURGE_INTERVAL=12 \
         -e ZOOKEEPER_4LW_COMMANDS_WHITELIST="*" \
         -e PROJ_SERVICE_NAME=zookeeper \
-        -e PROJ_SERVICE_VERSION=${ZOOKEEPER_VERSION:-7.4.0} \
+        -e PROJ_SERVICE_VERSION=${ZOOKEEPER_VERSION} \
         -e PROJ_ENVIRONMENT=${PROJ_ENVIRONMENT:-development} \
         --log-driver json-file \
         --log-opt max-size=10m \
@@ -97,7 +91,7 @@ else
         -e ZOOKEEPER_PURGE_INTERVAL=12 \
         -e ZOOKEEPER_4LW_COMMANDS_WHITELIST="*" \
         -e PROJ_SERVICE_NAME=zookeeper \
-        -e PROJ_SERVICE_VERSION=${ZOOKEEPER_VERSION:-3.8} \
+        -e PROJ_SERVICE_VERSION=${ZOOKEEPER_VERSION} \
         -e PROJ_ENVIRONMENT=${PROJ_ENVIRONMENT:-development} \
         --log-driver json-file \
         --log-opt max-size=10m \

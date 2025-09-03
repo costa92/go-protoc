@@ -29,6 +29,17 @@ if docker ps --filter name="^${CONTAINER_NAME}$" --format "table {{.Names}}" | g
     docker ps --filter name="^${CONTAINER_NAME}$" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}\t{{.Image}}"
     
     echo ""
+    echo "网络信息:"
+    NETWORKS=$(docker inspect "${CONTAINER_NAME}" --format '{{range $net, $conf := .NetworkSettings.Networks}}{{$net}} {{end}}' 2>/dev/null || echo "Unknown")
+    echo "所在网络: ${NETWORKS}"
+    for network in ${NETWORKS}; do
+        IP=$(docker inspect "${CONTAINER_NAME}" --format "{{.NetworkSettings.Networks.${network}.IPAddress}}" 2>/dev/null)
+        if [[ -n "$IP" ]] && [[ "$IP" != "<no value>" ]]; then
+            echo "  • IP in ${network}: ${IP}"
+        fi
+    done
+    
+    echo ""
     echo "健康检查:"
     HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "${CONTAINER_NAME}" 2>/dev/null || echo "no-healthcheck")
     if [[ "${HEALTH_STATUS}" == "healthy" ]]; then

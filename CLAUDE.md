@@ -748,3 +748,9 @@ ALWAYS prefer editing an existing file to creating a new one.
 NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
 NEVER modify or repair files within `_*` directories (`_output/`, `_thirdparty/`, `_generated/`) - these contain auto-generated content, build artifacts, and third-party service data that should not be manually edited.
 NEVER reference `scripts/` files from `manifests/env/` files - environment configurations must be self-contained to avoid circular dependencies and ensure portability.
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.

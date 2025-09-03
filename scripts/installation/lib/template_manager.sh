@@ -215,6 +215,19 @@ proj::template::setup_service_variables() {
             export ETCD_INITIAL_CLUSTER="${ETCD_NAME:-etcd0}=http://${PROJ_PREFIX}-etcd:2380"
             export ETCD_INITIAL_CLUSTER_STATE="new"
             ;;
+        "nacos")
+            export SERVICE_PORT="${PROJ_NACOS_PORT:-8848}"
+            export HTTP_PORT="${PROJ_NACOS_PORT:-8848}"
+            export GRPC_PORT="${PROJ_NACOS_GRPC_PORT:-9848}"
+            export RAFT_PORT="${PROJ_NACOS_RAFT_PORT:-9849}"
+            export CONFIG_DIR="${PROJ_NACOS_CONFIG_DIR}"
+            export DATA_DIR="${PROJ_NACOS_DATA_DIR}"
+            export LOG_DIR="${PROJ_NACOS_LOG_DIR}"
+            export IMAGE_NAME="nacos/nacos-server:v${NACOS_VERSION:-2.1.2}"
+            export CONTAINER_NAME="${PROJ_PREFIX}-nacos"
+            export DATA_VOLUME_NAME="${PROJ_PREFIX}-nacos-data"
+            export LOGS_VOLUME_NAME="${PROJ_PREFIX}-nacos-logs"
+            ;;
         *)
             proj::log::debug "No specific variables set for service: $service_name"
             ;;

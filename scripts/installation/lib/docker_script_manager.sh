@@ -181,6 +181,16 @@ proj::docker::show_container_status() {
     # 如果容器正在运行，显示更多信息
     if docker ps --format "{{.Names}}" | grep -q "^${container_name}$"; then
         echo ""
+        echo "网络信息:"
+        local network_info
+        network_info=$(docker inspect "$container_name" 2>/dev/null | grep -A 20 '"Networks"' | grep -E '"(IPAddress|Gateway|MacAddress)"' | head -5 || echo "")
+        local networks
+        networks=$(docker inspect "$container_name" --format '{{range $net, $conf := .NetworkSettings.Networks}}{{$net}} {{end}}' 2>/dev/null || echo "Unknown")
+        echo "所在网络: ${networks}"
+        # 使用 docker inspect 直接获取完整的网络信息
+        docker inspect "$container_name" --format '{{range $net, $conf := .NetworkSettings.Networks}}  • {{$net}}: IP={{$conf.IPAddress}} Gateway={{$conf.Gateway}}{{println}}{{end}}' 2>/dev/null || echo "  无法获取IP信息"
+        
+        echo ""
         echo "资源使用:"
         docker stats "$container_name" --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}"
         

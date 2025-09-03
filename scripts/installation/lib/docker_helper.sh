@@ -247,6 +247,41 @@ proj::docker::get_container_ip() {
     fi
 }
 
+# 显示容器的网络信息
+proj::docker::show_network_info() {
+    local container_name="$1"
+    
+    if [[ -z "$container_name" ]]; then
+        proj::log::error "Container name is required"
+        return 1
+    fi
+    
+    # 检查容器是否存在
+    if ! docker ps -a --format '{{.Names}}' | grep -q "^${container_name}$"; then
+        proj::log::warn "Container $container_name does not exist"
+        return 1
+    fi
+    
+    # 获取网络信息
+    local networks
+    networks=$(docker inspect "$container_name" --format '{{range $net, $conf := .NetworkSettings.Networks}}{{$net}} {{end}}' 2>/dev/null)
+    
+    if [[ -n "$networks" ]]; then
+        proj::log::info "🌐 Network: ${networks}"
+        
+        # 获取每个网络的IP地址
+        for network in $networks; do
+            local ip
+            ip=$(docker inspect "$container_name" --format "{{.NetworkSettings.Networks.${network}.IPAddress}}" 2>/dev/null)
+            if [[ -n "$ip" ]] && [[ "$ip" != "<no value>" ]]; then
+                proj::log::info "   • IP in $network: $ip"
+            fi
+        done
+    else
+        proj::log::warn "No network information available"
+    fi
+}
+
 # 显示容器日志
 proj::docker::show_logs() {
     local container_name="$1"
