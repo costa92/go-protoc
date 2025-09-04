@@ -23,19 +23,14 @@ elif [[ -f "$(pwd)/manifests/env/env.dev" ]]; then
     source "$(pwd)/manifests/env/env.dev"
 fi
 
-# 获取模板脚本管理器
-DOCKER_TEMPLATE_LIB_LOADER="source ${PROJ_ROOT_DIR}/manifests/env/env.dev && \
-                           source ${PROJ_ROOT_DIR}/scripts/installation/common.sh && \
-                           source ${PROJ_ROOT_DIR}/scripts/installation/lib/common_lib.sh"
-
 echo "🚀 启动 OTEL Stack (Collector + Agent)..."
 echo "数据流: 应用程序 → Agent(4327) → Collector(4317) → 后端存储"
 echo ""
 
 # 步骤1: 启动 OTEL Collector
 echo "===========> 步骤 1/2: 启动 OTEL Collector"
-eval "${DOCKER_TEMPLATE_LIB_LOADER}"
-if ! proj::docker::run_service_from_template 'otel-collector'; then
+cd "${PROJ_ROOT_DIR}" && make docker.otel-collector.start
+if [[ $? -ne 0 ]]; then
     echo "❌ OTEL Collector 启动失败"
     exit 1
 fi
@@ -46,8 +41,8 @@ sleep 3
 
 # 步骤2: 启动 OTEL Agent
 echo "===========> 步骤 2/2: 启动 OTEL Agent"
-eval "${DOCKER_TEMPLATE_LIB_LOADER}"
-if ! proj::docker::run_service_from_template 'otel-agent'; then
+cd "${PROJ_ROOT_DIR}" && make docker.otel-agent.start
+if [[ $? -ne 0 ]]; then
     echo "❌ OTEL Agent 启动失败"
     echo "⚠️  Collector 仍在运行，如需清理请执行: make docker.otel-collector.stop"
     exit 1

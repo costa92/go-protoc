@@ -265,7 +265,7 @@ proj::template::setup_service_variables() {
             export PROJ_SERVICE_NAME="${PROJ_SERVICE_NAME:-apiserver}"
             export PROJ_SERVICE_VERSION="${PROJ_SERVICE_VERSION:-v2.0.0}"
             export PROJ_ENVIRONMENT="${PROJ_ENVIRONMENT:-development}"
-            export OTEL_AGENT_VERSION="${OTEL_AGENT_VERSION}"
+            export OTEL_AGENT_VERSION="${OTELCOL_VERSION}"
             ;;
         *)
             proj::log::debug "No specific variables set for service: $service_name"

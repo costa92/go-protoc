@@ -23,26 +23,19 @@ elif [[ -f "$(pwd)/manifests/env/env.dev" ]]; then
     source "$(pwd)/manifests/env/env.dev"
 fi
 
-# 获取模板脚本管理器
-DOCKER_TEMPLATE_LIB_LOADER="source ${PROJ_ROOT_DIR}/manifests/env/env.dev && \
-                           source ${PROJ_ROOT_DIR}/scripts/installation/common.sh && \
-                           source ${PROJ_ROOT_DIR}/scripts/installation/lib/common_lib.sh"
-
 echo "🛑 停止 OTEL Stack (Agent + Collector)..."
 echo "按正确顺序: Agent 先停止，Collector 后停止"
 echo ""
 
 # 步骤1: 停止 OTEL Agent
 echo "===========> 步骤 1/2: 停止 OTEL Agent"
-eval "${DOCKER_TEMPLATE_LIB_LOADER}"
-proj::docker::stop_service_from_template 'otel-agent' "$*" || echo "⚠️  Agent 可能已经停止"
+cd "${PROJ_ROOT_DIR}" && make docker.otel-agent.stop || echo "⚠️  Agent 可能已经停止"
 
 echo ""
 
 # 步骤2: 停止 OTEL Collector  
 echo "===========> 步骤 2/2: 停止 OTEL Collector"
-eval "${DOCKER_TEMPLATE_LIB_LOADER}"
-proj::docker::stop_service_from_template 'otel-collector' "$*" || echo "⚠️  Collector 可能已经停止"
+cd "${PROJ_ROOT_DIR}" && make docker.otel-collector.stop || echo "⚠️  Collector 可能已经停止"
 
 echo ""
 echo "✅ OTEL Stack 已完全停止"
