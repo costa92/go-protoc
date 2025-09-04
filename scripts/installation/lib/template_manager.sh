@@ -277,14 +277,43 @@ proj::template::envsubst_generate() {
     local template_path="$1"
     local output_path="$2"
     
-    # 获取模板中的所有变量 - 修复正则表达式以支持默认值语法
-    local template_vars
-    template_vars=$(grep -oE '\$\{[A-Za-z_][A-Za-z0-9_]*(:[-][^}]*)?\}' "$template_path" | sed 's/:[-][^}]*//g' | sort -u | tr '\n' ' ')
+    # 创建临时文件
+    local temp_file="/tmp/template_$$_$(date +%s).tmp"
+    cp "$template_path" "$temp_file"
     
-    proj::log::debug "Template variables: $template_vars"
+    # 方法：先处理带默认值的变量，将它们替换为简单变量
+    # 例如：${PROJ_SERVICE_NAME:-apiserver} -> ${PROJ_SERVICE_NAME}
+    # 然后为未设置的变量设置默认值
     
-    # 使用 envsubst 替换变量
-    envsubst "$template_vars" < "$template_path" > "$output_path"
+    # 查找所有带默认值的变量
+    while IFS= read -r var_expr; do
+        # 提取变量名和默认值
+        var_name=$(echo "$var_expr" | sed 's/\${//' | sed 's/:[-][^}]*//' | sed 's/}//')
+        default_val=$(echo "$var_expr" | grep -oE ':[-][^}]*' | sed 's/:-//')
+        
+        # 如果变量未设置，设置为默认值
+        if [[ -z "${!var_name:-}" ]]; then
+            export "$var_name=$default_val"
+            proj::log::debug "Set default: $var_name=$default_val"
+        fi
+        
+        # 将带默认值的语法替换为简单语法
+        # 使用 | 作为sed分隔符，避免与路径中的/冲突
+        sed -i '' "s|\${${var_name}:[-]${default_val}}|\${${var_name}}|g" "$temp_file"
+    done < <(grep -oE '\$\{[A-Za-z_][A-Za-z0-9_]*:[-][^}]*\}' "$template_path")
+    
+    # 现在使用envsubst处理所有简单变量
+    local simple_vars=$(grep -oE '\$\{[A-Za-z_][A-Za-z0-9_]*\}' "$temp_file" | sort -u | tr '\n' ' ')
+    
+    if [[ -n "$simple_vars" ]]; then
+        proj::log::debug "Processing template variables: $simple_vars"
+        envsubst "$simple_vars" < "$temp_file" > "$output_path"
+    else
+        cp "$temp_file" "$output_path"
+    fi
+    
+    # 清理临时文件
+    rm -f "$temp_file"
 }
 
 # 使用 bash 进行变量替换（备用方案）
