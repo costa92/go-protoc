@@ -71,6 +71,30 @@ else
     docker ps -a --filter name="^${CONTAINER_NAME}$" --format "table {{.Names}}\t{{.Status}}\t{{.Image}}"
 fi
 
+# 显示数据卷信息
+echo ""
+echo "💿 数据卷信息:"
+echo "数据卷列表:"
+docker volume ls | grep -E "${PROJ_PREFIX}-victorialogs" || echo "  无VictoriaLogs数据卷"
+echo ""
+echo "数据卷挂载状态:"
+if docker ps --filter name="${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "${CONTAINER_NAME}"; then
+    docker inspect ${CONTAINER_NAME} --format='{{range .Mounts}}{{if .Name}}  {{.Name}} -> {{.Destination}} ({{.Type}}){{"\n"}}{{end}}{{end}}' | grep -E "${PROJ_PREFIX}-victorialogs" || echo "  无命名数据卷"
+    
+    echo ""
+    echo "数据目录内容:"
+    volume_size=$(docker system df -v | grep "${PROJ_PREFIX}-victorialogs-data" | awk '{print $3}' || echo "0B")
+    if [ "$volume_size" != "0B" ] && [ -n "$volume_size" ]; then
+        echo "  数据卷大小: $volume_size"
+        echo "  状态: ✅ 日志数据已持久化"
+    else
+        echo "  数据卷大小: 0B"
+        echo "  状态: ⚠️ 数据卷为空或未初始化"
+    fi
+else
+    echo "  ❌ 容器未运行，无法检查挂载状态"
+fi
+
 # 显示日志摘要
 echo ""
 echo "最近日志 (最后10行):"

@@ -83,8 +83,26 @@ echo "  网络: ${NETWORK_INFO}"
 # 显示卷信息
 echo ""
 echo "💿 数据卷信息:"
-VOLUME_INFO=$(docker inspect "${CONTAINER_NAME}" --format '{{range .Mounts}}{{.Type}}: {{.Source}} -> {{.Destination}}{{"\n"}}{{end}}' 2>/dev/null || echo "  获取卷信息失败")
-echo "${VOLUME_INFO}"
+echo "数据卷列表:"
+docker volume ls | grep -E "${PROJ_PREFIX}-mariadb" || echo "  无MariaDB数据卷"
+echo ""
+echo "数据卷挂载状态:"
+if docker ps --filter name="${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "${CONTAINER_NAME}"; then
+    docker inspect ${CONTAINER_NAME} --format='{{range .Mounts}}{{if .Name}}  {{.Name}} -> {{.Destination}} ({{.Type}}){{"\n"}}{{end}}{{end}}' | grep -E "${PROJ_PREFIX}-mariadb" || echo "  无命名数据卷"
+    
+    echo ""
+    echo "数据目录内容:"
+    if docker exec ${CONTAINER_NAME} ls -la /var/lib/mysql >/dev/null 2>&1; then
+        db_files=$(docker exec ${CONTAINER_NAME} sh -c "ls -1 /var/lib/mysql 2>/dev/null | wc -l")
+        echo "  数据文件数量: $db_files 个"
+        echo "  数据库目录:"
+        docker exec ${CONTAINER_NAME} sh -c "ls -1d /var/lib/mysql/*/ 2>/dev/null | head -3" | sed 's|^|    |' || echo "    无数据库目录"
+    else
+        echo "  ❌ 无法访问数据目录"
+    fi
+else
+    echo "  ❌ 容器未运行，无法检查挂载状态"
+fi
 
 echo ""
 echo "=== 状态检查完成 ==="

@@ -80,6 +80,32 @@ else
     docker ps -a --filter name="^${CONTAINER_NAME}$" --format "table {{.Names}}\t{{.Status}}\t{{.Image}}"
 fi
 
+# 显示数据卷信息
+echo ""
+echo "💿 数据卷信息:"
+echo "数据卷列表:"
+docker volume ls | grep -E "${PROJ_PREFIX}-redis" || echo "  无Redis数据卷"
+echo ""
+echo "数据卷挂载状态:"
+if docker ps --filter name="${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "${CONTAINER_NAME}"; then
+    docker inspect ${CONTAINER_NAME} --format='{{range .Mounts}}{{if .Name}}  {{.Name}} -> {{.Destination}} ({{.Type}}){{"\n"}}{{end}}{{end}}' | grep -E "${PROJ_PREFIX}-redis" || echo "  无命名数据卷"
+    
+    echo ""
+    echo "数据目录内容:"
+    if docker exec ${CONTAINER_NAME} ls -la /data >/dev/null 2>&1; then
+        redis_files=$(docker exec ${CONTAINER_NAME} sh -c "ls -1 /data 2>/dev/null | wc -l")
+        echo "  数据文件数量: $redis_files 个"
+        if [ $redis_files -gt 0 ]; then
+            echo "  数据文件:"
+            docker exec ${CONTAINER_NAME} sh -c "ls -la /data" | tail -n +2 | awk '{print "    " $9 " (" $5 " bytes)"}' | head -3
+        fi
+    else
+        echo "  ❌ 无法访问数据目录"
+    fi
+else
+    echo "  ❌ 容器未运行，无法检查挂载状态"
+fi
+
 # 显示日志摘要
 echo ""
 echo "最近日志 (最后10行):"
