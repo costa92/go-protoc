@@ -120,4 +120,43 @@ fi
 # 检查数据卷
 echo ""
 echo "=== 数据卷状态 ==="
-docker volume ls | grep -E "(${PROJ_PREFIX}-kafka-data|${PROJ_PREFIX}-kafka-logs)" || echo "未找到Kafka数据卷"
+echo "数据卷列表:"
+docker volume ls | grep -E "(${CONTAINER_NAME_KAFKA}-data|${CONTAINER_NAME_KAFKA}-logs|${CONTAINER_NAME_ZOOKEEPER}-data|${CONTAINER_NAME_ZOOKEEPER}-logs)" || echo "未找到Kafka/Zookeeper数据卷"
+
+echo ""
+echo "数据卷使用情况:"
+if docker ps --filter name="${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "${CONTAINER_NAME}"; then
+    echo "✅ Kafka数据卷挂载状态:"
+    docker inspect ${CONTAINER_NAME} --format='{{range .Mounts}}{{if .Name}}  {{.Name}} -> {{.Destination}} ({{.Type}}){{"\n"}}{{end}}{{end}}' | grep -E "${PROJ_PREFIX}-(kafka|zookeeper)" || echo "  无命名数据卷"
+    
+    # 检查数据目录内容
+    echo ""
+    echo "✅ Kafka数据目录内容:"
+    if docker exec ${CONTAINER_NAME} ls -la /var/lib/kafka/data >/dev/null 2>&1; then
+        kafka_files=$(docker exec ${CONTAINER_NAME} sh -c "ls -1 /var/lib/kafka/data 2>/dev/null | wc -l")
+        echo "  数据文件数量: $kafka_files 个"
+        echo "  Topic分区目录:"
+        docker exec ${CONTAINER_NAME} sh -c "ls -1d /var/lib/kafka/data/test-demo-* 2>/dev/null | head -3" | sed 's|^|    |' || echo "    暂无topic分区"
+    else
+        echo "  ❌ 无法访问数据目录"
+    fi
+    
+    echo ""
+    echo "✅ Kafka日志目录内容:"
+    if docker exec ${CONTAINER_NAME} ls -la /var/log/kafka >/dev/null 2>&1; then
+        log_files=$(docker exec ${CONTAINER_NAME} sh -c "ls -1 /var/log/kafka 2>/dev/null | wc -l")
+        echo "  日志文件数量: $log_files 个"
+        echo "  最新日志文件:"
+        docker exec ${CONTAINER_NAME} sh -c "ls -lt /var/log/kafka/*.log 2>/dev/null | head -2" | awk '{print "    " $9 " (" $5 " bytes)"}' || echo "    暂无日志文件"
+    else
+        echo "  ❌ 无法访问日志目录"
+    fi
+else
+    echo "❌ Kafka容器未运行，无法检查数据卷使用情况"
+fi
+
+if docker ps --filter name="${ZOOKEEPER_CONTAINER}" --format "{{.Names}}" | grep -q "${ZOOKEEPER_CONTAINER}"; then
+    echo ""
+    echo "✅ Zookeeper数据卷挂载状态:"
+    docker inspect ${ZOOKEEPER_CONTAINER} --format='{{range .Mounts}}{{if .Name}}  {{.Name}} -> {{.Destination}} ({{.Type}}){{"\n"}}{{end}}{{end}}' | grep -E "${PROJ_PREFIX}-zookeeper" || echo "  无命名数据卷"
+fi

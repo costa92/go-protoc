@@ -108,7 +108,7 @@ if docker ps --filter name="${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "
     
     echo ""
     echo "数据目录内容:"
-    volume_size=$(docker system df -v | grep "${PROJ_PREFIX}-prometheus-data" | awk '{print $3}' || echo "0B")
+    volume_size=$(docker system df -v | grep "${CONTAINER_NAME_PROMETHEUS}-data" | awk '{print $3}' || echo "0B")
     if [ "$volume_size" != "0B" ] && [ -n "$volume_size" ]; then
         echo "  数据卷大小: $volume_size"
         echo "  状态: ✅ 监控数据已持久化"

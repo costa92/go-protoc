@@ -77,8 +77,8 @@ mkdir -p "${CONFIG_DIR}" "${DATA_DIR}" "${LOG_DIR}"
 docker network create "${NETWORK_NAME}" 2>/dev/null || true
 
 # 创建Docker卷（如果不存在）
-docker volume create "${PROJ_PREFIX}-kafka-data" 2>/dev/null || true
-docker volume create "${PROJ_PREFIX}-kafka-logs" 2>/dev/null || true
+docker volume create "${CONTAINER_NAME_KAFKA}-data" 2>/dev/null || true
+docker volume create "${CONTAINER_NAME_KAFKA}-logs" 2>/dev/null || true
 
 # 停止并删除现有容器（如果存在）
 docker stop "${CONTAINER_NAME}" 2>/dev/null || true
@@ -92,8 +92,8 @@ docker run -d \
     -p "${SERVICE_PORT}:9092" \
     -p "29092:29092" \
     -p "9999:9999" \
-    -v "${PROJ_PREFIX}-kafka-data:/var/lib/kafka/data" \
-    -v "${PROJ_PREFIX}-kafka-logs:/var/log/kafka" \
+    -v "${CONTAINER_NAME_KAFKA}-data:/var/lib/kafka/data" \
+    -v "${CONTAINER_NAME_KAFKA}-logs:/var/log/kafka" \
     -v "${LOG_DIR}:/opt/kafka/logs" \
     -e KAFKA_BROKER_ID=${KAFKA_BROKER_ID} \
     -e KAFKA_ZOOKEEPER_CONNECT="${KAFKA_ZOOKEEPER_CONNECT}" \

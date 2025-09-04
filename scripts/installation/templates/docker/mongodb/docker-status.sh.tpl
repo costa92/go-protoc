@@ -90,7 +90,7 @@ fi
 
 # 检查数据卷
 echo -e "\n数据卷状态:"
-for volume in "${PROJ_PREFIX}-mongodb-data" "${PROJ_PREFIX}-mongodb-config" "${PROJ_PREFIX}-mongodb-logs"; do
+for volume in "${CONTAINER_NAME_MONGODB}-data" "${CONTAINER_NAME_MONGODB}-config" "${CONTAINER_NAME_MONGODB}-logs"; do
     if docker volume ls --format '{{.Name}}' | grep -q "^${volume}$"; then
         SIZE=$(docker volume inspect "$volume" --format='{{.Mountpoint}}' | xargs du -sh 2>/dev/null | cut -f1 || echo "N/A")
         echo -e "${GREEN}✓${NC} $volume (大小: $SIZE)"

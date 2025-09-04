@@ -9,7 +9,7 @@ set -eEuo pipefail
 
 # 服务配置
 readonly SERVICE_NAME="mariadb"
-readonly CONTAINER_NAME="proj-mariadb"
+readonly CONTAINER_NAME="${CONTAINER_NAME_MARIADB}"
 readonly SERVICE_PORT="${PROJ_MARIADB_PORT:-3307}"
 
 echo "=== MariaDB Docker 容器状态检查 ==="

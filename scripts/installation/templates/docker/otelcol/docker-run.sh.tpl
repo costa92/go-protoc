@@ -9,7 +9,7 @@ set -eEuo pipefail
 
 # 服务配置
 readonly SERVICE_NAME="otelcol"
-readonly CONTAINER_NAME="proj-otelcol"
+readonly CONTAINER_NAME="${CONTAINER_NAME_OTELCOL}"
 readonly IMAGE_NAME="otel/opentelemetry-collector-contrib:${OTELCOL_VERSION}"
 readonly GRPC_PORT="${PROJ_OTELCOL_GRPC_PORT:-4327}"
 readonly HTTP_PORT="${PROJ_OTELCOL_HTTP_PORT:-4328}"
@@ -20,7 +20,7 @@ readonly DATA_DIR="${PROJ_OTELCOL_DATA_DIR}"
 readonly LOG_DIR="${DATA_DIR}/logs"
 
 # Docker网络
-readonly NETWORK_NAME="proj-network"
+readonly NETWORK_NAME="${PROJ_NETWORK_NAME}"
 
 # 创建必要的目录
 mkdir -p "${CONFIG_DIR}" "${DATA_DIR}" "${LOG_DIR}"
@@ -29,7 +29,7 @@ mkdir -p "${CONFIG_DIR}" "${DATA_DIR}" "${LOG_DIR}"
 docker network create "${NETWORK_NAME}" 2>/dev/null || true
 
 # 创建Docker卷（如果不存在）
-docker volume create proj-otelcol-data 2>/dev/null || true
+docker volume create "${CONTAINER_NAME_OTELCOL}-data" 2>/dev/null || true
 
 # 停止并删除现有容器（如果存在）
 docker stop "${CONTAINER_NAME}" 2>/dev/null || true
@@ -45,7 +45,7 @@ docker run -d \
     -p "8888:8888" \
     -p "13133:13133" \
     -v "${CONFIG_DIR}/config.yaml:/etc/otelcol-contrib/config.yaml:ro" \
-    -v proj-otelcol-data:/data \
+    -v "${CONTAINER_NAME_OTELCOL}-data:/data" \
     -v "${PROJ_ROOT_DIR}/logs:/host/logs:ro" \
     -v "${LOG_DIR}:/var/log/otelcol" \
     -e PROJ_SERVICE_NAME=${PROJ_SERVICE_NAME:-apiserver} \

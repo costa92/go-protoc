@@ -9,7 +9,7 @@ set -eEuo pipefail
 
 # 服务配置
 readonly SERVICE_NAME="mariadb"
-readonly CONTAINER_NAME="proj-mariadb"
+readonly CONTAINER_NAME="${CONTAINER_NAME_MARIADB}"
 readonly IMAGE_NAME="mariadb:${MARIADB_VERSION}"
 readonly SERVICE_PORT="${PROJ_MARIADB_PORT:-3307}"
 
@@ -19,7 +19,7 @@ readonly DATA_DIR="${PROJ_MARIADB_DATA_DIR}"
 readonly LOG_DIR="${PROJ_MARIADB_LOG_DIR}"
 
 # Docker网络
-readonly NETWORK_NAME="proj-network"
+readonly NETWORK_NAME="${PROJ_NETWORK_NAME}"
 
 # MariaDB配置
 readonly MARIADB_ROOT_PASSWORD="${MARIADB_ROOT_PASSWORD:-proj(#)666}"
@@ -34,7 +34,7 @@ mkdir -p "${PROJ_MARIADB_CONFIG_DIR}" "${PROJ_MARIADB_DATA_DIR}" "${PROJ_MARIADB
 docker network create "${NETWORK_NAME}" 2>/dev/null || true
 
 # 创建Docker卷（如果不存在）
-docker volume create proj-mariadb-data 2>/dev/null || true
+docker volume create "${CONTAINER_NAME_MARIADB}-data" 2>/dev/null || true
 
 # 停止并删除现有容器（如果存在）
 docker stop "${CONTAINER_NAME}" 2>/dev/null || true
@@ -46,7 +46,7 @@ docker run -d \
     --network "${NETWORK_NAME}" \
     --restart unless-stopped \
     -p "${PROJ_MARIADB_PORT:-3307}:3306" \
-    -v proj-mariadb-data:/var/lib/mysql \
+    -v "${CONTAINER_NAME_MARIADB}-data:/var/lib/mysql" \
     -v "${PROJ_MARIADB_CONFIG_DIR}:/etc/mysql/conf.d:ro" \
     -v "${PROJ_MARIADB_LOG_DIR}:/var/log/mysql" \
     -e MARIADB_ROOT_PASSWORD="${MARIADB_ROOT_PASSWORD}" \

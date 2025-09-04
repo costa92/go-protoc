@@ -152,7 +152,7 @@ fi
 # 创建Docker网络和卷
 echo "准备Docker资源..."
 docker network create "${NETWORK_NAME}" 2>/dev/null || true
-docker volume create "${PROJ_PREFIX}-prometheus-data" 2>/dev/null || true
+docker volume create "${CONTAINER_NAME_PROMETHEUS}-data" 2>/dev/null || true
 
 # 停止现有容器
 docker stop "${CONTAINER_NAME}" 2>/dev/null || true
@@ -165,7 +165,7 @@ docker run -d \
     --network "${NETWORK_NAME}" \
     --restart unless-stopped \
     -p "${SERVICE_PORT}:9090" \
-    -v "${PROJ_PREFIX}-prometheus-data:/prometheus" \
+    -v "${CONTAINER_NAME_PROMETHEUS}-data:/prometheus" \
     -v "${CONFIG_DIR}/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
     -v "${CONFIG_DIR}/rules:/etc/prometheus/rules:ro" \
     -e PROJ_SERVICE_NAME=prometheus \

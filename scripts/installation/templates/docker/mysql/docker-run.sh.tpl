@@ -9,7 +9,7 @@ set -eEuo pipefail
 
 # 服务配置
 readonly SERVICE_NAME="mysql"
-readonly CONTAINER_NAME="proj-mysql"
+readonly CONTAINER_NAME="${CONTAINER_NAME_MYSQL}"
 readonly IMAGE_NAME="mysql:${MYSQL_VERSION}"
 readonly SERVICE_PORT="${PROJ_MYSQL_PORT:-3306}"
 
@@ -19,7 +19,7 @@ readonly DATA_DIR="${PROJ_MYSQL_DATA_DIR}"
 readonly LOG_DIR="${DATA_DIR}/logs"
 
 # Docker网络
-readonly NETWORK_NAME="proj-network"
+readonly NETWORK_NAME="${PROJ_NETWORK_NAME}"
 
 # MySQL配置
 readonly MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-proj(#)666}"
@@ -34,7 +34,7 @@ mkdir -p "${CONFIG_DIR}" "${DATA_DIR}" "${LOG_DIR}"
 docker network create "${NETWORK_NAME}" 2>/dev/null || true
 
 # 创建Docker卷（如果不存在）
-docker volume create proj-mysql-data 2>/dev/null || true
+docker volume create "${CONTAINER_NAME}-data" 2>/dev/null || true
 
 # 停止并删除现有容器（如果存在）
 docker stop "${CONTAINER_NAME}" 2>/dev/null || true
@@ -46,7 +46,7 @@ docker run -d \
     --network "${NETWORK_NAME}" \
     --restart unless-stopped \
     -p "${SERVICE_PORT}:3306" \
-    -v proj-mysql-data:/var/lib/mysql \
+    -v "${CONTAINER_NAME}-data:/var/lib/mysql" \
     -v "${CONFIG_DIR}:/etc/mysql/conf.d:ro" \
     -v "${LOG_DIR}:/var/log/mysql" \
     -e MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD}" \

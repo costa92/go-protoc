@@ -28,7 +28,7 @@ mkdir -p "${CONFIG_DIR}" "${DATA_DIR}" "${LOG_DIR}"
 docker network create "${NETWORK_NAME}" 2>/dev/null || true
 
 # 创建Docker卷（如果不存在）
-docker volume create "${PROJ_PREFIX}-victorialogs-data" 2>/dev/null || true
+docker volume create "${CONTAINER_NAME_VICTORIALOGS}-data" 2>/dev/null || true
 
 # 停止并删除现有容器（如果存在）
 docker stop "${CONTAINER_NAME}" 2>/dev/null || true
@@ -40,7 +40,7 @@ docker run -d \
     --network "${NETWORK_NAME}" \
     --restart unless-stopped \
     -p "${SERVICE_PORT}:9428" \
-    -v "${PROJ_PREFIX}-victorialogs-data":/victoria-logs-data \
+    -v "${CONTAINER_NAME_VICTORIALOGS}-data":/victoria-logs-data \
     -v "${CONFIG_DIR}:/etc/victorialogs:ro" \
     -v "${LOG_DIR}:/var/log/victorialogs" \
     -e GOMEMLIMIT=1GiB \

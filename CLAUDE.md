@@ -20,6 +20,7 @@ Production-ready Go microservice framework built on Kratos v2 with Protocol Buff
 - **Infrastructure Setup**: All service installations use template system in `scripts/installation/templates/`
 - **Protobuf Files**: Must be placed under `pkg/api/<service>/<version>/` structure (per `.cursor/rules/buf.mdc`)
 - **Generated/System Files**: ⚠️ **NEVER modify files in `_*` directories** (`_output/`, `_thirdparty/`, `_generated/`) - these contain auto-generated files, build artifacts, and third-party service data
+- **Docker Template System**: ⚠️ **CRITICAL - ALWAYS modify SOURCE templates in `scripts/installation/templates/`, NEVER modify generated files in `_generated/docker-scripts/`**. The `_generated/docker-scripts/` directory contains auto-generated scripts that are recreated from templates on each run. Any changes to these files will be lost.
 
 ## Essential Development Commands
 

@@ -83,4 +83,4 @@ fi
 # 检查数据卷
 echo ""
 echo "=== 数据卷状态 ==="
-docker volume ls | grep -E "(${PROJ_PREFIX}-zookeeper-data|${PROJ_PREFIX}-zookeeper-logs)" || echo "未找到Zookeeper数据卷"
+docker volume ls | grep -E "(${CONTAINER_NAME_ZOOKEEPER}-data|${CONTAINER_NAME_ZOOKEEPER}-logs)" || echo "未找到Zookeeper数据卷"

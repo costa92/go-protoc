@@ -33,8 +33,8 @@ mkdir -p "${CONFIG_DIR}" "${DATA_DIR}" "${LOG_DIR}"
 docker network create "${NETWORK_NAME}" 2>/dev/null || true
 
 # 创建Docker卷（如果不存在）
-docker volume create "${PROJ_PREFIX}-zookeeper-data" 2>/dev/null || true
-docker volume create "${PROJ_PREFIX}-zookeeper-logs" 2>/dev/null || true
+docker volume create "${CONTAINER_NAME_ZOOKEEPER}-data" 2>/dev/null || true
+docker volume create "${CONTAINER_NAME_ZOOKEEPER}-logs" 2>/dev/null || true
 
 # 停止并删除现有容器（如果存在）
 docker stop "${CONTAINER_NAME}" 2>/dev/null || true
@@ -49,8 +49,8 @@ if [[ "$(uname)" == "Darwin" ]]; then
         --network "${NETWORK_NAME}" \
         --restart unless-stopped \
         -p "${SERVICE_PORT}:2181" \
-        -v "${PROJ_PREFIX}-zookeeper-data:/var/lib/zookeeper/data" \
-        -v "${PROJ_PREFIX}-zookeeper-logs:/var/lib/zookeeper/log" \
+        -v "${CONTAINER_NAME_ZOOKEEPER}-data:/var/lib/zookeeper/data" \
+        -v "${CONTAINER_NAME_ZOOKEEPER}-logs:/var/lib/zookeeper/log" \
         -e ZOOKEEPER_CLIENT_PORT=2181 \
         -e ZOOKEEPER_TICK_TIME=2000 \
         -e ZOOKEEPER_INIT_LIMIT=10 \
@@ -80,8 +80,8 @@ else
         -p "${SERVICE_PORT}:2181" \
         -p "2888:2888" \
         -p "3888:3888" \
-        -v "${PROJ_PREFIX}-zookeeper-data:/var/lib/zookeeper/data" \
-        -v "${PROJ_PREFIX}-zookeeper-logs:/var/lib/zookeeper/log" \
+        -v "${CONTAINER_NAME_ZOOKEEPER}-data:/var/lib/zookeeper/data" \
+        -v "${CONTAINER_NAME_ZOOKEEPER}-logs:/var/lib/zookeeper/log" \
         -e ZOOKEEPER_CLIENT_PORT=2181 \
         -e ZOOKEEPER_TICK_TIME=2000 \
         -e ZOOKEEPER_INIT_LIMIT=10 \

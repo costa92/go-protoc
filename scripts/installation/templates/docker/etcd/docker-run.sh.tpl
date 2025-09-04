@@ -39,7 +39,7 @@ mkdir -p "${CONFIG_DIR}" "${DATA_DIR}" "${LOG_DIR}"
 docker network create "${NETWORK_NAME}" 2>/dev/null || true
 
 # 创建Docker卷（如果不存在）
-docker volume create "${PROJ_PREFIX}-etcd-data" 2>/dev/null || true
+docker volume create "${CONTAINER_NAME_ETCD}-data" 2>/dev/null || true
 
 # 停止并删除现有容器（如果存在）
 docker stop "${CONTAINER_NAME}" 2>/dev/null || true
@@ -52,7 +52,7 @@ docker run -d \
     --restart unless-stopped \
     -p "${SERVICE_PORT}:2379" \
     -p "${PEER_PORT}:2380" \
-    -v "${PROJ_PREFIX}-etcd-data":${ETCD_DATA_DIR} \
+    -v "${CONTAINER_NAME_ETCD}-data":${ETCD_DATA_DIR} \
     -v "${CONFIG_DIR}:/etc/etcd:ro" \
     -v "${LOG_DIR}:/var/log/etcd" \
     -e ETCD_NAME="${ETCD_NAME}" \

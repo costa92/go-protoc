@@ -35,9 +35,9 @@ mkdir -p "$CONFIG_DIR" "$DATA_DIR" "$LOG_DIR"
 docker network create "$NETWORK_NAME" 2>/dev/null || true
 
 # 创建Docker卷（如果不存在）
-docker volume create "${PROJ_PREFIX}-mongodb-data" 2>/dev/null || true
-docker volume create "${PROJ_PREFIX}-mongodb-logs" 2>/dev/null || true
-docker volume create "${PROJ_PREFIX}-mongodb-config" 2>/dev/null || true
+docker volume create "${CONTAINER_NAME_MONGODB}-data" 2>/dev/null || true
+docker volume create "${CONTAINER_NAME_MONGODB}-logs" 2>/dev/null || true
+docker volume create "${CONTAINER_NAME_MONGODB}-config" 2>/dev/null || true
 
 # 停止并删除现有容器（如果存在）
 docker stop "$CONTAINER_NAME" 2>/dev/null || true
@@ -49,9 +49,9 @@ docker run -d \
     --network "$NETWORK_NAME" \
     --restart unless-stopped \
     -p "$MONGODB_PORT:27017" \
-    -v "${PROJ_PREFIX}-mongodb-data:/data/db" \
-    -v "${PROJ_PREFIX}-mongodb-config:/data/configdb" \
-    -v "${PROJ_PREFIX}-mongodb-logs:/var/log/mongodb" \
+    -v "${CONTAINER_NAME_MONGODB}-data:/data/db" \
+    -v "${CONTAINER_NAME_MONGODB}-config:/data/configdb" \
+    -v "${CONTAINER_NAME_MONGODB}-logs:/var/log/mongodb" \
     -v "$LOG_DIR:/host/logs" \
     -e MONGO_INITDB_ROOT_USERNAME="$MONGODB_ROOT_USERNAME" \
     -e MONGO_INITDB_ROOT_PASSWORD="$MONGODB_ROOT_PASSWORD" \

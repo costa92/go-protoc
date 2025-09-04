@@ -74,4 +74,33 @@ fi
 # 检查数据卷
 echo ""
 echo "=== 数据卷状态 ==="
-docker volume ls | grep -E "(${PROJ_PREFIX}-nacos-data|${PROJ_PREFIX}-nacos-logs)" || echo "未找到Nacos数据卷"
+echo "数据卷列表:"
+docker volume ls | grep -E "(${CONTAINER_NAME_NACOS}-data|${CONTAINER_NAME_NACOS}-logs)" || echo "未找到Nacos数据卷"
+
+echo ""
+echo "数据卷使用情况:"
+if docker ps --filter name="${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "${CONTAINER_NAME}"; then
+    echo "✅ Nacos数据卷挂载状态:"
+    docker inspect ${CONTAINER_NAME} --format='{{range .Mounts}}{{if .Name}}  {{.Name}} -> {{.Destination}} ({{.Type}}){{"\n"}}{{end}}{{end}}' | grep -E "${PROJ_PREFIX}-nacos" || echo "  无命名数据卷"
+    
+    echo ""
+    echo "数据目录内容:"
+    volume_size=$(docker system df -v | grep "${CONTAINER_NAME_NACOS}-data" | awk '{print $3}' || echo "0B")
+    if [ "$volume_size" != "0B" ] && [ -n "$volume_size" ]; then
+        echo "  数据卷大小: $volume_size"
+        echo "  状态: ✅ 配置数据已持久化"
+    else
+        echo "  数据卷大小: 0B"  
+        echo "  状态: ⚠️ 数据卷为空或未初始化"
+    fi
+else
+    echo "❌ Nacos容器未运行，无法检查数据卷使用情况"
+    volume_size=$(docker system df -v | grep "${CONTAINER_NAME_NACOS}-data" | awk '{print $3}' || echo "0B")
+    if [ "$volume_size" != "0B" ] && [ -n "$volume_size" ]; then
+        echo "数据卷大小: $volume_size"
+        echo "状态: ✅ 历史配置数据存在"
+    else
+        echo "数据卷大小: 0B"
+        echo "状态: ⚠️ 数据卷为空"
+    fi
+fi

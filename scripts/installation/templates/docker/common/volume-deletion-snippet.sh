@@ -1,59 +1,8 @@
-#!/usr/bin/env bash
-
-# Prometheus Docker停止脚本 - 简化版
-# Project: ${PROJ_NAME:-go-protoc}
-# Service: Prometheus ${PROMETHEUS_VERSION}
-
-set -eEuo pipefail
-
-# 基础配置
-readonly CONTAINER_NAME="${PROJ_PREFIX}-prometheus"
-readonly DATA_VOLUME_NAME="${CONTAINER_NAME_PROMETHEUS}-data"
-
-# Exporter容器列表
-readonly EXPORTER_CONTAINERS=(
-    "${PROJ_PREFIX}-redis-exporter"
-    "${PROJ_PREFIX}-mysql-exporter"
-)
-
-echo "🛑 停止Prometheus监控服务..."
-
-# 停止函数
-stop_container() {
-    local container_name="$1"
-    local description="${2:-容器}"
-    
-    if docker ps -a --filter name="^\${container_name}\$" --format "{{.Names}}" | grep -q "^\${container_name}\$"; then
-        echo "停止\${description}: \${container_name}"
-        docker stop "\${container_name}" 2>/dev/null || true
-        docker rm "\${container_name}" 2>/dev/null || true
-        echo "✅ \${description}已停止并删除"
-    else
-        echo "ℹ️ \${description}不存在，跳过"
-    fi
-}
-
-# 停止所有exporter
-echo ""
-echo "🔌 停止监控组件..."
-for exporter in "\${EXPORTER_CONTAINERS[@]}"; do
-    exporter_type="\${exporter#${PROJ_PREFIX}-}"
-    stop_container "\${exporter}" "\${exporter_type}"
-done
-
-# 停止Prometheus主服务
-echo ""
-echo "📊 停止Prometheus主服务..."
-stop_container "\${CONTAINER_NAME}" "Prometheus主服务"
-
-# === 统一数据卷删除处理 ===
-SERVICE_NAME="Prometheus"
-DATA_VOLUMES="${CONTAINER_NAME_PROMETHEUS}-data"
-DATA_DESCRIPTION="  - 所有监控指标数据
-  - 历史时间序列数据
-  - 告警规则和状态
-  - 服务发现配置
-  - 查询统计和缓存"
+# 通用数据卷删除处理 - 在停止脚本末尾添加此片段
+# 需要定义以下变量：
+# - SERVICE_NAME: 服务名称（用于显示）
+# - DATA_VOLUMES: 数据卷列表，逗号分隔
+# - DATA_DESCRIPTION: 数据描述，每行一个项目
 
 # 支持多种数据删除触发方式
 should_remove_data=false
@@ -64,6 +13,11 @@ if [[ "${REMOVE_DATA:-}" == "true" ]]; then
 fi
 
 # 方式2: 命令行参数
+if [[ "${1:-}" == "--remove-data" ]] || [[ "${1:-}" == "--force" ]]; then
+    should_remove_data=true
+fi
+
+# 方式3: 检查所有参数
 for arg in "$@"; do
     case $arg in
         --remove-data|--force)
@@ -75,7 +29,7 @@ done
 
 if [ "$should_remove_data" = true ]; then
     echo ""
-    echo "⚠️  警告：将删除${SERVICE_NAME}数据卷！这将永久删除所有监控数据！"
+    echo "⚠️  警告：将删除${SERVICE_NAME}数据卷！这将永久删除所有数据！"
     echo "包括："
     echo "$DATA_DESCRIPTION"
     echo ""
@@ -85,6 +39,7 @@ if [ "$should_remove_data" = true ]; then
         read -p "确认删除数据卷？(y/N): " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
+            # 分割数据卷字符串并删除
             IFS=',' read -ra VOLUME_ARRAY <<< "$DATA_VOLUMES"
             deleted_volumes=()
             for volume in "${VOLUME_ARRAY[@]}"; do
@@ -112,7 +67,7 @@ if [ "$should_remove_data" = true ]; then
             done
             echo "${SERVICE_NAME}数据卷已强制删除: $DATA_VOLUMES"
         else
-            echo "⚠️  非交互式环境，需要设置 FORCE_DELETE=true 进行强制删除"
+            echo "非交互式环境，需要设置 FORCE_DELETE=true 进行强制删除"
             echo "数据卷保留: $DATA_VOLUMES"
         fi
     fi
@@ -126,10 +81,6 @@ else
     done
     echo ""
     echo "   删除数据的方式："
-    echo "     环境变量: REMOVE_DATA=true make docker.prometheus.stop"
+    echo "     环境变量: REMOVE_DATA=true make docker.${SERVICE_NAME,,}.stop"
     echo "     直接调用: bash <脚本路径> --remove-data"
-    echo "     强制删除: REMOVE_DATA=true FORCE_DELETE=true make docker.prometheus.stop"
 fi
-
-echo ""
-echo "📋 停止操作完成！"

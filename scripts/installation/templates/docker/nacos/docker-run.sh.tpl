@@ -39,8 +39,8 @@ mkdir -p "$CONFIG_DIR" "$DATA_DIR" "$LOG_DIR"
 docker network create "$NETWORK_NAME" 2>/dev/null || true
 
 # 创建Docker卷（如果不存在）
-docker volume create "${PROJ_PREFIX}-nacos-data" 2>/dev/null || true
-docker volume create "${PROJ_PREFIX}-nacos-logs" 2>/dev/null || true
+docker volume create "${CONTAINER_NAME_NACOS}-data" 2>/dev/null || true
+docker volume create "${CONTAINER_NAME_NACOS}-logs" 2>/dev/null || true
 
 # 停止并删除现有容器（如果存在）
 docker stop "$CONTAINER_NAME" 2>/dev/null || true
@@ -61,8 +61,8 @@ docker run -d \
     -p "${HTTP_PORT}:9848" \
     -p "${GRPC_PORT}:8848" \
     -p "9849:9849" \
-    -v "${PROJ_PREFIX}-nacos-data:/home/nacos/data" \
-    -v "${PROJ_PREFIX}-nacos-logs:/home/nacos/logs" \
+    -v "${CONTAINER_NAME_NACOS}-data:/home/nacos/data" \
+    -v "${CONTAINER_NAME_NACOS}-logs:/home/nacos/logs" \
     -v "$LOG_DIR:/var/log/nacos" \
     -e MODE="$MODE" \
     -e NACOS_SERVER_PORT="8848" \

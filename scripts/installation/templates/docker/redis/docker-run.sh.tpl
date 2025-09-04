@@ -72,7 +72,7 @@ fi
 docker network create "${PROJ_NETWORK_NAME}" 2>/dev/null || true
 
 # 创建Docker卷（如果不存在）
-docker volume create "${PROJ_PREFIX}-redis-data" 2>/dev/null || true
+docker volume create "${CONTAINER_NAME_REDIS}-data" 2>/dev/null || true
 
 # 停止并删除现有容器（如果存在）
 docker stop "${PROJ_PREFIX}-redis" 2>/dev/null || true
@@ -84,7 +84,7 @@ docker run -d \
     --network "${PROJ_NETWORK_NAME}" \
     --restart unless-stopped \
     -p "${PROJ_REDIS_PORT:-6379}:6379" \
-    -v "${PROJ_PREFIX}-redis-data:/data" \
+    -v "${CONTAINER_NAME_REDIS}-data:/data" \
     -v "${PROJ_REDIS_CONFIG_DIR}/redis.conf:/usr/local/etc/redis/redis.conf:ro" \
     -v "${PROJ_REDIS_LOG_DIR}:/var/log/redis" \
     -e REDIS_REPLICATION_MODE=master \
