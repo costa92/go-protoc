@@ -68,6 +68,7 @@ docker run -d \
     -e NACOS_SERVER_PORT="8848" \
     -e NACOS_APPLICATION_PORT="9848" \
     -e SPRING_DATASOURCE_PLATFORM=embedded \
+    -e NACOS_STANDALONE=true \
     -e NACOS_AUTH_ENABLE="$NACOS_AUTH_ENABLE" \
     -e NACOS_AUTH_TOKEN="$NACOS_AUTH_TOKEN" \
     -e NACOS_AUTH_IDENTITY_KEY="$NACOS_AUTH_IDENTITY_KEY" \
@@ -105,21 +106,22 @@ docker ps --filter name="$CONTAINER_NAME" --format "table {{.Names}}\t{{.Status}
 
 # 等待Nacos完全启动
 echo "等待Nacos启动完成..."
-timeout=120
-while [ $timeout -gt 0 ]; do
+
+# 简化的等待逻辑，Mac和Linux通用
+for i in {1..40}; do
     if curl -s -f "http://localhost:$HTTP_PORT/nacos/" >/dev/null 2>&1; then
-        echo "Nacos启动成功 ✅"
+        echo "Nacos启动成功 ✅ (耗时: $((i * 3)) 秒)"
         break
     fi
+    echo "等待中... (${i}/40)"
     sleep 3
-    ((timeout-=3))
+    if [ $i -eq 40 ]; then
+        echo "Nacos启动超时，请检查日志 ❌"
+        echo "最近的容器日志:"
+        docker logs "$CONTAINER_NAME" --tail 20
+        exit 1
+    fi
 done
-
-if [ $timeout -le 0 ]; then
-    echo "Nacos启动超时，请检查日志 ❌"
-    docker logs "$CONTAINER_NAME" --tail 20
-    exit 1
-fi
 
 echo ""
 echo "🎉 Nacos服务已成功启动!"

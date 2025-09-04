@@ -4,7 +4,7 @@
 # ==============================================================================
 
 # Docker template testing variables
-DOCKER_TEST_SERVICES := redis mysql mariadb etcd otelcol victorialogs prometheus
+DOCKER_TEST_SERVICES := redis mysql mariadb etcd otelcol victorialogs prometheus jaeger
 # 动态环境选择：支持 PROJ_ENVIRONMENT 变量控制环境配置
 # 使用方式：PROJ_ENVIRONMENT=test make docker.redis.start
 DOCKER_ENV_FILE = $(PROJ_ROOT_DIR)/manifests/env/env.$(or $(PROJ_ENVIRONMENT),dev)
@@ -154,6 +154,17 @@ docker.test.mariadb-full: ## Full MariaDB test cycle (start -> status -> stop ->
 	@$(MAKE) docker.mariadb.cleanup
 	@echo "===========> MariaDB test cycle completed successfully"
 
+.PHONY: docker.test.jaeger-full
+docker.test.jaeger-full: ## Full Jaeger test cycle (start -> status -> stop -> cleanup)
+	@echo "===========> Running full Jaeger test cycle"
+	@$(MAKE) docker.jaeger.start
+	@sleep 10
+	@$(MAKE) docker.jaeger.status
+	@sleep 2
+	@$(MAKE) docker.jaeger.stop
+	@$(MAKE) docker.jaeger.cleanup
+	@echo "===========> Jaeger test cycle completed successfully"
+
 ##@ Docker Template - Specific Service Helpers
 # ==============================================================================
 # Service-specific helper commands
@@ -188,6 +199,17 @@ docker.mariadb.logs: ## Show MariaDB container logs
 docker.redis.logs: ## Show Redis container logs
 	@echo "===========> Redis container logs"
 	@docker logs proj-redis --tail 50
+
+.PHONY: docker.jaeger.logs
+docker.jaeger.logs: ## Show Jaeger container logs
+	@echo "===========> Jaeger container logs"
+	@docker logs proj-jaeger --tail 50
+
+.PHONY: docker.jaeger.ui
+docker.jaeger.ui: ## Open Jaeger Web UI
+	@echo "===========> Opening Jaeger Web UI"
+	@echo "Jaeger Web UI: http://localhost:16686/"
+	@open "http://localhost:16686/" 2>/dev/null || echo "Please open http://localhost:16686/ in your browser"
 
 .PHONY: docker.victorialogs.ui
 docker.victorialogs.ui: ## Open VictoriaLogs Web UI
@@ -280,6 +302,7 @@ docker.help.templates: ## Show help for Docker template system
 	@echo "  make docker.test.redis-full   - Full Redis test cycle"
 	@echo "  make docker.test.mysql-full   - Full MySQL test cycle"
 	@echo "  make docker.test.mariadb-full - Full MariaDB test cycle"
+	@echo "  make docker.test.jaeger-full  - Full Jaeger test cycle"
 	@echo "  make docker.env.check         - Check Docker environment"
 	@echo ""
 	@echo "🌐 Network & Infrastructure:"

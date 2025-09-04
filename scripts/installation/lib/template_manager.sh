@@ -228,6 +228,45 @@ proj::template::setup_service_variables() {
             export DATA_VOLUME_NAME="${PROJ_PREFIX}-nacos-data"
             export LOGS_VOLUME_NAME="${PROJ_PREFIX}-nacos-logs"
             ;;
+        "otel-collector")
+            export CONFIG_DIR="${PROJ_OTELCOL_CONFIG_DIR}"
+            export DATA_DIR="${PROJ_OTELCOL_DATA_DIR}"
+            export LOG_DIR="${PROJ_OTELCOL_DATA_DIR}/logs"
+            export CONTAINER_NAME="${CONTAINER_NAME_OTEL_COLLECTOR}"
+            export IMAGE_NAME="otel/opentelemetry-collector-contrib:${OTELCOL_VERSION:-0.132.0}"
+            export GRPC_PORT="${PROJ_OTELCOL_GRPC_PORT:-4317}"
+            export HTTP_PORT="${PROJ_OTELCOL_HTTP_PORT:-4318}"
+            export METRICS_PORT="${PROJ_OTELCOL_METRICS_PORT:-8888}"
+            export HEALTH_PORT="${PROJ_OTELCOL_HEALTH_PORT:-13133}"
+            export NETWORK_NAME="${PROJ_NETWORK_NAME}"
+            export PROJ_JAEGER_OTLP_HOST="${PROJ_JAEGER_OTLP_HOST:-${PROJ_ACCESS_HOST}}"
+            export PROJ_JAEGER_OTLP_PORT="${PROJ_JAEGER_OTLP_PORT:-4317}"
+            export VICTORIALOGS_ENDPOINT="${PROJ_VICTORIALOGS_HOST}:${PROJ_VICTORIALOGS_PORT}"
+            export JAEGER_ENDPOINT="${PROJ_JAEGER_OTLP_HOST}:${PROJ_JAEGER_OTLP_PORT}"
+            export PROMETHEUS_ENDPOINT="${PROJ_PROMETHEUS_HOST}:${PROJ_PROMETHEUS_PORT}"
+            export PROJ_SERVICE_NAME="${PROJ_SERVICE_NAME:-apiserver}"
+            export PROJ_SERVICE_VERSION="${PROJ_SERVICE_VERSION:-v2.0.0}"
+            export PROJ_ENVIRONMENT="${PROJ_ENVIRONMENT:-development}"
+            export OTELCOL_VERSION="${OTELCOL_VERSION}"
+            ;;
+        "otel-agent")
+            export CONFIG_DIR="${PROJ_OTEL_AGENT_CONFIG_DIR}"
+            export DATA_DIR="${PROJ_OTEL_AGENT_DATA_DIR}"
+            export LOG_DIR="${PROJ_OTEL_AGENT_DATA_DIR}/logs"
+            export CONTAINER_NAME="${CONTAINER_NAME_OTEL_AGENT}"
+            export IMAGE_NAME="otel/opentelemetry-collector-contrib:${OTELCOL_VERSION:-0.132.0}"
+            export GRPC_PORT="${PROJ_OTEL_AGENT_GRPC_PORT:-4327}"
+            export HTTP_PORT="${PROJ_OTEL_AGENT_HTTP_PORT:-4328}"
+            export HEALTH_PORT="${PROJ_OTEL_AGENT_HEALTH_PORT:-13134}"
+            export NETWORK_NAME="${PROJ_NETWORK_NAME}"
+            export COLLECTOR_CONTAINER="${CONTAINER_NAME_OTEL_COLLECTOR}"
+            export COLLECTOR_ENDPOINT="${CONTAINER_NAME_OTEL_COLLECTOR}:4317"
+            export OTEL_COLLECTOR_ENDPOINT="${CONTAINER_NAME_OTEL_COLLECTOR}:4317"
+            export PROJ_SERVICE_NAME="${PROJ_SERVICE_NAME:-apiserver}"
+            export PROJ_SERVICE_VERSION="${PROJ_SERVICE_VERSION:-v2.0.0}"
+            export PROJ_ENVIRONMENT="${PROJ_ENVIRONMENT:-development}"
+            export OTEL_AGENT_VERSION="${OTEL_AGENT_VERSION}"
+            ;;
         *)
             proj::log::debug "No specific variables set for service: $service_name"
             ;;
@@ -238,9 +277,9 @@ proj::template::envsubst_generate() {
     local template_path="$1"
     local output_path="$2"
     
-    # 获取模板中的所有变量 - 修复正则表达式
+    # 获取模板中的所有变量 - 修复正则表达式以支持默认值语法
     local template_vars
-    template_vars=$(grep -oE '\$\{[A-Za-z_][A-Za-z0-9_]*\}' "$template_path" | sort -u | tr '\n' ' ')
+    template_vars=$(grep -oE '\$\{[A-Za-z_][A-Za-z0-9_]*(:[-][^}]*)?\}' "$template_path" | sed 's/:[-][^}]*//g' | sort -u | tr '\n' ' ')
     
     proj::log::debug "Template variables: $template_vars"
     
