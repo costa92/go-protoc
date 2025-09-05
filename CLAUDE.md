@@ -8,7 +8,7 @@ Production-ready Go microservice framework built on Kratos v2 with Protocol Buff
 
 **Module Path**: `github.com/costa92/go-protoc/v2`
 **Go Version**: 1.24.0+
-**Current Branch**: `v2`
+**Current Branch**: `v2` (active: `feature/v2-log`)
 
 ## Critical Constraints
 
@@ -89,7 +89,7 @@ make docker.test-services.stop  # Stop all test services
 - `make db-setup` - Complete MySQL setup (start + migrate)
 - `make db-connect` - Connect to MySQL via CLI
 - `make db-migrate` - Execute database migrations
-- Database config: `onex` database, `127.0.0.1:3306`, user: `root`, password: `proj(#)666`
+- Database config: `dev_go-protoc` database, `127.0.0.1:3307` (dev), user: `root`, password: `proj(#)666`
 
 ### Build and Version Management
 
@@ -315,6 +315,7 @@ curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=service.name:apise
 | Grafana | 10.2.4 | Monitoring dashboards | `make docker.grafana.start` |
 | VictoriaLogs | 1.28.0 | Log aggregation | `make docker.victorialogs.start` |
 | OTEL Collector | 0.132.0 | Telemetry collection | `make docker.otelcol.start` |
+| etcd | v3.5.12 | Distributed coordination | `make docker.etcd.start` |
 
 ### Environment Configuration
 
@@ -451,6 +452,12 @@ log:
 1. Check OTEL Collector config mapping: `attributes.msg` → `attributes._msg`
 2. Restart collector: `docker restart proj-otelcol`
 3. Verify: `curl -s "http://127.0.0.1:9428/select/logsql/query" -d 'query=_msg:*'`
+
+**Docker Health Check Issues**: If containers show as "(unhealthy)":
+
+1. **Database containers**: Password with special chars needs proper quoting: `-p'${PASSWORD}'` not `-p${PASSWORD}`
+2. **Web services**: Use `127.0.0.1` instead of `localhost` to avoid IPv6 resolution issues
+3. **Minimal containers** (like etcd): May need health checks disabled if `/bin/sh` is not available
 
 ## AI Agent Module (Planned)
 
@@ -749,9 +756,3 @@ ALWAYS prefer editing an existing file to creating a new one.
 NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
 NEVER modify or repair files within `_*` directories (`_output/`, `_thirdparty/`, `_generated/`) - these contain auto-generated content, build artifacts, and third-party service data that should not be manually edited.
 NEVER reference `scripts/` files from `manifests/env/` files - environment configurations must be self-contained to avoid circular dependencies and ensure portability.
-
-# important-instruction-reminders
-Do what has been asked; nothing more, nothing less.
-NEVER create files unless they're absolutely necessary for achieving your goal.
-ALWAYS prefer editing an existing file to creating a new one.
-NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
