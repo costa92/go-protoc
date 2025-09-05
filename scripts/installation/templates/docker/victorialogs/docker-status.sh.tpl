@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 
 # VictoriaLogs Docker状态检查脚本模板
-# Project: ${PROJ_NAME:-go-protoc}
+# Project: ${PROJ_NAME}
 # Service: VictoriaLogs ${VICTORIALOGS_VERSION}
-# Environment: ${PROJ_ENVIRONMENT:-development}
+# Environment: ${PROJ_ENVIRONMENT}
 
 set -eEuo pipefail
 
 # 服务配置
 readonly CONTAINER_NAME="${PROJ_PREFIX}-victorialogs"
-readonly SERVICE_PORT="${PROJ_VICTORIALOGS_PORT:-9428}"
+readonly SERVICE_PORT="${PROJ_VICTORIALOGS_PORT}"
 
 echo "=== VictoriaLogs Docker服务状态 ==="
 
@@ -44,7 +44,7 @@ if docker ps --filter name="^${CONTAINER_NAME}$" --format "table {{.Names}}" | g
     # 测试VictoriaLogs连接
     echo ""
     echo "连接测试:"
-    if curl -s -f "http://localhost:${SERVICE_PORT}/health" >/dev/null 2>&1; then
+    if curl -s -f "http://127.0.0.1:${SERVICE_PORT}/health" >/dev/null 2>&1; then
         echo "VictoriaLogs连接: 正常 ✅"
         echo "Web UI: http://localhost:${SERVICE_PORT}/select/vmui/"
         echo "API端点: http://localhost:${SERVICE_PORT}/"

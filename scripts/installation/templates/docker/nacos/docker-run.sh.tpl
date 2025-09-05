@@ -83,7 +83,7 @@ docker run -d \
     --log-driver json-file \
     --log-opt max-size=10m \
     --log-opt max-file=3 \
-    --health-cmd "curl -f http://localhost:9848/nacos/actuator/health || exit 1" \
+    --health-cmd "curl -f http://127.0.0.1:9848/nacos/actuator/health || exit 1" \
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \

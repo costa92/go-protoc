@@ -81,7 +81,7 @@ docker run -d \
     --log-driver json-file \
     --log-opt max-size=10m \
     --log-opt max-file=3 \
-    --health-cmd "wget -q --spider http://localhost:16686/ || exit 1" \
+    --health-cmd "wget -q --spider http://127.0.0.1:16686/ || exit 1" \
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 3 \

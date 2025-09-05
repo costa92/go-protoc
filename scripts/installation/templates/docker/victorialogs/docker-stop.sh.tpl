@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 # VictoriaLogs Docker停止脚本模板
-# Project: ${PROJ_NAME:-go-protoc}
+# Project: ${PROJ_NAME}
 # Service: VictoriaLogs ${VICTORIALOGS_VERSION}
-# Environment: ${PROJ_ENVIRONMENT:-development}
+# Environment: ${PROJ_ENVIRONMENT}
 
 set -eEuo pipefail
 
@@ -42,7 +42,7 @@ DATA_DESCRIPTION="  - 所有应用程序日志
 should_remove_data=false
 
 # 方式1: 环境变量 (推荐用于Make命令)
-if [[ "${REMOVE_DATA:-}" == "true" ]]; then
+if [[ "${REMOVE_DATA}" == "true" ]]; then
     should_remove_data=true
 fi
 
@@ -87,7 +87,7 @@ if [ "$should_remove_data" = true ]; then
         fi
     else
         # 非交互式环境，需要环境变量确认
-        if [[ "${FORCE_DELETE:-}" == "true" ]]; then
+        if [[ "${FORCE_DELETE}" == "true" ]]; then
             IFS=',' read -ra VOLUME_ARRAY <<< "$DATA_VOLUMES"
             for volume in "${VOLUME_ARRAY[@]}"; do
                 volume=$(echo "$volume" | xargs)

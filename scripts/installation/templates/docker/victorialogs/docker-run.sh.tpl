@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 # VictoriaLogs Docker运行脚本模板
-# Project: ${PROJ_NAME:-go-protoc}
+# Project: ${PROJ_NAME}
 # Service: VictoriaLogs ${VICTORIALOGS_VERSION}
-# Environment: ${PROJ_ENVIRONMENT:-development}
+# Environment: ${PROJ_ENVIRONMENT}
 
 set -eEuo pipefail
 
@@ -11,7 +11,7 @@ set -eEuo pipefail
 readonly SERVICE_NAME="victorialogs"
 readonly CONTAINER_NAME="${PROJ_PREFIX}-victorialogs"
 readonly IMAGE_NAME="victoriametrics/victoria-logs:v${VICTORIALOGS_VERSION}"
-readonly SERVICE_PORT="${PROJ_VICTORIALOGS_PORT:-9428}"
+readonly SERVICE_PORT="${PROJ_VICTORIALOGS_PORT}"
 
 # 目录配置
 readonly CONFIG_DIR="${PROJ_VICTORIALOGS_CONFIG_DIR}"
@@ -46,11 +46,11 @@ docker run -d \
     -e GOMEMLIMIT=1GiB \
     -e PROJ_SERVICE_NAME=victorialogs \
     -e PROJ_SERVICE_VERSION=${VICTORIALOGS_VERSION} \
-    -e PROJ_ENVIRONMENT=${PROJ_ENVIRONMENT:-development} \
+    -e PROJ_ENVIRONMENT=${PROJ_ENVIRONMENT} \
     --log-driver json-file \
     --log-opt max-size=10m \
     --log-opt max-file=3 \
-    --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:9428/health || exit 1" \
+    --health-cmd "wget --no-verbose --tries=1 --spider http://127.0.0.1:9428/health || exit 1" \
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 3 \
@@ -59,12 +59,12 @@ docker run -d \
     -httpListenAddr=0.0.0.0:9428 \
     -storageDataPath=/victoria-logs-data \
     -loggerLevel=INFO \
-    -retentionPeriod=${VICTORIALOGS_RETENTION:-7d}
+    -retentionPeriod=${VICTORIALOGS_RETENTION}
 
 echo "VictoriaLogs容器已启动: ${CONTAINER_NAME}"
 echo "Web UI: http://localhost:${SERVICE_PORT}/select/vmui/"
 echo "API端点: http://localhost:${SERVICE_PORT}/"
-echo "数据保留期: ${VICTORIALOGS_RETENTION:-7d}"
+echo "数据保留期: ${VICTORIALOGS_RETENTION}"
 echo "配置目录: ${CONFIG_DIR}"
 echo "数据目录: ${DATA_DIR}"
 

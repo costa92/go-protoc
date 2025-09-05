@@ -59,7 +59,7 @@ docker run -d \
     --log-driver json-file \
     --log-opt max-size=10m \
     --log-opt max-file=3 \
-    --health-cmd "mariadb-admin ping -h localhost -u root -p${MARIADB_ROOT_PASSWORD}" \
+    --health-cmd "mariadb-admin ping -h localhost -u root -p'${MARIADB_ROOT_PASSWORD}'" \
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 3 \

@@ -174,7 +174,7 @@ docker run -d \
     --log-driver json-file \
     --log-opt max-size=10m \
     --log-opt max-file=3 \
-    --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1" \
+    --health-cmd "wget --no-verbose --tries=1 --spider http://127.0.0.1:9090/-/healthy || exit 1" \
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 3 \

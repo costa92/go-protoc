@@ -59,7 +59,7 @@ docker run -d \
     --log-driver json-file \
     --log-opt max-size=10m \
     --log-opt max-file=3 \
-    --health-cmd "mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD}" \
+    --health-cmd "mysqladmin ping -h localhost -u root -p'${MYSQL_ROOT_PASSWORD}'" \
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 3 \
