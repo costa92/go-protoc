@@ -100,11 +100,6 @@ docker run -d \
     --log-driver json-file \
     --log-opt max-size=5m \
     --log-opt max-file=3 \
-    --health-cmd "curl -f http://localhost:13133/ || exit 1" \
-    --health-interval 30s \
-    --health-timeout 10s \
-    --health-retries 3 \
-    --health-start-period 30s \
     "${IMAGE_NAME}" \
     --config=/etc/otelcol-contrib/config.yaml
 

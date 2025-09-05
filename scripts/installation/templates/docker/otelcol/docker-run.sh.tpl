@@ -29,8 +29,17 @@ echo ""
 
 # 步骤1: 启动 OTEL Collector
 echo "===========> 步骤 1/2: 启动 OTEL Collector"
-cd "${PROJ_ROOT_DIR}" && make docker.otel-collector.start
-if [[ $? -ne 0 ]]; then
+collector_script="${PROJ_ROOT_DIR}/_generated/docker-scripts/otel-collector/docker-run.sh"
+if [[ -f "$collector_script" ]]; then
+    bash "$collector_script"
+    collector_exit_code=$?
+else
+    echo "❌ OTEL Collector 脚本不存在，先生成脚本..."
+    cd "${PROJ_ROOT_DIR}" && make docker.otel-collector.start
+    collector_exit_code=$?
+fi
+
+if [[ $collector_exit_code -ne 0 ]]; then
     echo "❌ OTEL Collector 启动失败"
     exit 1
 fi
@@ -39,10 +48,19 @@ echo ""
 echo "✅ OTEL Collector 启动成功，等待服务就绪..."
 sleep 3
 
-# 步骤2: 启动 OTEL Agent
+# 步骤2: 启动 OTEL Agent  
 echo "===========> 步骤 2/2: 启动 OTEL Agent"
-cd "${PROJ_ROOT_DIR}" && make docker.otel-agent.start
-if [[ $? -ne 0 ]]; then
+agent_script="${PROJ_ROOT_DIR}/_generated/docker-scripts/otel-agent/docker-run.sh"
+if [[ -f "$agent_script" ]]; then
+    bash "$agent_script"
+    agent_exit_code=$?
+else
+    echo "❌ OTEL Agent 脚本不存在，先生成脚本..."
+    cd "${PROJ_ROOT_DIR}" && make docker.otel-agent.start
+    agent_exit_code=$?
+fi
+
+if [[ $agent_exit_code -ne 0 ]]; then
     echo "❌ OTEL Agent 启动失败"
     echo "⚠️  Collector 仍在运行，如需清理请执行: make docker.otel-collector.stop"
     exit 1

@@ -34,13 +34,13 @@ processors:
         value: "${OTELCOL_VERSION}"
         action: upsert
       - key: service.name
-        value: "${PROJ_SERVICE_NAME:-apiserver}"
+        value: "${PROJ_SERVICE_NAME}"
         action: upsert
       - key: service.version
-        value: "${PROJ_SERVICE_VERSION:-v2.0.0}"
+        value: "${PROJ_SERVICE_VERSION}"
         action: upsert
       - key: deployment.environment
-        value: "${PROJ_ENVIRONMENT:-development}"
+        value: "${PROJ_ENVIRONMENT}"
         action: upsert
 
 exporters:
